@@ -79,7 +79,7 @@ model.add(SimpleRNN(hidden_dim, activation='relu',return_sequences=True, use_bia
 #
 model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
-#    plot_model(model, to_file='../../model.png')
+plot_model(model, to_file='../../model.png')
 #training loop
 
 model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = epochs,validation_data = validation_generator,validation_steps=validation_steps)
