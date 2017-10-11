@@ -57,7 +57,7 @@ print x.shape,y.shape
 
 
 #model setting
-model = SimpleSeq2Seq(input_dim=features_count, hidden_dim=features_count, output_length=max_len, output_dim=features_count)
+model = SimpleSeq2Seq(input_dim=features_count, hidden_dim=features_count, output_length=max_len, output_dim=features_count,depth=3)
 
 model.add(Dense(num_classes+1, activation="softmax"))
 model.compile(loss='mse', optimizer='rmsprop')
