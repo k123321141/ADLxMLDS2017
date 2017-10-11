@@ -19,13 +19,15 @@ epochs = 20
 def split_dic_validation(dic,rate):
     sample_count = len(dic.keys())
     vali_count = int(np.ceil(sample_count*rate))
-
     vali_dic = {}
     train_dic = {}
-    print 'split dic into train_dic,vali_dic ... '
+    
+    
     i = 0
-    for key in random.shuffle(dic.keys()):
-        if i < sample_count:
+    shffle_keys = dic.keys()
+    random.shuffle(shffle_keys)
+    for key in shffle_keys:
+        if i < vali_count:
             vali_dic[key] = dic[key]
         else:
             train_dic[key] = dic[key]
@@ -42,10 +44,12 @@ def init_dic(dic):
         assert x.shape[0] == y.shape[0] and features_count == x.shape[1]
         x = x.reshape(1,num,features_count)
         y = ( to_categorical(y,num_classes) ).reshape(1,num,num_classes)
-
+        dic[sentence_id] = (x,y)
 
 def dic2generator(dic):
-    for key in random.shuffle(dic.keys()):
+    shffle_keys = dic.keys()
+    random.shuffle(shffle_keys)
+    for key in shffle_keys:
         yield dic[key]
 
 
@@ -53,7 +57,9 @@ def dic2generator(dic):
 dic = myinput.load_input()
 init_dic(dic)
 
-training_dic,validation_dic = split_dic_validation(validation_rate)
+
+
+training_dic,validation_dic = split_dic_validation(dic,validation_rate)
 
 training_generator = dic2generator(training_dic)
 validation_generator = dic2generator(validation_dic)
