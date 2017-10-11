@@ -68,6 +68,6 @@ model.add(TimeDistributed(Dense(num_classes+1,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-model.fit(x,y,batch_size=100,epochs=epochs,validation_split=0.05,callbacks=[early_stopping])
+model.fit(x,y,batch_size=500,epochs=epochs,validation_split=0.05,callbacks=[early_stopping])
 
 model.save('./seq2seq.model')
