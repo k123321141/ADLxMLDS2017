@@ -40,7 +40,7 @@ def init_dic(dic):
         x,y = dic[sentence_id]
         num = x.shape[0]
         assert x.shape[0] == y.shape[0] and features_count == x.shape[1]
-        x = x.reshape[1,num,features_count]
+        x = x.reshape(1,num,features_count)
         y = ( to_categorical(y,num_classes) ).reshape(1,num,num_classes)
 
 
