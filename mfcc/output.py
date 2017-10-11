@@ -54,32 +54,60 @@ def read_input(data_path,map_48_int_dict):
 
 def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_dict,map_48_39_dict):
     rev_dic = reverse_dic(map_48_int_dict)
+    total = len(sentence_dict.keys())
+    index = 1
     with open(output_path,'w') as f:
+        f.write('id,phone_sequence\n')
         for sentence_id in sentence_dict.keys():
             x = sentence_dict[sentence_id]
-            y_arr = [np.argmax(i, axis=1) for i in model.predict(x)]
+            y_arr = list( ([np.argmax(i, axis=1) for i in model.predict(x)])[0])
+
             y_arr = y_arr[0: y_arr.index(num_classes)]
             c_arr = [rev_dic[y] for y in y_arr]
+            
+            
             c_arr = [map_48_39_dict[c] for c in c_arr]
+            c_arr = trim_arr(c_arr)
             c_arr = [map_48_char_dict[c] for c in c_arr]
 
+            s = ''
+            for c in c_arr:
+                s += c
+            f.write('%s,%s\n' % (sentence_id,s))
+            print '%d/%d    %s,%s\n' % (index,total,sentence_id,s)
+            index += 1
 def trim_arr(arr):
     #trim sil
-    i = 0
-    for a in arr:
-        if a == 'sil':
-            i+=1
-        else:
+    for i in range(len(arr)):
+        a = arr[i]
+        if a != 'sil':
+            start_index = i
             break
-    arr = arr[i:]
+    arr = arr[start_index:]
+
+    for i in range(len(arr)-1,-1,-1):
+        a = arr[i]
+        if a != 'sil':
+            end_index = i
+            break
+    arr = arr[:end_index+1]
+
+    #remove repeat
+    pre = 'start'
+    for i in range(len(arr)):
+        a = arr[i]
+        if a == pre:
+            arr[i] = 'repeat'
+        else:
+            pre = a
     #
+    result = []
+    for a in arr:
+        if a != 'repeat':
+            result.append(a)
+    return result
 
 
-
-def read_model(path):
-    model = load_model(path)
-
-    return model
 def map48_39(map_file_path):
 
     #read map file
@@ -111,8 +139,10 @@ def map_phone_char(map_file_path,to_char = False):
 
 
 #read and save
-def test():
-    input_path = './output.csv'
+if __name__ == '__main__':
+    output_path = './output.csv'
+    model_path = '../seq2seq.model'
+    data_path = './test.ark'
     
     mapfile_48_39 = '../48_39.map'
     mapfile_phone_char = '../48phone_char.map'
@@ -120,15 +150,15 @@ def test():
     map_48_int_dict = map_phone_char(mapfile_phone_char,to_char=False)
     map_48_char_dict = map_phone_char(mapfile_phone_char,to_char=True)
     map_48_39_dict = map48_39(mapfile_48_39)
-    rev_dic = reverse_dic(map_48_int_dict)
     
     
-    result_dict = read_input(data_path,label_path,map_48_39_dict,map_48_int_dict)
+    sentence_dict = read_input(data_path,map_48_int_dict)
     
-    print 'saving.. ' , npz_path
-    np.savez_compressed(npz_path,a=result_dict)
+    model = load_model(model_path)
+    
+    predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_dict,map_48_39_dict)
 
-    return result_dict
+    print 'Done'
 #read npz
 def load_input():
     npz_path = './bin.npz'
