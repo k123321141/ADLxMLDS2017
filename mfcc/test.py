@@ -64,5 +64,5 @@ model.compile(loss='mse', optimizer='rmsprop')
 
 #training loop
 
-model.fit(x,y,batch_size=1000,epochs=epochs,validation_split=0.05)
+model.fit(x,y,batch_size=150,epochs=epochs,validation_split=0.05)
 
