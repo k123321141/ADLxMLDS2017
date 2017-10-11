@@ -57,7 +57,8 @@ def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_d
     with open(output_path,'w') as f:
         for sentence_id in sentence_dict.keys():
             x = sentence_dict[sentence_id]
-            y = [n for n in np.argmax(model.predict(x))
+            y = np.asarray([np.argmax(i, axis=1) for i in model.predict(x)])
+            c = map_48_39_dict[]
 
 def read_model(path):
     model = load_model(path)
