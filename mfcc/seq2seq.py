@@ -56,9 +56,9 @@ model = Sequential()
 #model.add(Embedding(input_dim = features_count,output_dim=features_count))
 
 #decoder
-model.add(LSTM(features_count, input_dim = features_count,return_sequences=False))
+model.add(LSTM(features_count, input_dim = features_count,return_sequences=True))
 model.add(Dense(features_count, activation="relu"))
-model.add(RepeatVector(max_len))
+#model.add(RepeatVector(max_len))
 model.add(LSTM(features_count, return_sequences=True))
 
 model.add(TimeDistributed(Dense(num_classes+1,activation='softmax')))
