@@ -57,8 +57,24 @@ def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_d
     with open(output_path,'w') as f:
         for sentence_id in sentence_dict.keys():
             x = sentence_dict[sentence_id]
-            y = np.asarray([np.argmax(i, axis=1) for i in model.predict(x)])
-            c = map_48_39_dict[]
+            y_arr = [np.argmax(i, axis=1) for i in model.predict(x)]
+            y_arr = y_arr[0: y_arr.index(num_classes)]
+            c_arr = [rev_dic[y] for y in y_arr]
+            c_arr = [map_48_39_dict[c] for c in c_arr]
+            c_arr = [map_48_char_dict[c] for c in c_arr]
+
+def trim_arr(arr):
+    #trim sil
+    i = 0
+    for a in arr:
+        if a == 'sil':
+            i+=1
+        else:
+            break
+    arr = arr[i:]
+    #
+
+
 
 def read_model(path):
     model = load_model(path)

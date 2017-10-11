@@ -15,7 +15,7 @@ num_classes = 48
 validation_rate = 0.05
 
 
-epochs = 50
+epochs = 200
 
 max_len = 777
 def init_dic(dic):
