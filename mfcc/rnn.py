@@ -4,6 +4,7 @@ from keras.layers.recurrent import SimpleRNN
 from keras.layers import *
 from keras.utils import *
 from keras.utils import plot_model
+from keras.callbacks import EarlyStopping
 import numpy as np
 import random
 
@@ -81,8 +82,11 @@ model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 plot_model(model, to_file='../../model.png')
 #training loop
+early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
-model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = epochs,validation_data = validation_generator,validation_steps=validation_steps)
+
+model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = epochs,validation_data = validation_generator,validation_steps=validation_steps,callbacks=[early_stopping])
+model.save('./rnn.model')
 #epochs = 50
 #for i in range(epochs):
 #    for sentence_id in random.shuffle(training_dic.keys()):
