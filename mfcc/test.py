@@ -54,7 +54,7 @@ print x.shape,y.shape
 
 
 
-
+print 'test'
 
 #model setting
 model = SimpleSeq2Seq(input_dim=features_count, hidden_dim=features_count, output_length=max_len, output_dim=features_count,depth=3)
