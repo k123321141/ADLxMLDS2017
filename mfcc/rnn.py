@@ -12,7 +12,7 @@ features_count = 39
 num_classes = 48
 validation_rate = 0.05
 
-steps_per_epoch = 100
+
 epochs = 20
 
 
@@ -47,10 +47,11 @@ def init_dic(dic):
         dic[sentence_id] = (x,y)
 
 def dic2generator(dic):
-    shffle_keys = dic.keys()
-    random.shuffle(shffle_keys)
-    for key in shffle_keys:
-        yield dic[key]
+    while True:
+        shffle_keys = dic.keys()
+        random.shuffle(shffle_keys)
+        for key in shffle_keys:
+            yield dic[key]
 
 
 #dic init setting,reshape
@@ -63,7 +64,11 @@ training_dic,validation_dic = split_dic_validation(dic,validation_rate)
 
 training_generator = dic2generator(training_dic)
 validation_generator = dic2generator(validation_dic)
+
+
 validation_steps = len(validation_dic.keys())
+steps_per_epoch = len(training_dic.keys())
+
 
 #model setting
 model = Sequential()
