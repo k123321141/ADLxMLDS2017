@@ -4,6 +4,8 @@ from keras.layers.recurrent import SimpleRNN
 from keras.layers import *
 from keras.utils import to_categorical
 from keras.utils import plot_model
+from keras.callbacks import EarlyStopping
+
 import numpy as np
 import random
 
@@ -62,8 +64,10 @@ model.add(Dense(features_count, activation="relu"))
 model.add(LSTM(features_count, return_sequences=True))
 
 model.add(TimeDistributed(Dense(num_classes+1,activation='softmax')))
+
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 #training loop
+early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+model.fit(x,y,batch_size=100,epochs=epochs,validation_split=0.05,callbacks=[early_stopping])
 
-model.fit(x,y,batch_size=100,epochs=epochs,validation_split=0.05)
-
+model.save('./seq2seq.model')
