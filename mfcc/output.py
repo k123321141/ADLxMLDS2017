@@ -62,20 +62,30 @@ def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_d
             x = sentence_dict[sentence_id]
             y_arr = list( ([np.argmax(i, axis=1) for i in model.predict(x)])[0])
 
-            y_arr = y_arr[0: y_arr.index(num_classes)]
-            c_arr = [rev_dic[y] for y in y_arr]
-            
-            
-            c_arr = [map_48_39_dict[c] for c in c_arr]
-            c_arr = trim_arr(c_arr)
-            c_arr = [map_48_char_dict[c] for c in c_arr]
 
-            s = ''
-            for c in c_arr:
-                s += c
+            s = mapping(y_arr,rev_dic,map_48_int_dict,map_48_char_dict,map_48_39_dict)
+            
             f.write('%s,%s\n' % (sentence_id,s))
             print '%d/%d    %s,%s\n' % (index,total,sentence_id,s)
             index += 1
+#y is a list
+def mapping(y_arr,rev_dic,map_48_int_dict,map_48_char_dict,map_48_39_dict):
+    if num_classes in y_arr:
+        y_arr = y_arr[0: y_arr.index(num_classes)]
+    c_arr = [rev_dic[y] for y in y_arr]
+        
+            
+    c_arr = [map_48_39_dict[c] for c in c_arr]
+    c_arr = trim_arr(c_arr)
+    c_arr = [map_48_char_dict[c] for c in c_arr]
+
+    s = ''
+    for c in c_arr:
+        s += c
+    return s
+
+
+
 def trim_arr(arr):
     #trim sil
     for i in range(len(arr)):

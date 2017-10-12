@@ -13,7 +13,7 @@ num_classes = 48
 validation_rate = 0.05
 
 
-epochs = 20
+epochs = 10
 
 
 def split_dic_validation(dic,rate):
@@ -79,13 +79,13 @@ model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 plot_model(model, to_file='../../model.png')
 #training loop
-for i in range(5):
+for i in range(200):
 
     model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = epochs,validation_data = validation_generator,validation_steps=validation_steps)
 
     output_path = './%d.model' % (epochs * (i+1))
     model.save(output_path)
-
+model.save('./final.model')
 #epochs = 50
 #for i in range(epochs):
 #    for sentence_id in random.shuffle(training_dic.keys()):
