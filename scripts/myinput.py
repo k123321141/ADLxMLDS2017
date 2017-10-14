@@ -151,6 +151,8 @@ def load_input(npz_path = 'mfcc'):
         npz_path = '../data/fbank.npz'
 
     return read_npz(npz_path)
+if __name__ == '__main__':
+    test()
 
 
 
