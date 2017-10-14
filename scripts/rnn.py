@@ -85,4 +85,4 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
 
 model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = 200,validation_data = validation_generator,validation_steps=validation_steps,callbacks=[early_stopping])
-model.save('./rnn.model')
+model.save('../models/rnn.model')
