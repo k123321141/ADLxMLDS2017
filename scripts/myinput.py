@@ -7,7 +7,7 @@ import numpy as np
 
 def read_X(data_path):
     sentence_dict = {}
-    
+    print 'read data ',data_path
     #training data
     with open(data_path,'r') as f:
         lines = f.readlines()
@@ -59,11 +59,11 @@ def read_Y(label_path,map_48_int_dict):
 #return a dict which paired with ,key:sentence ID,val:(x,y) np.array
 def combine(X,Y):
     dic = {}
-    assert X.keys() == Y.keys()
+    assert sorted(X.keys()) == sorted(Y.keys())
     for sentenceID in np.sort(X.keys()):
         X_dict = X[sentenceID]
         Y_dict = Y[sentenceID]
-        assert X.dict.keys() == Y.dict.keys()
+        assert sorted(X_dict.keys()) == sorted(Y_dict.keys())
         
         buf_x = []
         buf_y = []
@@ -91,7 +91,7 @@ def read_npz(path):
     return dic
 def write_npz(dic,path):
     print 'saving ' , path
-    np.savez_compressed(npz_path,a=dic)
+    np.savez_compressed(path,a=dic)
     print 'saving done.'
 
 def map48_39(map_file_path):
@@ -137,8 +137,8 @@ def test():
 #    map_48_39_dict = map48_39(mapfile_48_39)
 
     y_dic = read_Y(label_path,map_48_int_dict)
-    mfcc_dic = combine(read_X(mfcc_path,y_dic)
-    fbank_dic = combine(read_X(fbank_path,y_dic)
+    mfcc_dic = combine(read_X(mfcc_path),y_dic)
+    fbank_dic = combine(read_X(fbank_path),y_dic)
     
     write_npz(mfcc_dic,'../data/mfcc.npz')
     write_npz(fbank_dic,'../data/fbank.npz')
