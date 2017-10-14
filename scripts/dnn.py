@@ -19,19 +19,18 @@ for sentenID in dic.keys():
     buf_x.append(x)
     
     buf_y.append(y)
-    print y.shape
 X = np.vstack(buf_x)
 Y = np.vstack(buf_y)
 
 Y = to_categorical(Y,num_classes)
 
-print x.shape,y.shape
+print X.shape,Y.shape
 
 features_count = x.shape[1]
 
 model = Sequential()
 
-model.add(Dense(features_count,input_shape = (None,features_count),activation = 'sigmoid'))
+model.add(Dense(features_count,input_shape = (features_count,),activation = 'sigmoid'))
 model.add(Dense(features_count,activation = 'sigmoid'))
 model.add(Dense(num_classes,activation = 'softmax'))
 
