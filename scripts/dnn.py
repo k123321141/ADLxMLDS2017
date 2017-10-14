@@ -10,14 +10,16 @@ import random
 
 num_classes = 48
 
-dic = myinput.load_input('fbank')
+dic1 = myinput.load_input('fbank')
+dic2 = myinput.load_input('mfcc')
 
 buf_x = []
 buf_y = []
-for sentenID in dic.keys():
-    x,y = dic[sentenID]
-    buf_x.append(x)
-    
+for sentenID in dic1.keys():
+    x,y = dic1[sentenID]
+    x2,y2 = dic2[sentenID]
+#    buf_x.append(x)
+    buf_x.append(np.hstack([x,x2]))
     buf_y.append(y)
 X = np.vstack(buf_x)
 Y = np.vstack(buf_y)
@@ -26,7 +28,7 @@ Y = to_categorical(Y,num_classes)
 
 print X.shape,Y.shape
 
-features_count = x.shape[1]
+features_count = X.shape[1]
 
 model = Sequential()
 
