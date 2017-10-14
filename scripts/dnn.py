@@ -10,7 +10,7 @@ import random
 
 num_classes = 48
 
-dic = myinput.load_input('mfcc')
+dic = myinput.load_input('fbank')
 
 buf_x = []
 buf_y = []
