@@ -12,15 +12,14 @@ num_classes = 48
 
 dic1 = myinput.load_input('fbank')
 dic2 = myinput.load_input('mfcc')
-
+dic3 = myinput.stack_x(dic1,dic2)
 buf_x = []
 buf_y = []
-for sentenID in dic1.keys():
-    x,y = dic1[sentenID]
-    x2,y2 = dic2[sentenID]
-#    buf_x.append(x)
-    buf_x.append(np.hstack([x,x2]))
+for sentenID in dic3.keys():
+    x,y = dic3[sentenID]
+    buf_x.append(x)
     buf_y.append(y)
+
 X = np.vstack(buf_x)
 Y = np.vstack(buf_y)
 

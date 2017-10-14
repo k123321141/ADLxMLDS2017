@@ -106,7 +106,17 @@ def map48_39(map_file_path):
         src,dst = l.split('\t')
         result[src] = dst
     return result
+def stack_x(dic1,dic2):
+    dic3 = {}
+    assert sorted(dic1.keys()) == sorted(dic2.keys())
+    buf_x = []
+    for sentenID in dic1.keys():
+        x,y = dic1[sentenID]
+        x2,y2 = dic2[sentenID]
+        x3 = np.hstack([x,x2])
+        dic3[sentenID] = (x3,y)
 
+    return dic3
 def map_phone_char(map_file_path,to_char = False):
     #read map file
     with open(map_file_path,'r') as f:

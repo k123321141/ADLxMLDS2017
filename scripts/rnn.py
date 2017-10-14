@@ -9,12 +9,10 @@ import numpy as np
 import random
 
 hidden_dim = 39
-features_count = 39
 num_classes = 48
 validation_rate = 0.05
+features_count = 108
 
-
-epochs = 20
 
 
 def split_dic_validation(dic,rate):
@@ -56,12 +54,15 @@ def dic2generator(dic):
 
 
 #dic init setting,reshape
-dic = myinput.load_input()
-init_dic(dic)
+dic1 = myinput.load_input('fbank')
+dic2 = myinput.load_input('mfcc')
+dic3 = myinput.stack_x(dic1,dic2)
+
+init_dic(dic3)
 
 
 
-training_dic,validation_dic = split_dic_validation(dic,validation_rate)
+training_dic,validation_dic = split_dic_validation(dic3,validation_rate)
 
 training_generator = dic2generator(training_dic)
 validation_generator = dic2generator(validation_dic)
@@ -74,29 +75,14 @@ steps_per_epoch = len(training_dic.keys())
 #model setting
 model = Sequential()
 
-rnn_lay = SimpleRNN(hidden_dim,input_dim = features_count, activation='relu',return_sequences=True, use_bias=True, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', bias_initializer='zeros', kernel_regularizer=None, recurrent_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, dropout=0.0, recurrent_dropout=0.0)
-model.add(rnn_lay)
-#model.add(SimpleRNN(hidden_dim, activation='relu',return_sequences=True, use_bias=True, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', bias_initializer='zeros', kernel_regularizer=None, recurrent_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, dropout=0.0, recurrent_dropout=0.0))
+model.add(SimpleRNN(features_count,input_dim = features_count, activation='relu',return_sequences=True))
+model.add(SimpleRNN(features_count, activation='relu',return_sequences=True))
 #
 model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
-plot_model(model, to_file='../../model.png')
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
 
-model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = epochs,validation_data = validation_generator,validation_steps=validation_steps,callbacks=[early_stopping])
+model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = 200,validation_data = validation_generator,validation_steps=validation_steps,callbacks=[early_stopping])
 model.save('./rnn.model')
-#epochs = 50
-#for i in range(epochs):
-#    for sentence_id in random.shuffle(training_dic.keys()):
-#        x,y = training_dic[sentence_id]
-#        err,acc = model.train_on_batch(x,y)
-#    
-#    for sentence_id in validation_dic.keys():
-#        x,y = validation_dic[sentence_id]
-#        err,acc = model.train_on_batch(x,y)
-#
-#
-#
-#model.fit(x=x,y=y,batch_size=bat_size,epochs=200,validation_split=0.05)
