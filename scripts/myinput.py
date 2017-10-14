@@ -74,6 +74,7 @@ def combine(X,Y):
         
         x = np.asarray(buf_x,dtype=np.float32)
         y = np.asarray(buf_y,dtype=np.float32)
+        y = y.reshape(y.shape[0],1)
         
 
         dic[sentenceID] = (x,y)
@@ -121,7 +122,9 @@ def map_phone_char(map_file_path,to_char = False):
 
     return result
 
-
+#def padding(dic):
+#    for sentenceID in dic.keys():
+#        x,y = dic[sentenceID]
 
 #read and save
 def test():
