@@ -176,13 +176,12 @@ def load_test(feature_name):
 
     if feature_name == 'mfcc':
         x = read_X('../data/mfcc/test.ark')
-    else if feature_name == 'fbank':
+    elif feature_name == 'fbank':
         x = read_X('../data/fbank/test.ark')
     else:
         print 'error'
         sys.exit(1)
 
-    return read_npz(npz_path)
 
 
 
