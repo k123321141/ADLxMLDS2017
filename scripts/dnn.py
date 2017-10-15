@@ -10,8 +10,8 @@ import random
 
 num_classes = 48
 
-dic1 = myinput.load_input('fbank')
-dic2 = myinput.load_input('mfcc')
+dic1 = myinput.load_input('mfcc')
+dic2 = myinput.load_input('fbank')
 dic3 = myinput.stack_x(dic1,dic2)
 buf_x = []
 buf_y = []
@@ -32,6 +32,9 @@ features_count = X.shape[1]
 model = Sequential()
 
 model.add(Dense(features_count,input_shape = (features_count,),activation = 'sigmoid'))
+model.add(Dense(features_count,activation = 'sigmoid'))
+model.add(Dense(features_count,activation = 'sigmoid'))
+model.add(Dense(features_count,activation = 'sigmoid'))
 model.add(Dense(features_count,activation = 'sigmoid'))
 model.add(Dense(num_classes,activation = 'softmax'))
 
