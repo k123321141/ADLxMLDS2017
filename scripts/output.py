@@ -25,26 +25,22 @@ def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_revers
 
     #for counting
     keys = sorted(sentence_dict.keys())
+    total = len(keys)
     #the output is follow the sorted(keys)
-    for i in range(total):
+    
 
 
     with open(output_path,'w') as f:
         f.write('id,phone_sequence\n')
-        sentenceID = keys[i]
-        buf = y[i,:,:]
-        frame_seq = [argmax(buf[j,:]) for j in range(max_len)]
+        for i in range(total):
+            sentenceID = keys[i]
+            buf = y[i,:,:]
+            frame_seq = [argmax(buf[j,:]) for j in range(max_len)]
         
-        for sentence_id in sentence_dict.keys():
-            x = sentence_dict[sentence_id]
-            y_arr = list( ([np.argmax(i, axis=1) for i in model.predict(x)])[0])
-
-
             s = mapping(y_arr,rev_dic,map_48_int_dict,map_48_char_dict,map_48_39_dict)
             
             f.write('%s,%s\n' % (sentence_id,s))
-            print '%d/%d    %s,%s\n' % (index,total,sentence_id,s)
-            index += 1
+            print '%d/%d    %s,%s\n' % (i,total,sentenceID,s)
 #y is a list
 def mapping(y_arr,rev_dic,map_48_int_dict,map_48_char_dict,map_48_39_dict):
     if num_classes in y_arr:
