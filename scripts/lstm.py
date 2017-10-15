@@ -26,6 +26,7 @@ x,y = dic_processing.toXY(dic3)
 
 #model setting
 model = Sequential()
+model.add(Masking(mask_value=0., input_shape=(max_len, features_count)))
 
 model.add(LSTM(features_count,input_dim = features_count, activation='tanh',return_sequences=True))
 model.add(LSTM(features_count, activation='tanh',return_sequences=True,implementation=1))
