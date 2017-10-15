@@ -77,8 +77,9 @@ model = Sequential()
 
 model.add(SimpleRNN(features_count,input_dim = features_count, activation='relu',return_sequences=True))
 model.add(SimpleRNN(features_count, activation='relu',return_sequences=True))
+model.add(SimpleRNN(num_classes, activation='softmax',return_sequences=True))
 #
-model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
+#model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
