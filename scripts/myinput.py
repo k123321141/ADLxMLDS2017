@@ -164,7 +164,7 @@ def init_npz():
 def load_input(npz_path = 'mfcc'):
     if npz_path == 'mfcc':
         npz_path = '../data/mfcc.npz'
-    else if npz_path == 'fbank':
+    elif npz_path == 'fbank':
         npz_path = '../data/fbank.npz'
     else:
         print 'error'
