@@ -28,7 +28,7 @@ x,y = dic_processing.toXY(dic3)
 model = Sequential()
 
 model.add(SimpleRNN(features_count,input_dim = features_count, activation='tanh',return_sequences=True))
-model.add(SimpleRNN(features_count, activation='tanh',return_sequences=True))
+model.add(SimpleRNN(features_count, activation='tanh',return_sequences=True,implementation=1))
 #
 model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
