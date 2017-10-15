@@ -13,8 +13,8 @@ max_len = 777
 
 
 #dic init setting,reshape
-dic1 = myinput.load_input('fbank')
-dic2 = myinput.load_input('mfcc')
+dic1 = myinput.load_input('mfcc')
+dic2 = myinput.load_input('fbank')
 dic3 = myinput.stack_x(dic1,dic2)
 
 dic_processing.pad_dic(dic3,max_len)

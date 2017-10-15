@@ -2,6 +2,8 @@ from keras.utils import to_categorical
 import numpy as np
 
 
+#just for test data,only x
+def pad_test_dic(dic,len):
 
 
 def pad_dic(dic,len):

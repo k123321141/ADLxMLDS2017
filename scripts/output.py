@@ -1,5 +1,7 @@
 import numpy as np
 from keras.models import *
+import mapping
+import myinput
 #assert sentenceID & frameID follow the numeric order
 #return sentence_dict
 max_len = 777
@@ -7,8 +9,13 @@ features_count = 39
 num_classes = 48
 
 
-def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_dict,map_48_39_dict):
-    rev_dic = reverse_dic(map_48_int_dict)
+def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict):
+
+    x = [sentence_dict[k][0] for k in sorted(sentence_dict.keys())]
+    
+    y = model.predict(x)
+
+    #for counting
     total = len(sentence_dict.keys())
     index = 1
     with open(output_path,'w') as f:
@@ -105,23 +112,22 @@ def map_phone_char(map_file_path,to_char = False):
 
 #read and save
 if __name__ == '__main__':
-    output_path = './output.csv'
-    model_path = '../seq2seq.model'
-    data_path = './test.ark'
+    output_path = '../data/output.csv'
+    model_path = '../models/seq2seq.model'
+    test1_path = '../data/mfcc/test.ark'
+    test2_path = '../data/fbank/test.ark'
     
-    mapfile_48_39 = '../48_39.map'
-    mapfile_phone_char = '../48phone_char.map'
-    
-    map_48_int_dict = map_phone_char(mapfile_phone_char,to_char=False)
-    map_48_char_dict = map_phone_char(mapfile_phone_char,to_char=True)
-    map_48_39_dict = map48_39(mapfile_48_39)
+    dic1 = read_X(test1_path)
+    dic2 = read_X(test2_path)
     
     
-    sentence_dict = read_input(data_path,map_48_int_dict)
     
+    map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict = mapping.read_maps()
+    
+    sentence_dict = myinput.read_X(data_path)
     model = load_model(model_path)
     
-    predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_dict,map_48_39_dict)
+    predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict)
 
     print 'Done'
 #read npz

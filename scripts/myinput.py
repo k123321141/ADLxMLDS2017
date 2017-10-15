@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 
 #return a dict which contain
 #keys = {maeb0_si1411,maeb0_si2250,...} ->  sentenceID  ->  string
@@ -136,8 +137,11 @@ def padding(dic):
     for sentenceID in dic.keys():
         x,y = dic[sentenceID]
 
+
+
+
 #read and save
-def test():
+def init_npz():
     mfcc_path = '../data/mfcc/train.ark'
     fbank_path = '../data/fbank/train.ark'
     test_path = '../data/test.ark'
@@ -160,12 +164,47 @@ def test():
 def load_input(npz_path = 'mfcc'):
     if npz_path == 'mfcc':
         npz_path = '../data/mfcc.npz'
-    else:
+    else if npz_path == 'fbank':
         npz_path = '../data/fbank.npz'
+    else:
+        print 'error'
+        sys.exit(1)
 
     return read_npz(npz_path)
+
+def load_test(feature_name):
+
+    if feature_name == 'mfcc':
+        x = read_X('../data/mfcc/test.ark')
+    else if feature_name == 'fbank':
+        x = read_X('../data/fbank/test.ark')
+    else:
+        print 'error'
+        sys.exit(1)
+
+    return read_npz(npz_path)
+
+
+
+    assert sorted(x1.keys()) == sorted(x2.keys())
+    
+    #fake y
+    y = {}
+    for k in x1.keys():
+        frame_dic = x1[k]
+        frame_buf = {}
+        for i in sentence_dic.keys():
+            frame_buf[i] = 0
+        y[k] = frame_buf
+    
+    
+    x1 = combine(x1,y)
+    x2 = combine(x2,y)
+
 if __name__ == '__main__':
     test()
+
+
 
 
 
