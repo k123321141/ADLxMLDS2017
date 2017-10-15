@@ -6,51 +6,6 @@ max_len = 777
 features_count = 39
 num_classes = 48
 
-def read_input(data_path,map_48_int_dict):
-    sentence_dict = {}
-    
-    #training data
-    with open(data_path,'r') as f:
-        lines = f.readlines()
-    for l in lines:
-        l = l.strip().split(' ')
-        speaker,sentence,frame = l[0].split('_')
-        key = speaker + '_' + sentence
-        
-        vals = [ float(x) for x in l[1:] ]
-        if sentence_dict.has_key(key) != True:
-            sentence_dict[key] = {}
-        frame_dict = sentence_dict[key]
-        frame_dict[int(frame)] = vals
-
-    print 'numpy'
-    #convert to numpy format
-    result = {}
-
-    for key in np.sort(sentence_dict.keys()):
-        frame_dict = sentence_dict[key]
-        buf = []
-        for i in np.sort(frame_dict.keys()):
-            buf.append(frame_dict[i])
-        x = np.asarray(buf,dtype=np.float32)
-        sentence_dict[key] = x
-        frame_dict.clear()
-
-    #padding
-    x_buf = []
-    for sentence_id in sentence_dict.keys():
-        x = sentence_dict[sentence_id]
-        num = x.shape[0]
-        assert features_count == x.shape[1]
-        x = np.lib.pad(x,((0,max_len-num),(0,0)),'constant', constant_values=(0, 0))
-        x = x.reshape(1,max_len,features_count)
-        sentence_dict[sentence_id] = x
-        
-        
-
-        
-
-    return sentence_dict
 
 def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_char_dict,map_48_39_dict):
     rev_dic = reverse_dic(map_48_int_dict)
