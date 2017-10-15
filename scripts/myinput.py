@@ -26,8 +26,6 @@ def read_X(data_path):
         frame_dict[int(frame)] = vals
 
 
-
-
     return sentence_dict
 
 #return dict[]
@@ -133,13 +131,6 @@ def map_phone_char(map_file_path,to_char = False):
 
     return result
 
-def padding(dic):
-    for sentenceID in dic.keys():
-        x,y = dic[sentenceID]
-
-
-
-
 #read and save
 def init_npz():
     mfcc_path = '../data/mfcc/train.ark'
@@ -162,10 +153,11 @@ def init_npz():
     
 #read npz
 def load_input(feature_name = 'mfcc'):
+
     if feature_name == 'mfcc':
-        feature_name = '../data/mfcc.npz'
+        npz_path = '../data/mfcc.npz'
     elif feature_name == 'fbank':
-        npz_pfeature_nameath = '../data/fbank.npz'
+        npz_path = '../data/fbank.npz'
     else:
         print 'error'
         sys.exit(1)
