@@ -48,26 +48,27 @@ def rand_sentence(num,dim,a=1,b=10):
         buf.append(x)
     X = np.asarray(buf)
     return X
+sample_num = 100
+xs = []
+for i in range(sample_num):
+    xs.append( padding(rand_sentence(4,5),max_len).reshape(1,7,5) )
 
-x1 = padding(rand_sentence(3,5),max_len).reshape(1,7,5)
-x2 = padding(rand_sentence(4,5),max_len).reshape(1,7,5)
-x3 = padding(rand_sentence(5,5),max_len).reshape(1,7,5)
+ys = []
+for xi in xs:
+    ys.append( f(xi[0,:,:]).reshape(1,7,1) )
 
-y1 = f(x1[0,:,:]).reshape(1,7,1)
-y2 = f(x2[0,:,:]).reshape(1,7,1)
-y3 = f(x3[0,:,:]).reshape(1,7,1)
-
-
-x = np.vstack([x1,x2,x3])
-y = np.vstack([y1,y2,y3])
+x = np.vstack(xs)
+y = np.vstack(ys)
 
 #x = x.reshape(21,5)
-#y = y.reshape(21,1)
+y = y.reshape(7*sample_num,1)
 y = to_categorical(y,3)
+y = y.reshape(sample_num,7,3)
+
 
 print 'X,Y shape:' ,x.shape,y.shape
-print 'X : \n',x
-print 'Y : \n',y
+#print 'X : \n',x
+#print 'Y : \n',y
 
 
 
@@ -80,9 +81,9 @@ print 'test'
 model = Sequential()
 #model.add(Embedding(input_dim = 10,output_dim=5,mask_zero = True,input_length = 5))
 model.add(Masking(mask_value=0., input_shape=(7, 5)))
-
-#model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
-#model.fit(x,y,epochs = 10)
+model.add(SimpleRNN(units= 3,input_dim = 5,activation ='linear' ,return_sequences = True))
+model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
+model.fit(x,y,epochs = 100)
 
 z = model.predict(x)
 print 'Z shape',z.shape
