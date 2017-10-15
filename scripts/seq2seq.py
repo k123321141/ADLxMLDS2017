@@ -10,7 +10,7 @@ num_classes = 48
 features_count = 108
 
 max_len = 777
-max_out_len = 70
+max_out_len = 80
 #class_weight = {i:1 for i in range(48)}
 #class_weight[48] = 0
 
@@ -29,7 +29,7 @@ for k in dic3.keys():
 #    print type(x),type(y2)
 #
 
-dic_processing.pad_dic(dic3,777,120,num_classes)
+dic_processing.pad_dic(dic3,max_len,max_out_len,num_classes)
 dic_processing.catogorate_dic(dic3,num_classes+1)
 
 x,y = dic_processing.toXY(dic3)
