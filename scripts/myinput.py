@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-
+import mapping
 #return a dict which contain
 #keys = {maeb0_si1411,maeb0_si2250,...} ->  sentenceID  ->  string
 #vals = {(x1,y1),(x2,y2),...}           ->  tuple       ->  x=ndarray(num,39),y=ndarray(num,1)
@@ -29,7 +29,7 @@ def read_X(data_path):
     return sentence_dict
 
 #return dict[]
-def read_Y(label_path,map_48_int_dict):
+def read_Y(label_path,map_48_int_dict,map2int = True):
     sentence_dict = {}
     #label
     with open(label_path,'r') as f:
@@ -45,7 +45,8 @@ def read_Y(label_path,map_48_int_dict):
 
         #mapping
         #from char to int,sil -> 37,range[0,47]
-        label = map_48_int_dict[label]
+        if map2int:
+            label = map_48_int_dict[label]
         
         #new sentence during processing
         if sentence_dict.has_key(key) != True:
@@ -55,6 +56,26 @@ def read_Y(label_path,map_48_int_dict):
         
         frame_dict[int(frame)] = label
     return sentence_dict
+
+def read_seq_Y(label_path):
+    sentence_dict = read_Y(label_path,None,map2int = False)
+    for sentenceID in sentence_dict.keys():
+        frame_dic = sentence_dict[sentenceID]
+        buf = []
+        for i in sorted(frame_dic.keys()):
+            buf.append(frame_dic[i])
+        buf = mapping.mapping(buf,'48_39')
+        buf = mapping.trim_sil(buf)
+        buf = mapping.trim_repeat(buf)
+        
+        #debug
+        buf = mapping.mapping(buf,'48_int')
+        
+        
+        sentence_dict[sentenceID] = {(i+1):buf[i] for i in range(len(buf))}
+
+    return sentence_dict
+
 #return a dict which paired with ,key:sentence ID,val:(x,y) np.array
 def combine(X,Y):
     dic = {}
@@ -63,21 +84,20 @@ def combine(X,Y):
         X_dict = X[sentenceID]
         Y_dict = Y[sentenceID]
         assert sorted(X_dict.keys()) == sorted(Y_dict.keys())
-        
-        buf_x = []
-        buf_y = []
-        #sort frame ID
-        for i in np.sort(X_dict.keys()):
-            buf_x.append(X_dict[i])
-            buf_y.append(Y_dict[i])
-        
-        x = np.asarray(buf_x,dtype=np.float32)
-        y = np.asarray(buf_y,dtype=np.float32)
+        x = dic2ndarray(X_dict)
+        y = dic2ndarray(Y_dict)
         y = y.reshape(y.shape[0],1)
-        
 
+        
         dic[sentenceID] = (x,y)
     return dic
+def dic2ndarray(dic):
+    buf = []
+    #sort frame ID
+    for i in sorted(dic.keys()):
+        buf.append(dic[i])
+    
+    return np.asarray(buf,dtype=np.float32)
 
 
 def read_npz(path):

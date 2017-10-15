@@ -1,20 +1,31 @@
-import numpy as np
-from keras.models import *
-#assert sentenceID & frameID follow the numeric order
-#return sentence_dict
-max_len = 777
-features_count = 39
-num_classes = 48
 
+def read_maps(mapfile_48_39 = '../data/48_39.map',mapfile_phone_char = '../data/48phone_char.map'):
 
-def mapping(y_list,map_dic):
-    result = [map_dic[y] for y in y_list]
-    return result
+    map_48_int_dict = map_phone_char(mapfile_phone_char,to_char=False)
+    map_48_reverse = { v:k for (k,v) in map_48_int_dict.items() }
+    map_48_char_dict = map_phone_char(mapfile_phone_char,to_char=True)
+    map_48_39_dict = map48_39(mapfile_48_39)
+
+    return map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict
 
 
 
-def trim_arr(arr):
-    #trim sil
+def mapping(y_list,map_name):
+
+    if map_name == '48_int':
+        map_dic = map_48_int_dict
+    elif map_name == '48_reverse':
+        map_dic = map_48_reverse
+    elif map_name == '48_char':
+        map_dic = map_48_char_dict
+    elif map_name == '48_39':
+        map_dic = map_48_39_dict
+    else:
+        map_dic = None
+
+    return [map_dic[y] for y in y_list]
+
+def trim_sil(arr):
     for i in range(len(arr)):
         a = arr[i]
         if a != 'sil':
@@ -28,7 +39,10 @@ def trim_arr(arr):
             end_index = i
             break
     arr = arr[:end_index+1]
+    
+    return arr
 
+def trim_repeat(arr):
     #remove repeat
     pre = 'start'
     for i in range(len(arr)):
@@ -43,6 +57,7 @@ def trim_arr(arr):
         if a != 'repeat':
             result.append(a)
     return result
+
 
 
 def map48_39(map_file_path):
@@ -74,14 +89,8 @@ def map_phone_char(map_file_path,to_char = False):
 
     return result
 
-def read_maps(mapfile_48_39 = '../data/48_39.map',mapfile_phone_char = '../data/48phone_char.map'):
 
-    map_48_int_dict = map_phone_char(mapfile_phone_char,to_char=False)
-    map_48_reverse = { v:k for (k,v) in map_48_int_dict.items() }
-    map_48_char_dict = map_phone_char(mapfile_phone_char,to_char=True)
-    map_48_39_dict = map48_39(mapfile_48_39)
-
-    return map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict
+map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict = read_maps()
 
 
 

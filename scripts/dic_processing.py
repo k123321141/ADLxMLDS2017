@@ -4,22 +4,22 @@ import numpy as np
 
 
 
-def pad_dic(dic,len):
+def pad_dic(dic,max_len_x,max_len_y,num_classes):
     for sentence_id in dic.keys():
         x,y = dic[sentence_id]
-        num = x.shape[0]
-        assert x.shape[0] == y.shape[0]
-        x = np.pad(x,((0,777-num),(0,0)),'constant', constant_values=0)
+        num_x = x.shape[0]
+        num_y = y.shape[0]
+        
+        x = np.pad(x,((0,max_len_x-num_x),(0,0)),'constant', constant_values=0)
         
         #the length of y doesn't matter,just pad for alignment.
-        y = np.pad(y,((0,777-num),(0,0)),'constant', constant_values=0)
+        y = np.pad(y,((0,max_len_y-num_y),(0,0)),'constant', constant_values=num_classes)
         dic[sentence_id] = (x,y)
 
 def catogorate_dic(dic,num_classes):
     for sentence_id in dic.keys():
         x,y = dic[sentence_id]
         num = x.shape[0]
-        assert x.shape[0] == y.shape[0]
         y = ( to_categorical(y,num_classes) )
         dic[sentence_id] = (x,y)
 
@@ -29,10 +29,10 @@ def toXY(dic):
     buf_y = []
     for sentence_id in sorted(dic.keys()):
         x,y = dic[sentence_id]
-        num,feature_dim = x.shape
-        
-        x = x.reshape(1,num,feature_dim)
-        y = y.reshape(1,num,y.shape[1])
+        num_x,feature_dim = x.shape
+        num_y,num_classes = y.shape
+        x = x.reshape(1,num_x,feature_dim)
+        y = y.reshape(1,num_y,num_classes)
     
         buf_x.append(x)
         buf_y.append(y)

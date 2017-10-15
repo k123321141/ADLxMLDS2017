@@ -59,7 +59,7 @@ def mapping(y_arr,rev_dic,map_48_int_dict,map_48_char_dict,map_48_39_dict):
 
 
 
-def trim_arr(arr):
+def trim_sil(arr):
     #trim sil
     for i in range(len(arr)):
         a = arr[i]
@@ -74,7 +74,10 @@ def trim_arr(arr):
             end_index = i
             break
     arr = arr[:end_index+1]
+    
+    return arr
 
+def trim_repeat():
     #remove repeat
     pre = 'start'
     for i in range(len(arr)):
@@ -89,6 +92,7 @@ def trim_arr(arr):
         if a != 'repeat':
             result.append(a)
     return result
+
 
 
 def map48_39(map_file_path):
