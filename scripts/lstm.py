@@ -4,16 +4,15 @@ from keras.layers.recurrent import SimpleRNN
 from keras.layers import *
 from keras.utils import *
 from keras.utils import plot_model
+from keras.callbacks import EarlyStopping
 import numpy as np
 import random
 
 hidden_dim = 39
-features_count = 39
 num_classes = 48
 validation_rate = 0.05
+features_count = 108
 
-
-epochs = 10
 
 
 def split_dic_validation(dic,rate):
@@ -55,12 +54,15 @@ def dic2generator(dic):
 
 
 #dic init setting,reshape
-dic = myinput.load_input()
-init_dic(dic)
+dic1 = myinput.load_input('fbank')
+dic2 = myinput.load_input('mfcc')
+dic3 = myinput.stack_x(dic1,dic2)
+
+init_dic(dic3)
 
 
 
-training_dic,validation_dic = split_dic_validation(dic,validation_rate)
+training_dic,validation_dic = split_dic_validation(dic3,validation_rate)
 
 training_generator = dic2generator(training_dic)
 validation_generator = dic2generator(validation_dic)
@@ -73,29 +75,15 @@ steps_per_epoch = len(training_dic.keys())
 #model setting
 model = Sequential()
 
-model.add(LSTM(hidden_dim, input_dim = features_count,activation='relu',return_sequences=True))
+model.add(LSTM(features_count,input_dim = features_count, activation='tanh',return_sequences=True))
+model.add(LSTM(features_count, activation='tanh',return_sequences=True))
+model.add(LSTM(num_classes, activation='softmax',return_sequences=True))
 #
-model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
+#model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
-plot_model(model, to_file='../../model.png')
 #training loop
-for i in range(200):
+early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
-    model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = epochs,validation_data = validation_generator,validation_steps=validation_steps)
 
-    output_path = './%d.model' % (epochs * (i+1))
-    model.save(output_path)
-model.save('./final.model')
-#epochs = 50
-#for i in range(epochs):
-#    for sentence_id in random.shuffle(training_dic.keys()):
-#        x,y = training_dic[sentence_id]
-#        err,acc = model.train_on_batch(x,y)
-#    
-#    for sentence_id in validation_dic.keys():
-#        x,y = validation_dic[sentence_id]
-#        err,acc = model.train_on_batch(x,y)
-#
-#
-#
-#model.fit(x=x,y=y,batch_size=bat_size,epochs=200,validation_split=0.05)
+model.fit_generator(training_generator,steps_per_epoch = steps_per_epoch,epochs = 200,validation_data = validation_generator,validation_steps=validation_steps,callbacks=[early_stopping])
+model.save('../models/lstm.model')

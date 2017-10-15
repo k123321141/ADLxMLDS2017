@@ -132,9 +132,9 @@ def map_phone_char(map_file_path,to_char = False):
 
     return result
 
-#def padding(dic):
-#    for sentenceID in dic.keys():
-#        x,y = dic[sentenceID]
+def padding(dic):
+    for sentenceID in dic.keys():
+        x,y = dic[sentenceID]
 
 #read and save
 def test():
