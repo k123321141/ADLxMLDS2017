@@ -27,7 +27,7 @@ x,y = dic_processing.toXY(dic3)
 
 #model setting
 model = Sequential()
-model.add(Masking(mask_value=0., input_shape=(max_len, features_count)))
+model.add(Masking(mask_value=0, input_shape=(max_len, features_count)))
 model.add(SimpleRNN(features_count,input_dim = features_count, activation='tanh',return_sequences=True))
 model.add(SimpleRNN(features_count, activation='tanh',return_sequences=True,implementation=1))
 #
@@ -36,6 +36,6 @@ model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accu
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
-model.fit(x,y,batch_size = 100,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+model.fit(x,y,batch_size = 400,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 
 model.save('../models/rnn.model')

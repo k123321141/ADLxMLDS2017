@@ -26,7 +26,7 @@ x,y = dic_processing.toXY(dic3)
 
 #model setting
 model = Sequential()
-
+model.add(Masking(mask_value=0, input_shape=(max_len, features_count)))
 model.add(GRU(features_count,input_dim = features_count, activation='tanh',implementation=1,return_sequences=True))
 model.add(GRU(features_count, activation='tanh',return_sequences=True,implementation=1))
 #
