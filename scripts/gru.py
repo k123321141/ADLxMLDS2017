@@ -35,6 +35,6 @@ model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accu
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
-model.fit(x,y,batch_size = 1,epochs = 500,callbacks=[early_stopping],validation_split = 0.05)
+model.fit(x,y,batch_size = 500,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 
 model.save('../models/gru.model')
