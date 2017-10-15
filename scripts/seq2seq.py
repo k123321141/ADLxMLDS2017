@@ -28,7 +28,7 @@ x,y = dic_processing.toXY(dic3)
 model = Sequential()
 
 model.add(LSTM(features_count,input_dim = features_count, activation='tanh',return_sequences=False,implementation=1))
-model.add(Dense(features_count, activation="tanh"))
+#model.add(Dense(features_count, activation="tanh"))
 model.add(RepeatVector(max_len))
 model.add(LSTM(features_count, activation='tanh',return_sequences=True,implementation=1))
 
