@@ -18,7 +18,7 @@ dic1 = myinput.load_input('mfcc')
 dic2 = myinput.load_input('fbank')
 dic3 = myinput.stack_x(dic1,dic2)
 
-dic_processing.pad_dic(dic3,max_len)
+dic_processing.pad_dic(dic3,max_len,max_len,0)
 dic_processing.catogorate_dic(dic3,num_classes)
 
 x,y = dic_processing.toXY(dic3)

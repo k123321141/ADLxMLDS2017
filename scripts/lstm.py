@@ -17,7 +17,7 @@ dic1 = myinput.load_input('mfcc')
 dic2 = myinput.load_input('fbank')
 dic3 = myinput.stack_x(dic1,dic2)
 
-dic_processing.pad_dic(dic3,max_len)
+dic_processing.pad_dic(dic3,max_len,max_len,0)
 dic_processing.catogorate_dic(dic3,num_classes)
 
 x,y = dic_processing.toXY(dic3)
@@ -28,10 +28,11 @@ x,y = dic_processing.toXY(dic3)
 model = Sequential()
 model.add(Masking(mask_value=0., input_shape=(max_len, features_count)))
 
-model.add(LSTM(features_count,input_dim = features_count, activation='tanh',return_sequences=True))
-model.add(LSTM(features_count, activation='tanh',return_sequences=True,implementation=1))
+model.add(LSTM(features_count,input_dim = features_count, activation='relu',return_sequences=True,implementation=1))
+model.add(LSTM(features_count, activation='relu',return_sequences=True,implementation=1))
+model.add(LSTM(num_classes, activation='relu',return_sequences=True,implementation=1))
 #
-model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
+#model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
