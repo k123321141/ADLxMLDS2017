@@ -10,16 +10,31 @@ num_classes = 48
 
 
 def predict_output(model,sentence_dict,output_path,map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict):
-
-    x = [sentence_dict[k][0] for k in sorted(sentence_dict.keys())]
     
+    dic1 = myinput.load_input('mfcc')
+    dic2 = myinput.load_input('fbank')
+    dic3 = myinput.stack_x(dic1,dic2)
+    dic_processing.pad_dic(dic3,max_len)
+    x,fake_y = dic_processing.toXY(dic3)
+
+
+
+    #y in shape (None,777,48)
     y = model.predict(x)
+    sentence_dict = dic3
 
     #for counting
-    total = len(sentence_dict.keys())
-    index = 1
+    keys = sorted(sentence_dict.keys())
+    #the output is follow the sorted(keys)
+    for i in range(total):
+
+
     with open(output_path,'w') as f:
         f.write('id,phone_sequence\n')
+        sentenceID = keys[i]
+        buf = y[i,:,:]
+        frame_seq = [argmax(buf[j,:]) for j in range(max_len)]
+        
         for sentence_id in sentence_dict.keys():
             x = sentence_dict[sentence_id]
             y_arr = list( ([np.argmax(i, axis=1) for i in model.predict(x)])[0])

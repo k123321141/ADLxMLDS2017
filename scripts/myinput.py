@@ -161,11 +161,11 @@ def init_npz():
     write_npz(fbank_dic,'../data/fbank.npz')
     
 #read npz
-def load_input(npz_path = 'mfcc'):
-    if npz_path == 'mfcc':
-        npz_path = '../data/mfcc.npz'
-    elif npz_path == 'fbank':
-        npz_path = '../data/fbank.npz'
+def load_input(feature_name = 'mfcc'):
+    if feature_name == 'mfcc':
+        feature_name = '../data/mfcc.npz'
+    elif feature_name == 'fbank':
+        npz_pfeature_nameath = '../data/fbank.npz'
     else:
         print 'error'
         sys.exit(1)
@@ -181,25 +181,18 @@ def load_test(feature_name):
     else:
         print 'error'
         sys.exit(1)
-
-
-
-
-    assert sorted(x1.keys()) == sorted(x2.keys())
-    
     #fake y
     y = {}
-    for k in x1.keys():
-        frame_dic = x1[k]
+    for k in x.keys():
+        frame_dic = x[k]
         frame_buf = {}
         for i in sentence_dic.keys():
             frame_buf[i] = 0
         y[k] = frame_buf
     
     
-    x1 = combine(x1,y)
-    x2 = combine(x2,y)
-
+    result = combine(x,y)
+    return result
 if __name__ == '__main__':
     test()
 

@@ -27,7 +27,7 @@ def catogorate_dic(dic,num_classes):
 def toXY(dic):
     buf_x = []
     buf_y = []
-    for sentence_id in dic.keys():
+    for sentence_id in sorted(dic.keys()):
         x,y = dic[sentence_id]
         num,feature_dim = x.shape
         
