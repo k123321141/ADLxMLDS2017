@@ -1,73 +1,46 @@
 import myinput
 from keras.models import *
-from keras.layers.recurrent import SimpleRNN
 from keras.layers import *
-from keras.utils import to_categorical
-from keras.utils import plot_model
+from keras.utils import *
 from keras.callbacks import EarlyStopping
-
 import numpy as np
 import random
-
-hidden_dim = 39
-features_count = 39
+import dic_processing
 num_classes = 48
-validation_rate = 0.05
-
-
-epochs = 200
+features_count = 108
 
 max_len = 777
-def init_dic(dic):
-    x_buf = []
-    y_buf = []
-    for sentence_id in dic.keys():
-        x,y = dic[sentence_id]
-        num = x.shape[0]
-        assert x.shape[0] == y.shape[0] and features_count == x.shape[1]
-        x = np.lib.pad(x,((0,777-num),(0,0)),'constant', constant_values=(0, 0))
-        x_buf.append(x)
-        
-        
-        y = np.lib.pad(y,((0,777-num),(0,0)),'constant', constant_values=(0, num_classes))
-        y = to_categorical(y,num_classes+1)
-        y_buf.append(y)
-
-        
-
-    sample_num = len(dic.keys())
-    x = np.asarray(x_buf)
-    y = np.asarray(y_buf)
-    
-    return x,y
 
 
 #dic init setting,reshape
-dic = myinput.load_input()
-x,y = init_dic(dic)
+dic1 = myinput.load_input('fbank')
+dic2 = myinput.load_input('mfcc')
+dic3 = myinput.stack_x(dic1,dic2)
 
-print x.shape,y.shape
+dic_processing.pad_dic(dic3,max_len)
+dic_processing.catogorate_dic(dic3,num_classes)
 
-
+x,y = dic_processing.toXY(dic3)
 
 
 
 #model setting
 model = Sequential()
 
-#model.add(Embedding(input_dim = features_count,output_dim=features_count))
+model.add(LSTM(features_count,input_dim = features_count, activation='tanh',return_sequences=False,implementation=1))
+model.add(Dense(features_count, activation="tanh"))
+model.add(RepeatVector(max_len))
+model.add(LSTM(features_count, activation='tanh',return_sequences=True,implementation=1))
 
-#decoder
-model.add(LSTM(features_count, input_dim = features_count,return_sequences=True))
-model.add(Dense(features_count, activation="relu"))
-#model.add(RepeatVector(max_len))
-model.add(LSTM(features_count, return_sequences=True))
 
-model.add(TimeDistributed(Dense(num_classes+1,activation='softmax')))
+#model.add(LSTM(features_count, activation='tanh',return_sequences=False,implementation=1))
 
+#
+model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 #training loop
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-model.fit(x,y,batch_size=400,epochs=epochs,validation_split=0.05,callbacks=[early_stopping])
 
-model.save('./seq2seq.model')
+model.fit(x,y,batch_size = 100,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+
+model.save('../models/seq2seq.model')
