@@ -38,4 +38,4 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
 model.fit(x,y,batch_size = 400,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 
-model.save('../models/rnn_batch.model')
+model.save('../models/rnn.model')
