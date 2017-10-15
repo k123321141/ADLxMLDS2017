@@ -75,8 +75,8 @@ steps_per_epoch = len(training_dic.keys())
 #model setting
 model = Sequential()
 
-model.add(SimpleRNN(features_count,input_dim = features_count, activation='relu',return_sequences=True))
-model.add(SimpleRNN(features_count, activation='relu',return_sequences=True))
+model.add(SimpleRNN(features_count,input_dim = features_count, activation='tanh',return_sequences=True))
+model.add(SimpleRNN(features_count, activation='tanh',return_sequences=True))
 model.add(SimpleRNN(num_classes, activation='softmax',return_sequences=True))
 #
 #model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
