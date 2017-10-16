@@ -31,7 +31,7 @@ model.add(Masking(mask_value=0., input_shape=(max_len, features_count)))
 model.add(LSTM(features_count,input_dim = features_count, activation='tanh',return_sequences=True,implementation=1))
 model.add(LSTM(features_count, activation='tanh',return_sequences=True,implementation=1))
 model.add(LSTM(features_count, activation='tanh',return_sequences=True,implementation=1))
-model.add(LSTM(features_count, activation='relu',return_sequences=True,implementation=1))
+#model.add(LSTM(features_count, activation='relu',return_sequences=True,implementation=1))
 model.add(LSTM(num_classes, activation='softmax',return_sequences=True,implementation=1))
 #
 #model.add(TimeDistributed(Dense(num_classes,activation='softmax')))
