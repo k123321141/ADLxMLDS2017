@@ -21,7 +21,7 @@ dic1 = myinput.load_input('mfcc')
 for k in dic1.keys():
     x,y = dic1[k]
     np.place(y, y==37, 1)
-    np.place(y, y!=37, 0)
+    np.place(y, y!=1, 0)
 
     dic1[k] = x,y
 #
@@ -34,14 +34,15 @@ x,y = dic_processing.toXY(dic1)
 
 model = Sequential()
 model.add(Masking(mask_value=0, input_shape=(max_len, features_count)))
-model.add(SimpleRNN(30,input_dim = features_count, activation='tanh',return_sequences=True,implementation=1))
-model.add(SimpleRNN(20, activation='tanh',return_sequences=True,implementation=1))
+model.add(LSTM(30,input_dim = features_count, activation='tanh',return_sequences=True,implementation=1))
+model.add(LSTM(10, activation='tanh',return_sequences=True,implementation=1))
 model.add(TimeDistributed(Dense(2,activation='sigmoid')))
 
+#model.add(SimpleRNN(2, activation='sigmoid',return_sequences=True,implementation=1))
 
 model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
-model.fit(x,y,batch_size = 1000,epochs = 20,callbacks=[early_stopping],validation_split = 0.05)
+model.fit(x,y,batch_size = 400,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 
 model.save('../models/sil.model')
