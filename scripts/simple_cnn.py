@@ -30,16 +30,15 @@ xx = Conv2D(30,input_shape = (max_len,features_count),kernel_size = (1,features_
 xx = Conv2D(20,input_shape = (max_len,features_count),kernel_size = (1,5),padding='valid',activation = 'relu',data_format = 'channels_last')(first_input) 
 
 #777,35,30
-for i in range(2):
-    xx = Conv2D(40*(2**i),kernel_size = (1,5),padding='valid',activation = 'relu',data_format = 'channels_last')(xx) 
-xx = Conv2D(320,kernel_size = (1,27),padding='valid',activation = 'relu',data_format = 'channels_last')(xx)
+xx = Conv2D(40,kernel_size = (1,5),padding='valid',activation = 'relu',data_format = 'channels_last')(xx) 
+xx = Conv2D(80,kernel_size = (1,31),padding='valid',activation = 'relu',data_format = 'channels_last')(xx)
 #(777,1,120)
 #xx = Conv2D(30,kernel_size = (1,3),padding='valid',activation = 'relu',data_format = 'channels_last')(xx)
 #(777,35,30)
-xx = Reshape((max_len,320))(xx)
-xx = Masking(mask_value=0, input_shape=(max_len, 30))(xx)
-rnn_lay = SimpleRNN
-#xx = rnn_lay(60,input_dim = 30, activation='tanh',return_sequences=True,implementation=1)(xx)
+xx = Reshape((max_len,80))(xx)
+xx = Masking(mask_value=0)(xx)
+rnn_lay = GRU
+xx = rnn_lay(60,activation='tanh',return_sequences=True,implementation=1)(xx)
 xx = rnn_lay(40,activation='tanh',return_sequences=True,implementation=1)(xx)
 xx = rnn_lay(num_classes+1,activation='softmax',return_sequences=True,implementation=1)(xx)
 
