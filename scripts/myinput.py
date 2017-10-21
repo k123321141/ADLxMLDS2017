@@ -8,7 +8,7 @@ import mapping
 
 def read_X(data_path):
     sentence_dict = {}
-    print 'read data ',data_path
+    print 'read X ',data_path
     #training data
     with open(data_path,'r') as f:
         lines = f.readlines()
@@ -184,15 +184,9 @@ def load_input(feature_name = 'mfcc'):
 
     return read_npz(npz_path)
 
-def load_test(feature_name):
+def load_test(path):
 
-    if feature_name == 'mfcc':
-        x = read_X('../data/mfcc/test.ark')
-    elif feature_name == 'fbank':
-        x = read_X('../data/fbank/test.ark')
-    else:
-        print 'error'
-        sys.exit(1)
+    x = read_X(path)
     #fake y
     y = {}
     for k in x.keys():
