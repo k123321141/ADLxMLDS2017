@@ -12,10 +12,16 @@ num_classes = 48
 max_len = 777
 
 #dic init setting,reshape
+
+dic1 = myinput.load_test('../data/mfcc/test.ark')
+x,fake_y = dic_processing.toXY(dic1)
+
 dic1 = myinput.load_input('mfcc')
 #
 dic_processing.pad_dic(dic1,max_len,max_len,0)
 dic_processing.catogorate_dic(dic1,2)
+
+
 
 x,y = dic_processing.toXY(dic1)
 sample_num,max_len_sample,features_count = x.shape
