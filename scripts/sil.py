@@ -21,6 +21,10 @@ dic1 = myinput.load_input('mfcc')
 for k in dic1.keys():
     x,y = dic1[k]
     np.place(y, y==37, 1)
+    np.place(y, y==9, 1)   #cl
+    np.place(y, y==16, 1)   #epi
+    np.place(y, y==43, 1)   #vcl
+
     np.place(y, y!=1, 0)
 
     dic1[k] = x,y
