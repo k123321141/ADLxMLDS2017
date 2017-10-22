@@ -184,21 +184,18 @@ def load_input(feature_name = 'mfcc'):
 
     return read_npz(npz_path)
 
+#return a dict,key : sentenceID ,vals : ndarray in shape(len,feature_number)
 def load_test(path):
 
     x = read_X(path)
-    #fake y
-    y = {}
-    for k in x.keys():
-        frame_dic = x[k]
-        frame_buf = {}
-        for i in sentence_dic.keys():
-            frame_buf[i] = 0
-        y[k] = frame_buf
+    for setenceID in x.keys():
+        buf_x = []
+        frame_dic = x[setenceID]
+        for index in sorted(frame_dic.keys()):
+            buf_x.append(frame_dic[index])
+        x[setenceID] = np.asarray(buf_x)
     
-    
-    result = combine(x,y)
-    return result
+    return x
 if __name__ == '__main__':
     test()
 
