@@ -34,7 +34,6 @@ def toXY(dic):
         assert num_x == num_y
         x = x.reshape(1,num_x,feature_dim)
         y = y.reshape(1,num_y,num_classes)
-        print x.shape ,' -- ',y.shape
         buf_x.append(x)
         buf_y.append(y)
 
