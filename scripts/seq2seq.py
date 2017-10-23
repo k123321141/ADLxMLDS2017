@@ -17,7 +17,7 @@ seq = True
 #dic init setting,reshape
 dic1 = myinput.load_input('mfcc')
 if seq == True:
-    seq_dict = myinput.read_Y('../data/train.lab')
+    seq_dict = myinput.read_seq_Y('../data/train.lab')
     for k in dic1.keys():
         x,y = dic1[k]
         seq_y = seq_dict[k]
