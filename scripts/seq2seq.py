@@ -13,16 +13,28 @@ max_out_len = 80
 
 bi = True
 rnn_lay = SimpleRNN
-def cnn_output(xx):
 
+
+
+#dic init setting,reshape
+dic1 = myinput.load_input('mfcc')
+dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
+dic_processing.catogorate_dic(dic1,num_classes+1)
+
+x,y = dic_processing.toXY(dic1)
+num = x.shape[0]
+x = x.reshape(num,max_len,features_count,1)
 
 first_input = Input(shape=(max_len,features_count,1))
+'''
+xx = Conv2D(30,input_shape = (max_len,features_count),kernel_size = (1,features_count),padding='valid',activation = 'relu',data_format = 'channels_last')(first_input) 
+'''
 xx = Conv2D(30,input_shape = (max_len,features_count),kernel_size = (1,5),padding='valid',activation = 'relu',data_format = 'channels_last')(first_input) 
 #777,35,30
 xx = Conv2D(60,kernel_size = (1,5),padding='valid',activation = 'relu',data_format = 'channels_last')(xx) 
 #777,31,60
+#xx = Conv2D(90,kernel_size = (1,31),padding='valid',activation = 'relu',data_format = 'channels_last')(xx)
 xx = BatchNormalization(axis=-1 )(xx)
-
 xx = Reshape((max_len,31*60))(xx)
 xx = Masking(mask_value=0)(xx)
 if bi == True:
