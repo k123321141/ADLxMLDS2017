@@ -30,3 +30,38 @@ def cnn_output(xx):
         xx = rnn_lay(num_classes+1,activation='softmax',return_sequences=True,implementation=1)(xx)
 
     return xx
+
+if __name__ == '__main__':
+    import myinput
+    import dic_processing
+    from keras.utils import plot_model
+    from keras.callbacks import *
+#dic init setting,reshape
+    dic1 = myinput.load_input('mfcc')
+    dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
+
+    dic_processing.catogorate_dic(dic1,num_classes+1)
+
+    x,y = dic_processing.toXY(dic1)
+    num = x.shape[0]
+
+
+
+
+#model
+
+    x = x.reshape(num,max_len,features_count,1)
+
+    cnn_input = Input(shape=(max_len,features_count,1))
+    cnn_output = cnn_output(cnn_input)
+
+
+    model = Model(input = cnn_input,output = cnn_output)
+
+    plot_model(model, to_file='../model.png',show_shapes = True)
+
+    model.compile(loss='categorical_crossentropy', optimizer='rmsprop',metrics=['accuracy'])
+    early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+    model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+    print 'Done'
+    model.save('../models/cnn.model')

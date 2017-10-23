@@ -41,17 +41,28 @@ num = x.shape[0]
 
 x = x.reshape(num,max_len,features_count,1)
 
+
+cnn_model = load_model('../models/cnn.model')
+print 'prediction start'
+z = cnn_model.predict(x)
+print 'prediction finished.'
+print z.shape
+
 cnn_input = Input(shape=(max_len,features_count,1))
-cnn_output = cnn.cnn_output(cnn_input)
-seq_output = auto_decoder_encoder.seq_output(cnn_output,max_out_len = max_out_len,num_classes = num_classes+1)
+cnn_output = cnn_model(cnn_input)
+
+seq_input = Input(shape=(max_len,num_classes+1))
+
+#seq_output = auto_decoder_encoder.seq_output(cnn_output,max_out_len = max_out_len,num_classes = num_classes+1)
+seq_output = auto_decoder_encoder.seq_output(seq_input,max_out_len = max_out_len,num_classes = num_classes+1)
 
 
-model = Model(input = cnn_input,output = seq_output)
+model = Model(input = seq_input,output = seq_output)
 
 plot_model(model, to_file='../model.png',show_shapes = True)
 
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop',metrics=['accuracy'])
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+model.fit(z,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 print 'Done'
 model.save('../models/seq2seq.model')
