@@ -60,6 +60,6 @@ plot_model(model, to_file='../model.png',show_shapes = True)
 
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop',metrics=['accuracy'])
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-model.fit(x,y,batch_size = 50,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
-
-model.save('../models/simple_k.model')
+model.fit(x,y,batch_size = 20,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+print 'Done'
+model.save('../models/cnn.model')
