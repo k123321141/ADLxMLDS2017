@@ -141,7 +141,7 @@ if __name__ == '__main__':
     
 #    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
 #    compare_output(model)
-    generate_seq_y(output_path='../data/mfcc/seq_y.ark')
+    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
     print 'Done'
 
 

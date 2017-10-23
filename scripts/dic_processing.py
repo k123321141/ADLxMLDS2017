@@ -31,7 +31,7 @@ def toXY(dic):
         x,y = dic[sentence_id]
         num_x,feature_dim = x.shape
         num_y,num_classes = y.shape
-        assert num_x == num_y
+        
         x = x.reshape(1,num_x,feature_dim)
         y = y.reshape(1,num_y,num_classes)
         buf_x.append(x)

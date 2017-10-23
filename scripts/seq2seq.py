@@ -17,11 +17,14 @@ seq = True
 #dic init setting,reshape
 dic1 = myinput.load_input('mfcc')
 if seq == True:
-    seq_dict = myinput.read_seq_Y('../data/train.lab')
-    for k in dic1.keys():
-        x,y = dic1[k]
-        seq_y = seq_dict[k]
-        dic1[k] = x,seq_y
+    seq_dict = myinput.read_seq_Y('../data//mfcc/seq_y.lab')
+    for sentenceID in sorted(seq_dict.keys()):
+        frame_dic = seq_dict[sentenceID]
+        seq_y = myinput.dic2ndarray(frame_dic)
+        seq_y = seq_y.reshape(seq_y.shape[0],1)
+
+        x,y = dic1[sentenceID]
+        dic1[sentenceID] = x,seq_y
     dic_processing.pad_dic(dic1,max_len,max_out_len,num_classes)
 else:
     dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
@@ -49,6 +52,6 @@ plot_model(model, to_file='../model.png',show_shapes = True)
 
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop',metrics=['accuracy'])
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-model.fit(x,y,batch_size = 100,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 print 'Done'
 model.save('../models/seq2seq.model')
