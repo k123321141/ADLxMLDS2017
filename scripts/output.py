@@ -40,7 +40,7 @@ def predict_output(model,input_path,output_path):
             
             print '%d/%d    %s,%s\n' % (i,total,setenceID,s)
             i+=1
-def compare_output(model,output_path):
+def compare_output(model):
     
     
     
@@ -48,7 +48,8 @@ def compare_output(model,output_path):
     src = myinput.load_input('mfcc')
     keys = src.keys()
     r.shuffle(keys)
-    sub_keys = keys[0:10]
+    #sub_keys = keys[0:10]
+    sub_keys = keys
 #    sub_keys = ['fadg0_si1279']
     sub_x ={k:(src[k]) for k in sub_keys }
     
@@ -56,38 +57,56 @@ def compare_output(model,output_path):
 
     i = 1
     total = len(dic_x.keys())
-    with open(output_path,'w') as f:
         
-        for setenceID in dic_x.keys():
-            x,src_y = dic_x[setenceID]
-            frame_len,feature_num = x.shape
+    for setenceID in dic_x.keys():
+        x,src_y = dic_x[setenceID]
+        frame_len,feature_num = x.shape
 #            padding for model
-            x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-            x = x.reshape(1,max_len,feature_num,1)
-            #
-            y = model.predict(x)
-            frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
+        x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
+        x = x.reshape(1,max_len,feature_num,1)
+        #
+        y = model.predict(x)
+        frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
 
-            s = convert_label_sequence(frame_seq)
-            
+        s = convert_label_sequence(frame_seq)
+        
 
-            src_y = src_y.reshape(frame_len)
-            src_y = src_y.astype(np.int32)
-            y_seq = src_y.tolist()
-            s2 = convert_label_sequence(y_seq)
+        src_y = src_y.reshape(frame_len)
+        src_y = src_y.astype(np.int32)
+        y_seq = src_y.tolist()
+        s2 = convert_label_sequence(y_seq)[:-1]
 
-            print '(%d/%d)  %s    \n' % (i,total,setenceID)
-            h = 80
-            k = (len(s) / h)
+        print '(%d/%d)  %s    \n' % (i,total,setenceID)
+        h = 80
+        k = (len(s) / h)
 #            for j in range(k):
 #                start = j*h
 #                end = (j+1)*h
 #                print 'result  :   %s\nsrc     :   %s\n' % (s[start:end],s2[start:end])
 #            print 'result  :   %s\nsrc     :   %s\n' % (s[end:],s2[end:])
 
+        i+=1
+def generate_seq_y(output_path):
+    
+    dic_x = myinput.load_input('mfcc')
+    
+    i = 1
+    total = len(dic_x.keys())
+    with open(output_path,'w') as f:
+         
+        for setenceID in dic_x.keys():
+            x,src_y = dic_x[setenceID]
+            frame_len,feature_num = x.shape
+            
+
+            src_y = src_y.reshape(frame_len)
+            src_y = src_y.astype(np.int32)
+            y_seq = src_y.tolist()
+            s2 = convert_label_sequence(y_seq)[:-1]
+
+            print '(%d/%d)  %s    \n' % (i,total,setenceID)
             f.write('%s,%s\n' % (setenceID,s2))
             i+=1
-
 #y is a list
 def convert_label_sequence(label_seq):
     #eof trimming
@@ -189,8 +208,8 @@ if __name__ == '__main__':
     model = load_model(model_path)
     
 #    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
-    compare_output(model,output_path='../data/mfcc/seq_y.ark')
-
+#    compare_output(model)
+    generate_seq_y(output_path='../data/mfcc/seq_y.ark')
     print 'Done'
 
 

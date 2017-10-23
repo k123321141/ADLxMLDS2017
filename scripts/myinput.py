@@ -58,7 +58,7 @@ def read_Y(label_path,map_48_int_dict,map2int = True):
     return sentence_dict
 
 def read_seq_Y(label_path):
-    sentence_dict = read_Y(label_path,None,map2int = False)
+    sentence_dict = read_Y(label_path,None,map2int = True)
     for sentenceID in sentence_dict.keys():
         frame_dic = sentence_dict[sentenceID]
         buf = []
