@@ -40,7 +40,7 @@ def predict_output(model,input_path,output_path):
             
             print '%d/%d    %s,%s\n' % (i,total,setenceID,s)
             i+=1
-def compare_output(model):
+def compare_output(model,output_path):
     
     
     
@@ -79,13 +79,13 @@ def compare_output(model):
             print '(%d/%d)  %s    \n' % (i,total,setenceID)
             h = 80
             k = (len(s) / h)
-            for j in range(k):
-                start = j*h
-                end = (j+1)*h
-                print 'result  :   %s\nsrc     :   %s\n' % (s[start:end],s2[start:end])
-            print 'result  :   %s\nsrc     :   %s\n' % (s[end:],s2[end:])
-            
-            
+#            for j in range(k):
+#                start = j*h
+#                end = (j+1)*h
+#                print 'result  :   %s\nsrc     :   %s\n' % (s[start:end],s2[start:end])
+#            print 'result  :   %s\nsrc     :   %s\n' % (s[end:],s2[end:])
+
+            f.write('%s,%s\n' % (setenceID,s2))
             i+=1
 
 #y is a list
@@ -97,10 +97,10 @@ def convert_label_sequence(label_seq):
     c_arr = [map_48_reverse[y] for y in label_seq]
         
             
-#    c_arr = [map_48_39_dict[c] for c in c_arr]
+    c_arr = [map_48_39_dict[c] for c in c_arr]
     #trimming
-#    c_arr = trim_sil(c_arr)
-#    c_arr = trim_repeat(c_arr)
+    c_arr = trim_sil(c_arr)
+    c_arr = trim_repeat(c_arr)
     #
 #    c_arr = [map_48_char_dict[c] for c in c_arr]
 
@@ -189,7 +189,7 @@ if __name__ == '__main__':
     model = load_model(model_path)
     
 #    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
-    compare_output(model)
+    compare_output(model,output_path='../data/mfcc/seq_y.ark')
 
     print 'Done'
 
