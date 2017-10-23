@@ -58,6 +58,30 @@ def read_Y(label_path,map_48_int_dict,map2int = True):
     return sentence_dict
 
 def read_seq_Y(label_path):
+    sentence_dict = {}
+    #label
+    with open(label_path,'r') as f:
+        lines = f.readlines()
+    for l in lines:
+        
+        buf = l.strip().split(',')
+        key = buf[0]
+        labels = buf[1:]
+        
+        labels = mapping.mapping(labels,'48_int')
+        
+    
+        for i in range(len(labels)):
+            label = buf[i]
+            if sentence_dict.has_key(key) != True:
+                sentence_dict[key] = {}
+            frame_dict = sentence_dict[key]
+            
+            
+            frame_dict[i+1] = label
+    return sentence_dict
+
+
     sentence_dict = read_Y(label_path,None,map2int = True)
     for sentenceID in sentence_dict.keys():
         frame_dic = sentence_dict[sentenceID]
