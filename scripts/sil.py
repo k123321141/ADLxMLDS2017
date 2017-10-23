@@ -15,12 +15,15 @@ dic1 = myinput.load_input('mfcc')
 #change y with seq_y
 for k in dic1.keys():
     x,y = dic1[k]
+    
     np.place(y, y==37, 1)
+    '''
     np.place(y, y==9, 1)   #cl
     np.place(y, y==16, 1)   #epi
     np.place(y, y==43, 1)   #vcl
+    '''
     np.place(y, y!=1, 0)
-
+    
     dic1[k] = x,y
 #
 dic_processing.pad_dic(dic1,max_len,max_len,0)
@@ -31,7 +34,7 @@ sample_num,max_len_sample,features_count = x.shape
 assert max_len == max_len_sample
 
 
-rnn_lay = SimpleRNN
+rnn_lay = GRU
 model = Sequential()
 #CNN
 x = x.reshape(sample_num,max_len_sample,features_count,1)
@@ -55,4 +58,4 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
 model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
 
-model.save('../models/sil.model')
+model.save('../models/sil_gru.model')
