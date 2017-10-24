@@ -40,13 +40,14 @@ if __name__ == '__main__':
     #model
 
     first_input = Input(shape=(max_len,features_count))
-    rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
-    rnn_out = output(rnn_input,bidirect = True,depth = 2,hidden_dim = 200)
+    #rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
+    rnn_input = Masking(input_shape = (max_len,features_count))(first_input)
+    rnn_out = output(rnn_input,bidirect = True,depth = 2,rnn_lay = GRU,hidden_dim = 200)
 
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 
     model = Model(input = first_input,output = result)
-
+#    model = load_model('../checkpoints/')
     plot_model(model, to_file='../model.png',show_shapes = True)
 
     #construct sample matrix
@@ -61,9 +62,9 @@ if __name__ == '__main__':
     #
     sgd_opt = SGD(lr = 0.01)
     model.compile(loss='categorical_crossentropy', optimizer = sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 5)
-    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
+    model.fit(x,y,batch_size =10,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     
     print 'Done'
     model.save('../models/rnn.model')

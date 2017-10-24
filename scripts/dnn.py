@@ -43,7 +43,7 @@ num = x.shape[0]
 model = Sequential()
 model.add(BatchNormalization(input_shape = (777,39)))
 model.add(TimeDistributed(Dense(256,activation = 'sigmoid',input_dim = 39)))
-model.add(Dropout(0.10))
+model.add(Dropout(0.25))
 model.add(Dense(num_classes+1,activation = 'softmax'))
 
 
@@ -54,16 +54,13 @@ s_mat = np.zeros((num,777),dtype = np.float32)
 np.place(s_mat,s_mat == 0,1)
 
 for i in range(num):
-        for j in range(777):
-            if y[i,j,48] == 1:
-                len_of_sample = j
+        for j in range(max_len):
+            if y[i,j,-1] == 1:
+                s_mat[i,j:]= 0
                 break
-        s_mat[i,len_of_sample] = 0
 #
-sgd_opt = SGD(lr = 0.001)
-model.compile(loss='categorical_crossentropy', optimizer = sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
+model.compile(loss='categorical_crossentropy', optimizer = Adam(lr=0.01),metrics=['accuracy'],sample_weight_mode = 'temporal')
 early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 model.fit(x,y,batch_size =400,epochs = 2000,callbacks=[early_stopping],validation_split = 0.05,sample_weight = s_mat)
 print 'Done'
-x
 

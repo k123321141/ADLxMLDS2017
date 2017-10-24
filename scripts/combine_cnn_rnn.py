@@ -40,7 +40,7 @@ if __name__ == '__main__':
     #(777,39,1) -> (775,35,10)
     rnn_input = Reshape((775,35*10))(cnn_output)
     #
-    rnn_output = rnn.output(rnn_input,bidirect = True,depth = 2,)
+    rnn_output = rnn.output(rnn_input,bidirect = True,depth = 2,hidden_dim = 400,rnn_lay = GRU)
     #
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_output)
 
@@ -62,6 +62,6 @@ if __name__ == '__main__':
     model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=2)
     cks = ModelCheckpoint('../checkpoints/combine.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 5)
-    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    model.fit(x,y,batch_size =10,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     print 'Done'
     model.save('../models/cnn+rnn.model')

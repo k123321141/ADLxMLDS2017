@@ -5,14 +5,15 @@ num_classes = 48
 features_count = 39
 
 
-def output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10,padding = 'valid',data_format = 'channels_last',activation = 'relu'):
+def output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10,padding = 'valid',data_format = 'channels_last',activation = 'relu',use_bias = True,normalization = True):
 
     xx = cnn_input
     for i in range(depth):
-        xx = Conv2D(filters*(2**i),kernel_size = kernel_size,padding=padding,activation = activation,data_format = data_format)(xx) 
+        xx = Conv2D(filters*(2**i),kernel_size = kernel_size,padding=padding,activation = activation,data_format = data_format,use_bias=use_bias)(xx) 
         xx = Dropout(dropout)(xx)
     #Normalization
-    xx = BatchNormalization(axis = -1)(xx)
+    if normalization:
+        xx = BatchNormalization(axis = -1)(xx)
     return xx
 
 if __name__ == '__main__':

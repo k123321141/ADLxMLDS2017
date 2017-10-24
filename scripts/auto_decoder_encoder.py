@@ -12,10 +12,7 @@ def seq_output(seq_input,max_out_len,hidden_dim=200,depth=1,activation='relu',rn
         encoder_input = rnn.output(seq_input,rnn_lay = rnn_lay,bidirect = bidirect,activation = activation,depth = depth-1,hidden_dim=hidden_dim,dropout=dropout)
     else:
         encoder_input = seq_input
-    if bidirect:
-        encoder_out,hi_st = Bidirctional(rnn_lay(hidden_dim,return_state = True,return_sequences = False,activation =activation ))(encoder_input)
-    else:
-        encoder_out,hi_st = rnn_lay(hidden_dim,return_state = True,return_sequences = False,activation = activation)(encoder_input)
+    encoder_out,hi_st = rnn_lay(hidden_dim,return_state = True,return_sequences = False,activation = activation)(encoder_input)
 
     #repeat
     decoder_input = RepeatVector(max_out_len)(encoder_out)
@@ -25,6 +22,18 @@ def seq_output(seq_input,max_out_len,hidden_dim=200,depth=1,activation='relu',rn
         decoder_output = rnn.output(decoder_output,rnn_lay = rnn_lay,bidirect = bidirect,activation = activation,depth=depth,hidden_dim=hidden_dim,dropout=dropout)
 
     return decoder_output
+import keras.backend as K
+import tensorflow as tf
+import numpy as np
+
+h = np.ones((777,49))
+h[:,-1] = 0
+gh = tf.convert_to_tensor(h,dtype=tf.float32)
+def myacc(y_true, y_pred):
+    print y_true.shape
+    a = K.equal(K.argmax(y_true*gh, axis=-1),K.argmax(y_pred, axis=-1))
+    b = K.floatx()
+    return K.cast(a,b)
 
 if __name__ == '__main__':
     import myinput
@@ -52,6 +61,7 @@ if __name__ == '__main__':
     else:
         dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
 
+    dic_processing.catogorate_dic(dic1,num_classes+1)
     x,y = dic_processing.toXY(dic1)
     num = x.shape[0]
 
@@ -60,12 +70,17 @@ if __name__ == '__main__':
 
 
     first_input = Input(shape=(max_len,features_count,1))
-    cnn_input = BatchNormalization(axis = -2) (first_input)         #the axis of nomaliztion is -2 (3696,777,39,1)
-    cnn_output = cnn.output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
+    #cnn_input = BatchNormalization(axis = -2) (first_input)         #the axis of nomaliztion is -2 (3696,777,39,1)
+    cnn_input = first_input
+    cnn_output = cnn.output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid',normalization = False,use_bias = False)
     #(777,39,1) -> (775,35,10)
+#    cnn_output = cnn.output(cnn_output,kernel_size =(1,35),depth = 1,filters = 40,padding ='valid',normalization = False,use_bias = False)
+    #(777,35,10) -> (775,1,40)
+    #seq_input = Reshape((775,40*1))(cnn_output)
     seq_input = Reshape((775,35*10))(cnn_output)
     #
-    seq_output = seq_output(seq_input,max_out_len,hidden_dim=200,depth=1,activation='relu',bidirect = False) 
+    seq_input = Masking()(seq_input)
+    seq_output = seq_output(seq_input,max_out_len,hidden_dim=200,depth=1,rnn_lay = SimpleRNN,activation='tanh',bidirect = False ) 
     #
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(seq_output)
 
@@ -83,10 +98,11 @@ if __name__ == '__main__':
                     break
     #
     sgd_opt = SGD(lr = 0.01)
-    print x.shape,y.shape
-    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
+    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy',myacc],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=2)
     cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 2)
-    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+
+
+    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     print 'Done'
     model.save('../models/seq.model')
