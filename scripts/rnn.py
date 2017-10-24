@@ -5,7 +5,7 @@ num_classes = 48
 features_count = 39
 
 
-def rnn_output(rnn_input,hidden_dim = 200,rnn_lay = SimpleRNN,bidirect = False,depth = 2,activation = 'tanh',dropout = 0.10):
+def output(rnn_input,hidden_dim = 200,rnn_lay = SimpleRNN,bidirect = False,depth = 2,activation = 'tanh',dropout = 0.10):
     xx = rnn_input    
     if bidirect == True:
         for i in range(depth):
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     first_input = Input(shape=(max_len,features_count))
     rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
-    rnn_out = rnn_output(rnn_input,bidirect = True,depth = 2,hidden_dim = 50)
+    rnn_out = output(rnn_input,bidirect = True,depth = 2,hidden_dim = 200)
 
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 

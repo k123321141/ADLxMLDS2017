@@ -5,7 +5,7 @@ num_classes = 48
 features_count = 39
 
 
-def cnn_output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10,padding = 'valid',data_format = 'channels_last',activation = 'relu'):
+def output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10,padding = 'valid',data_format = 'channels_last',activation = 'relu'):
 
     xx = cnn_input
     for i in range(depth):
@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     first_input = Input(shape=(max_len,features_count,1))
     cnn_input = BatchNormalization(axis = -2) (first_input)         #the axis of nomaliztion is -2 (3696,777,39,1)
-    cnn_output = cnn_output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
+    cnn_output = output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
     #(777,39,1) -> (775,35,10)
     
     result = Reshape((775,35*10))(cnn_output)
