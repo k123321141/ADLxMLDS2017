@@ -5,21 +5,24 @@ num_classes = 48
 features_count = 39
 
 
-def rnn_output(rnn_input,hidden_dim = 200,rnn_lay = SimpleRNN,bidirect = False,depth = 2,activation = 'tanh'):
+def rnn_output(rnn_input,hidden_dim = 200,rnn_lay = SimpleRNN,bidirect = False,depth = 2,activation = 'tanh',dropout = 0.10):
     xx = rnn_input    
     if bidirect == True:
         for i in range(depth):
             xx = Bidirectional(rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less ='mem'))(xx)
+            xx = Dropout(dropout)(xx)
 
     else:
         for i in range(depth):
             xx = rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less = 'mem')(xx)
+            xx = Dropout(dropout)(xx)
     return xx
 
 if __name__ == '__main__':
     import myinput
     import dic_processing
     from keras.utils import plot_model
+    from keras.optimizers import *
     from keras.callbacks import *
 #dic init setting,reshape
     max_len = 777
@@ -34,24 +37,36 @@ if __name__ == '__main__':
 
 
 
-#model
+    #model
 
-    x = x.reshape(num,max_len,features_count)
+    first_input = Input(shape=(max_len,features_count))
+    rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
+    rnn_input = Masking()(rnn_input)
+    rnn_out = rnn_output(rnn_input,bidirect = True)
 
-    rnn_input = Input(shape=(max_len,features_count))
-    rnn_out = rnn_output(rnn_input)
+    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 
-
-    model = Model(input = rnn_input,output = rnn_out)
+    model = Model(input = first_input,output = result)
 
     plot_model(model, to_file='../model.png',show_shapes = True)
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam',metrics=['accuracy'])
+    #construct sample matrix
+    s_mat = np.zeros((num,max_len),dtype = np.float32)
+    np.place(s_mat,s_mat == 0,1)
+
+    for i in range(num):
+            for j in range(max_len):
+                if y[i,j,-1] == 1:
+                    s_mat[i,j] = 0
+                    break
+    #
+    sgd_opt = SGD(lr = 0.01)
+    model.compile(loss='categorical_crossentropy', optimizer = sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-    model.fit(x,y,batch_size = 400,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping],validation_split = 0.05,sample_weight = s_mat)
+    
     print 'Done'
     model.save('../models/rnn.model')
-
 
 
 
