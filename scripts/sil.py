@@ -2,7 +2,7 @@ import myinput
 from keras.models import *
 from keras.layers import *
 from keras.utils import *
-from keras.callbacks import EarlyStopping
+from keras.callbacks import *
 from keras.optimizers import *
 import numpy as np
 import random
@@ -48,14 +48,15 @@ model.add(Reshape( (max_len,f_c*2)))
 #rnn
 model.add(Masking(mask_value=0))
 #model.add(rnn_lay(30,input_dim = features_count, activation='tanh',return_sequences=True,implementation=1))
-model.add(rnn_lay(30,activation='tanh',return_sequences=True,implementation=1))
-model.add(rnn_lay(10, activation='tanh',return_sequences=True,implementation=1))
+model.add(Bidirectional(rnn_lay(90,activation='tanh',return_sequences=True,implementation=1)))
+model.add(rnn_lay(60,activation='tanh',return_sequences=True,implementation=1))
+model.add(rnn_lay(30, activation='tanh',return_sequences=True,implementation=1))
 model.add(TimeDistributed(Dense(2,activation='sigmoid')))
 
 opt = SGD(lr = 0.001)
 model.compile(optimizer=opt,loss='categorical_crossentropy',metrics=['accuracy'])
-early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-
-model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+checkpoint = ModelCheckpoint(filepath = '../checkpoints/weights.{epoch:02d}-{val_loss:.2f}.hdf5')
+model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping,checkpoint],validation_split = 0.05)
 
 model.save('../models/sil_gru.model')
