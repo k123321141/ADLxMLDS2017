@@ -1,16 +1,29 @@
 from keras.models import *
 from keras.layers import *
-import myinput
-import dic_processing
-from keras.utils import plot_model
-from keras.callbacks import *
-from keras.optimizers import *
-import rnn
-import cnn
+
 num_classes = 48
 features_count = 39
 
+
+def cnn_output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10,padding = 'valid',data_format = 'channels_last',activation = 'relu'):
+
+    xx = cnn_input
+    for i in range(depth):
+        print xx.shape,'1'
+        xx = Conv2D(filters*(2**i),kernel_size = kernel_size,padding=padding,activation = activation,data_format = data_format)(xx) 
+        print xx.shape,'1'
+        xx = Dropout(dropout)(xx)
+        print xx.shape,'1'
+
+    return xx
+
 if __name__ == '__main__':
+    import myinput
+    import dic_processing
+    from keras.utils import plot_model
+    from keras.callbacks import *
+    from keras.optimizers import *
+#dic init setting,reshape
     max_len = 777
     dic1 = myinput.load_input('mfcc')
     dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
@@ -34,12 +47,11 @@ if __name__ == '__main__':
 
     first_input = Input(shape=(max_len,features_count,1))
     cnn_input = BatchNormalization(axis = -2) (first_input)         #the axis of nomaliztion is -2 (3696,777,39,1)
-    cnn_output = cnn.cnn_output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
+    cnn_output = cnn_output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
     #(777,39,1) -> (775,35,10)
-    
     rnn_input = Reshape((775,35*10))(cnn_output)
-    rnn.
-    rnn_output = rnn.rnnoutput(rnn_input,)
+    #
+     
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(result)
 
     model = Model(input = first_input,output = result)

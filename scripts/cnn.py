@@ -14,7 +14,8 @@ def cnn_output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10
         print xx.shape,'1'
         xx = Dropout(dropout)(xx)
         print xx.shape,'1'
-
+    #Normalization
+    xx = BatchNormalization(axis = -1)(xx)
     return xx
 
 if __name__ == '__main__':

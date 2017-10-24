@@ -41,8 +41,7 @@ if __name__ == '__main__':
 
     first_input = Input(shape=(max_len,features_count))
     rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
-    rnn_input = Masking()(rnn_input)
-    rnn_out = rnn_output(rnn_input,bidirect = True)
+    rnn_out = rnn_output(rnn_input,bidirect = True,depth = 2,hidden_dim = 50)
 
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 
