@@ -50,13 +50,13 @@ if __name__ == '__main__':
     plot_model(model, to_file='../model.png',show_shapes = True)
 
     #construct sample matrix
-    s_mat = np.zeros((num,max_len),dtype = np.float32)
+    s_mat = np.zeros(y.shape[0:2],dtype = np.float32)
     np.place(s_mat,s_mat == 0,1)
 
-    for i in range(num):
-            for j in range(max_len):
+    for i in range(y.shape[0]):
+            for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j] = 0
+                    s_mat[i,j:] = 0
                     break
     #
     sgd_opt = SGD(lr = 0.01)

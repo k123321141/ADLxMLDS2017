@@ -36,12 +36,13 @@ if __name__ == '__main__':
 
     first_input = Input(shape=(max_len,features_count,1))
     cnn_input = BatchNormalization(axis = -2) (first_input)         #the axis of nomaliztion is -2 (3696,777,39,1)
-    cnn_output = cnn_output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
+    cnn_output = cnn.output(cnn_input,kernel_size =(3,5),depth = 1,filters = 10,padding ='valid')
     #(777,39,1) -> (775,35,10)
     rnn_input = Reshape((775,35*10))(cnn_output)
     #
-    rnn_output = rnn.rnn_output() 
-    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(result)
+    rnn_output = rnn.output(rnn_input,bidirect = True,depth = 2,)
+    #
+    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_output)
 
     model = Model(input = first_input,output = result)
 
@@ -52,4 +53,4 @@ if __name__ == '__main__':
     early_stopping = EarlyStopping(monitor='val_loss', patience=2)
     model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
     print 'Done'
-    model.save('../models/cnn.model')
+    model.save('../models/cnn+rnn.model')

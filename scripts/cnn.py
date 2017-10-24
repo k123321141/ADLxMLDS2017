@@ -9,11 +9,8 @@ def output(cnn_input,filters=15,depth = 2,kernel_size = (3,5),dropout = 0.10,pad
 
     xx = cnn_input
     for i in range(depth):
-        print xx.shape,'1'
         xx = Conv2D(filters*(2**i),kernel_size = kernel_size,padding=padding,activation = activation,data_format = data_format)(xx) 
-        print xx.shape,'1'
         xx = Dropout(dropout)(xx)
-        print xx.shape,'1'
     #Normalization
     xx = BatchNormalization(axis = -1)(xx)
     return xx
@@ -57,10 +54,22 @@ if __name__ == '__main__':
     model = Model(input = first_input,output = result)
 
     plot_model(model, to_file='../model.png',show_shapes = True)
+    
+    #
+    s_mat = np.zeros(y.shape[0:2],dtype = np.float32)
+    np.place(s_mat,s_mat == 0,1)
+    for i in range(y.shape[0]):
+            for j in range(y.shape[1]):
+                if y[i,j,-1] == 1:
+                    s_mat[i,j:] = 0
+                    break
+    #
     sgd_opt = SGD(lr = 0.01)
 
-    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-    model.fit(x,y,batch_size = 10,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
+    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping],validation_split = 0.05,sample_weight = s_mat)
     print 'Done'
     model.save('../models/cnn.model')
+
+
