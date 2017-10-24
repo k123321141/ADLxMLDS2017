@@ -48,8 +48,8 @@ def compare_output(model):
     src = myinput.load_input('mfcc')
     keys = src.keys()
     r.shuffle(keys)
-    #sub_keys = keys[0:10]
-    sub_keys = keys
+    sub_keys = keys[0:10]
+    #sub_keys = keys
 #    sub_keys = ['fadg0_si1279']
     sub_x ={k:(src[k]) for k in sub_keys }
     
@@ -79,11 +79,11 @@ def compare_output(model):
         print '(%d/%d)  %s    \n' % (i,total,setenceID)
         h = 80
         k = (len(s) / h)
-#            for j in range(k):
-#                start = j*h
-#                end = (j+1)*h
-#                print 'result  :   %s\nsrc     :   %s\n' % (s[start:end],s2[start:end])
-#            print 'result  :   %s\nsrc     :   %s\n' % (s[end:],s2[end:])
+        for j in range(k):
+            start = j*h
+            end = (j+1)*h
+            print 'result  :   %s\nsrc     :   %s\n' % (s[start:end],s2[start:end])
+#        print 'result  :   %s\nsrc     :   %s\n' % (s[end:],s2[end:])
 
         i+=1
 def generate_seq_y(output_path):
@@ -118,8 +118,8 @@ def convert_label_sequence(label_seq):
             
     c_arr = [map_48_39_dict[c] for c in c_arr]
     #trimming
-    c_arr = trim_sil(c_arr)
-    c_arr = trim_repeat(c_arr)
+    #c_arr = trim_sil(c_arr)
+    #c_arr = trim_repeat(c_arr)
     #
 #    c_arr = [map_48_char_dict[c] for c in c_arr]
 
@@ -131,7 +131,7 @@ def convert_label_sequence(label_seq):
 #read and save
 if __name__ == '__main__':
     output_path = '../data/output.csv'
-    model_path = '../models/simple_k.model'
+    model_path = '../checkpoints/combine.74-1.45.model'
     test1_path = '../data/mfcc/test.ark'
     test2_path = '../data/fbank/test.ark'
     
@@ -140,8 +140,8 @@ if __name__ == '__main__':
     model = load_model(model_path)
     
 #    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
-#    compare_output(model)
-    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
+    compare_output(model)
+#    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
     print 'Done'
 
 

@@ -34,8 +34,11 @@ if __name__ == '__main__':
     #(3696,777,49) -> (3696,775,49)
     print y.shape 
 
-    model = load_model('../checkpoints/acc.19-2.09.model')
-    model.fit(x,y,batch_size = 10,epochs = 2000,validation_split = 0.05)
+    model = load_model('../checkpoints/combine.84-1.41.model')
+    z = model.evaluate(x,y)
+    print z
+    print model.metrics_names
+    #model.fit(x,y,batch_size = 10,epochs = 2000,validation_split = 0.05)
     print 'Done'
 
 
