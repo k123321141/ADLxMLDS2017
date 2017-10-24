@@ -43,10 +43,6 @@ x = x.reshape(num,max_len,features_count,1)
 
 
 cnn_model = load_model('../models/cnn.model')
-print 'prediction start'
-z = cnn_model.predict(x)
-print 'prediction finished.'
-print z.shape
 
 cnn_input = Input(shape=(max_len,features_count,1))
 cnn_output = cnn_model(cnn_input)
