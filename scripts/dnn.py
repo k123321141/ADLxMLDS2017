@@ -42,9 +42,6 @@ num = x.shape[0]
 
 model = Sequential()
 model.add(BatchNormalization(input_shape = (777,39)))
-
-
-
 model.add(TimeDistributed(Dense(256,activation = 'sigmoid',input_dim = 39)))
 model.add(Dropout(0.10))
 model.add(Dense(num_classes+1,activation = 'softmax'))

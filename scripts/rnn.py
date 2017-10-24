@@ -5,12 +5,15 @@ num_classes = 48
 features_count = 39
 
 
-bi = False
-rnn_lay = SimpleRNN
-def rnn_output(rnn_input,hidden_dim = 200,depth = 2,activation = 'tanh'):
-    
-    xx = rnn_lay(hidden_dim,activation=activation,return_sequences=True)(rnn_input)
-#    xx = rnn_lay(hidden_dim,activation=activation,return_sequences=True)(xx)
+def rnn_output(rnn_input,hidden_dim = 200,rnn_lay = SimpleRNN,bidirect = False,depth = 2,activation = 'tanh'):
+    xx = rnn_input    
+    if bidirect == True:
+        for i in range(depth):
+            xx = Bidirectional(rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less ='mem'))(xx)
+
+    else:
+        for i in range(depth):
+            xx = rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less = 'mem')(xx)
     return xx
 
 if __name__ == '__main__':
@@ -48,3 +51,9 @@ if __name__ == '__main__':
     model.fit(x,y,batch_size = 400,epochs = 200,callbacks=[early_stopping],validation_split = 0.05)
     print 'Done'
     model.save('../models/rnn.model')
+
+
+
+
+
+
