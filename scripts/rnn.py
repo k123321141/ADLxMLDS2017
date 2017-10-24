@@ -62,12 +62,11 @@ if __name__ == '__main__':
     sgd_opt = SGD(lr = 0.01)
     model.compile(loss='categorical_crossentropy', optimizer = sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping],validation_split = 0.05,sample_weight = s_mat)
+    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 5)
+    model.fit(x,y,batch_size =100,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     
     print 'Done'
     model.save('../models/rnn.model')
-
-
 
 
 
