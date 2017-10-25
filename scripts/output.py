@@ -131,7 +131,7 @@ def convert_label_sequence(label_seq):
 #read and save
 if __name__ == '__main__':
     output_path = '../data/output.csv'
-    model_path = '../checkpoints/combine.74-1.45.model'
+    model_path = '../checkpoints/seq.13-1.60.model'
     test1_path = '../data/mfcc/test.ark'
     test2_path = '../data/fbank/test.ark'
     

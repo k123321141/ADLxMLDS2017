@@ -42,7 +42,7 @@ if __name__ == '__main__':
     first_input = Input(shape=(max_len,features_count))
     #rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
     rnn_input = Masking(input_shape = (max_len,features_count))(first_input)
-    rnn_out = output(rnn_input,bidirect = True,depth = 2,rnn_lay = GRU,hidden_dim = 200)
+    rnn_out = output(rnn_input,bidirect = True,depth = 2,rnn_lay = GRU,hidden_dim = 128)
 
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 
@@ -57,14 +57,15 @@ if __name__ == '__main__':
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j:] = 0
+                    s_mat[i,j:] = 1
                     break
     #
     sgd_opt = SGD(lr = 0.01)
     model.compile(loss='categorical_crossentropy', optimizer = sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
     cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
-    model.fit(x,y,batch_size =10,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    #model.fit(x,y,batch_size = 40,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    model.fit(x,y,batch_size = 40,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
     
     print 'Done'
     model.save('../models/rnn.model')
