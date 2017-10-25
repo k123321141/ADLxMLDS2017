@@ -121,7 +121,7 @@ def convert_label_sequence(label_seq):
     c_arr = trim_sil(c_arr)
     c_arr = trim_repeat(c_arr)
     #
-#    c_arr = [map_48_char_dict[c] for c in c_arr]
+    c_arr = [map_48_char_dict[c] for c in c_arr]
 
     s = ''
     for c in c_arr:
