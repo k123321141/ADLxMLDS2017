@@ -30,12 +30,12 @@ if __name__ == '__main__':
     dic_processing.catogorate_dic(dic1,num_classes+1)
     x,y = dic_processing.toXY(dic1)
     num = x.shape[0]
-
+    print x.shape,y.shape
     first_input = Input(shape=(max_len,features_count))
     rnn_input = first_input
     rnn_input = Masking()(rnn_input)
     #
-    rnn_out = rnn.output(rnn_input,hidden_dim = 256,activation = 'tanh',bidirect = True,depth = 2)(rnn_input)
+    rnn_out = rnn.output(rnn_input,hidden_dim = 256,activation = 'tanh',bidirect = True,depth = 2)
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 
     model = Model(input = first_input,output = result)
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                     s_mat[i,j] = 3
                     break
     #
-    model.compile(loss=Adam(0.001), optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
+    model.compile(loss='categorical_crossentropy',optimizer = Adam(0.001),metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=4)
     cks = ModelCheckpoint('../checkpoints/baseline.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 2)
 

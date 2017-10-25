@@ -29,7 +29,7 @@ def predict_output(model,input_path,output_path):
             frame_len,feature_num = x.shape
 #            padding for model
             x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-            x = x.reshape(1,max_len,feature_num,1)
+            x = x.reshape(1,max_len,feature_num)
             #
             y = model.predict(x)
             frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
@@ -63,7 +63,7 @@ def compare_output(model):
         frame_len,feature_num = x.shape
 #            padding for model
         x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-        x = x.reshape(1,max_len,feature_num,1)
+        x = x.reshape(1,max_len,feature_num)
         #
         y = model.predict(x)
         frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
@@ -118,8 +118,8 @@ def convert_label_sequence(label_seq):
             
     c_arr = [map_48_39_dict[c] for c in c_arr]
     #trimming
-    #c_arr = trim_sil(c_arr)
-    #c_arr = trim_repeat(c_arr)
+    c_arr = trim_sil(c_arr)
+    c_arr = trim_repeat(c_arr)
     #
 #    c_arr = [map_48_char_dict[c] for c in c_arr]
 
@@ -131,7 +131,7 @@ def convert_label_sequence(label_seq):
 #read and save
 if __name__ == '__main__':
     output_path = '../data/output.csv'
-    model_path = '../checkpoints/seq.13-1.60.model'
+    model_path = '../checkpoints/baseline.15-0.95.model'
     test1_path = '../data/mfcc/test.ark'
     test2_path = '../data/fbank/test.ark'
     
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     
     model = load_model(model_path)
     
-#    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
+    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
     compare_output(model)
 #    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
     print 'Done'
