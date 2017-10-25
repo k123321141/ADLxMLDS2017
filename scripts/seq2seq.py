@@ -16,7 +16,7 @@ if __name__ == '__main__':
     num_classes = 48
     features_count = 39
     max_out_len = 80
-    seq = False
+    seq = True
     dic1 = myinput.load_input('mfcc')
     buf_x = []
     buf_y = []
@@ -35,59 +35,48 @@ if __name__ == '__main__':
             x,y = dic1[sentenceID]
             buf_x.append(x)
             buf_y.append(y)
-
-    x = np.vstack(buf_x)
-    y = np.vstack(buf_y)
-    y = to_categorical(y,num_classes)
-    print x.shape
+    dic_processing.catogorate_dic(dic1,num_classes+1)
+    x,y = dic_processing.toXY(dic1)
     num = x.shape[0]
-    bat_len = 87
     
-    x = x.reshape(num/bat_len,bat_len,39,1)
-    y = y.reshape(num/bat_len,bat_len,num_classes)
-    '''
-    x = x.reshape(1,num,features_count,1)
-    y = y.reshape(1,num,num_classes)
-    '''
-    print x.shape,y.shape
-    
-    y = y[:,1:-1,:]
-    #(777,39) -> (777,39,1)
     print x.shape
-
-    first_input = Input(shape=(bat_len,features_count,1))
-    cnn_input = first_input
-    cnn_output = Conv2D(10,kernel_size = (3,5),use_bias = False,activation = 'tanh')(cnn_input)
+    x = x.reshape(num,max_len,features_count,1)
+    first_input = Input(shape=(max_len,features_count,1))
+    cnn_input = BatchNormalization(axis = -1)(first_input)
+    cnn_output = Conv2D(30,kernel_size = (3,5),use_bias = False,activation = 'relu',padding = 'valid')(cnn_input)
     #(87,39,1) -> (85,35,10)
-    seq_input = Reshape((85,35*10))(cnn_output)
+    seq_input = Reshape((max_len-2,35*30))(cnn_output)
+    seq_input = Masking()(seq_input)
     #
-    '''
-    xx,st = SimpleRNN(200,activation = 'tanh',return_state = True)(seq_input)
+    rnn_lay = LSTM
+
+    xx,state_h, state_c = (rnn_lay(300,activation = 'tanh',return_state = True))(seq_input)
+
     xx = RepeatVector(max_out_len)(xx)
-    xx = SimpleRNN(200,activation = 'tanh',return_sequences = True)(xx,initial_state = st)
-    '''
-    xx = SimpleRNN(200,activation = 'tanh',return_sequences = True)(seq_input)
-    result = TimeDistributed(Dense(num_classes,activation='softmax'))(xx)
+    xx = (rnn_lay(300,activation = 'tanh',return_sequences = True))(xx,initial_state = [state_h, state_c])
+    xx = Dropout(0.25)(xx)
+    xx = Bidirectional(rnn_lay(300,activation = 'tanh',return_sequences = True))(xx)
+    xx = Dropout(0.15)(xx)
+    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 
     model = Model(input = first_input,output = result)
     plot_model(model, to_file='../model.png',show_shapes = True)
     #model.load_weights('../checkpoints/simple.18-1.65.model')
 
-    '''
     s_mat = np.ones(y.shape[0:2],dtype = np.float32)
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j+1:] = 0.2
-                    s_mat[i,j] = 3
+                    s_mat[i,j+1:] = 0.1
+                    s_mat[i,j] = 5
                     break
-    '''
-    sgd_opt = SGD(lr = 0.01)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'])
+
+    opt = Adam(lr = 0.001)
+    model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     #model.compile(loss=ctc_lambda_func, optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=100)
-    cks = ModelCheckpoint('../checkpoints/test.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 10)
+    cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 2)
 
-    #model.fit(x,y,batch_size = 300,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
-    model.fit(x,y,batch_size = 300,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
+    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    #model.fit(x,y,batch_size = 300,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
     print 'Done'
