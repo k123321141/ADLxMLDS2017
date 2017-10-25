@@ -1,0 +1,26 @@
+Using TensorFlow backend.
+/home/k123/ADLxMLDS2017/scripts/rnn.py:12: UserWarning: Update your `LSTM` call to the Keras 2 API: `LSTM(256, implementation=1, return_sequences=True, activation="tanh")`
+  xx = Bidirectional(rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less ='mem'))(xx)
+test.py:42: UserWarning: Update your `Model` call to the Keras 2 API: `Model(outputs=Tensor("ti..., inputs=Tensor("in...)`
+  model = Model(input = first_input,output = result)
+2017-10-26 03:30:24.178384: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2017-10-26 03:30:24.178425: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-10-26 03:30:24.178434: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2017-10-26 03:30:24.178441: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-10-26 03:30:24.178449: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2017-10-26 03:30:24.276356: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-10-26 03:30:24.276631: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+name: GeForce GTX 970
+major: 5 minor: 2 memoryClockRate (GHz) 1.253
+pciBusID 0000:01:00.0
+Total memory: 3.94GiB
+Free memory: 3.82GiB
+2017-10-26 03:30:24.276648: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2017-10-26 03:30:24.276657: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2017-10-26 03:30:24.276667: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+reading  ../data/mfcc.npz
+reading done
+(3696, 777, 39) (3696, 777, 49)
+Train on 3511 samples, validate on 185 samples
+Epoch 1/2000
+  30/3511 [..............................] - ETA: 492s - loss: 3.9529 - acc: 0.0199  60/3511 [..............................] - ETA: 442s - loss: 3.7309 - acc: 0.0816  90/3511 [..............................] - ETA: 423s - loss: 3.6173 - acc: 0.0968 120/3511 [>.............................] - ETA: 411s - loss: 3.5078 - acc: 0.1276 150/3511 [>.............................] - ETA: 404s - loss: 3.4268 - acc: 0.1522 180/3511 [>.............................] - ETA: 397s - loss: 3.3536 - acc: 0.1719 210/3511 [>.............................] - ETA: 391s - loss: 3.3004 - acc: 0.1841 240/3511 [=>............................] - ETA: 386s - loss: 3.2274 - acc: 0.1980 270/3511 [=>............................] - ETA: 381s - loss: 3.1642 - acc: 0.2115 300/3511 [=>............................] - ETA: 377s - loss: 3.1108 - acc: 0.2213 330/3511 [=>............................] - ETA: 380s - loss: 3.0623 - acc: 0.2317 360/3511 [==>...........................] - ETA: 377s - loss: 3.0147 - acc: 0.2417 390/3511 [==>...........................] - ETA: 374s - loss: 2.9731 - acc: 0.2486 420/3511 [==>...........................] - ETA: 371s - loss: 2.9234 - acc: 0.2568 450/3511 [==>...........................] - ETA: 368s - loss: 2.8848 - acc: 0.2635 480/3511 [===>..........................] - ETA: 364s - loss: 2.8459 - acc: 0.2707
