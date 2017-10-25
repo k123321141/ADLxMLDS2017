@@ -34,8 +34,8 @@ def predict_output(model,input_path,output_path):
             y = model.predict(x)
             frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
 
-            s = convert_label_sequence(frame_seq)
-            
+            s = convert_label_sequence(frame_seq).replace(',','')
+         
             f.write('%s,%s\n' % (setenceID,s))
             
             print '%d/%d    %s,%s\n' % (i,total,setenceID,s)
