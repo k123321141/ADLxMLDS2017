@@ -41,7 +41,7 @@ if __name__ == '__main__':
     #
     seq_input = Masking()(seq_input)
     #
-    rnn_out = SimpleRNN(200,activation = 'tanh',return_sequences = True)(seq_input)
+    rnn_out = Bidirectional(GRU(200,activation = 'tanh',return_sequences = True))(seq_input)
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
 
     model = Model(input = first_input,output = result)
@@ -53,14 +53,14 @@ if __name__ == '__main__':
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j+1:] = 0.01
+                    s_mat[i,j+1:] = 0
                     s_mat[i,j] = 3
                     break
     #
     sgd_opt = SGD(lr = 0.01)
     model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=4)
-    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
+    cks = ModelCheckpoint('../checkpoints/cnn+rnn_alignment.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
 
-    model.fit(x,y,batch_size = 300,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    model.fit(x,y,batch_size = 100,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     print 'Done'
