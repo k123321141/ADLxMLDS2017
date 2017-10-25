@@ -22,18 +22,7 @@ def seq_output(seq_input,max_out_len,hidden_dim=200,depth=1,activation='relu',rn
         decoder_output = rnn.output(decoder_output,rnn_lay = rnn_lay,bidirect = bidirect,activation = activation,depth=depth,hidden_dim=hidden_dim,dropout=dropout)
 
     return decoder_output
-import keras.backend as K
-import tensorflow as tf
-import numpy as np
 
-h = np.ones((777,49))
-h[:,-1] = 0
-gh = tf.convert_to_tensor(h,dtype=tf.float32)
-def myacc(y_true, y_pred):
-    print y_true.shape
-    a = K.equal(K.argmax(y_true*gh, axis=-1),K.argmax(y_pred, axis=-1))
-    b = K.floatx()
-    return K.cast(a,b)
 
 if __name__ == '__main__':
     import myinput
@@ -67,7 +56,7 @@ if __name__ == '__main__':
 
     x = x.reshape(num,max_len,features_count,1)
     #(777,39) -> (777,39,1)
-
+    print x.shape,y.shape
 
     first_input = Input(shape=(max_len,features_count,1))
     #cnn_input = BatchNormalization(axis = -2) (first_input)         #the axis of nomaliztion is -2 (3696,777,39,1)
@@ -80,29 +69,29 @@ if __name__ == '__main__':
     seq_input = Reshape((775,35*10))(cnn_output)
     #
     seq_input = Masking()(seq_input)
-    seq_output = seq_output(seq_input,max_out_len,hidden_dim=200,depth=1,rnn_lay = SimpleRNN,activation='tanh',bidirect = False ) 
+    seq_output = seq_output(seq_input,max_out_len,hidden_dim=128,depth=2,rnn_lay = SimpleRNN,activation='tanh',bidirect = True ) 
     #
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(seq_output)
 
     model = Model(input = first_input,output = result)
-
     plot_model(model, to_file='../model.png',show_shapes = True)
+#    model.load_weights('../checkpoints/seq2.00-3.64.model')
 
     #
-    s_mat = np.zeros(y.shape[0:2],dtype = np.float32)
-    np.place(s_mat,s_mat == 0,1)
+    s_mat = np.ones(y.shape[0:2],dtype = np.float32)
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j:] = 0
+                    s_mat[i,j+1:] = 0
+                    s_mat[i,j] = 5
                     break
     #
     sgd_opt = SGD(lr = 0.01)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy',myacc],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=2)
-    cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 2)
+    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+    cks = ModelCheckpoint('../checkpoints/au.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
 
 
     model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     print 'Done'
-    model.save('../models/seq.model')
+    model.save('../models/au.model')

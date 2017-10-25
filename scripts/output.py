@@ -118,10 +118,10 @@ def convert_label_sequence(label_seq):
             
     c_arr = [map_48_39_dict[c] for c in c_arr]
     #trimming
-    #c_arr = trim_sil(c_arr)
-    #c_arr = trim_repeat(c_arr)
+    c_arr = trim_sil(c_arr)
+    c_arr = trim_repeat(c_arr)
     #
-#    c_arr = [map_48_char_dict[c] for c in c_arr]
+    c_arr = [map_48_char_dict[c] for c in c_arr]
 
     s = ''
     for c in c_arr:
@@ -131,7 +131,7 @@ def convert_label_sequence(label_seq):
 #read and save
 if __name__ == '__main__':
     output_path = '../data/output.csv'
-    model_path = '../checkpoints/combine.74-1.45.model'
+    model_path = '/Users/payo_mac/Desktop/ADLxMLDS2017/checkpoints/cnn+rnn_alignment.168-3.26.model'
     test1_path = '../data/mfcc/test.ark'
     test2_path = '../data/fbank/test.ark'
     
@@ -139,8 +139,8 @@ if __name__ == '__main__':
     
     model = load_model(model_path)
     
-#    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
-    compare_output(model)
+    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
+#    compare_output(model)
 #    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
     print 'Done'
 
