@@ -29,7 +29,7 @@ def predict_output(model,input_path,output_path):
             frame_len,feature_num = x.shape
 #            padding for model
             x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-            x = x.reshape(1,max_len,feature_num,1)
+            x = x.reshape(1,max_len,feature_num)
             #
             y = model.predict(x)
             frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
@@ -63,7 +63,7 @@ def compare_output(model):
         frame_len,feature_num = x.shape
 #            padding for model
         x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-        x = x.reshape(1,max_len,feature_num,1)
+        x = x.reshape(1,max_len,feature_num)
         #
         y = model.predict(x)
         frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
@@ -131,7 +131,11 @@ def convert_label_sequence(label_seq):
 #read and save
 if __name__ == '__main__':
     output_path = '../data/output.csv'
+<<<<<<< HEAD
     model_path = '/Users/payo_mac/Desktop/ADLxMLDS2017/checkpoints/cnn+rnn_alignment.168-3.26.model'
+=======
+    model_path = '../checkpoints/baseline.15-0.95.model'
+>>>>>>> 62cda041358eb73442aefd01c18fa0e5f1231ca5
     test1_path = '../data/mfcc/test.ark'
     test2_path = '../data/fbank/test.ark'
     
@@ -140,7 +144,11 @@ if __name__ == '__main__':
     model = load_model(model_path)
     
     predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
+<<<<<<< HEAD
 #    compare_output(model)
+=======
+    compare_output(model)
+>>>>>>> 62cda041358eb73442aefd01c18fa0e5f1231ca5
 #    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
     print 'Done'
 
