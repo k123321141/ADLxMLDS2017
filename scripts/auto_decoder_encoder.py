@@ -75,20 +75,20 @@ if __name__ == '__main__':
 
     model = Model(input = first_input,output = result)
     plot_model(model, to_file='../model.png',show_shapes = True)
-#    model.load_weights('../checkpoints/seq2.00-3.64.model')
+    model.load_weights('../checkpoints/au.09-3.53.model')
 
     #
     s_mat = np.ones(y.shape[0:2],dtype = np.float32)
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j+1:] = 0
+                    s_mat[i,j+1:] = 1
                     s_mat[i,j] = 5
                     break
     #
     sgd_opt = SGD(lr = 0.01)
     model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
     cks = ModelCheckpoint('../checkpoints/au.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
 
 
