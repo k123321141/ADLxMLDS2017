@@ -75,6 +75,7 @@ if __name__ == '__main__':
                     end = np.min([j+4,y.shape[1]])
                     s_mat[i,j+1:end] = 1
                     s_mat[i,j] = 5
+                    s_mat[i,end:] = 0
                     break
                 elif y[i,j,37] == 1: #sil
                     s_mat[i,j] = 0.5
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     opt = Adam(lr = 0.001)
     model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     #model.compile(loss=ctc_lambda_func, optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
     cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
 
     model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)

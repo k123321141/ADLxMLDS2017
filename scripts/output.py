@@ -67,7 +67,6 @@ def compare_output(model):
         #
         y = model.predict(x)
         frame_seq = [np.argmax(y[0,j,:]) for j in range(y.shape[1])]
-        print frame_seq
     
         s = convert_label_sequence(frame_seq)
         
@@ -79,7 +78,7 @@ def compare_output(model):
 
         print '(%d/%d)  %s    \n' % (i,total,setenceID)
         h = 80
-        k = (len(s) / h)
+        k = int ( np.ceil((len(s) / float(h))) ) 
         for j in range(k):
             start = j*h
             end = (j+1)*h

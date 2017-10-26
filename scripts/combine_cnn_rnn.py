@@ -35,10 +35,9 @@ if __name__ == '__main__':
 
     #xx,state_h, state_c = (rnn_lay(300,activation = 'tanh',return_state = True))(seq_input)
     #bidirection
-    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True)(seq_input)
-    x2,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,go_backwards = True)(seq_input,[state_h, state_c])
+    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(seq_input)
+    x2,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(seq_input,[state_h, state_c])
     xx = Concatenate(axis = -1)([x1,x2])
-
     x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(xx)
     x2 = rnn_lay(300,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = True)(xx,[state_h, state_c])
     xx = Concatenate(axis = -1)([x1,x2])
@@ -50,6 +49,8 @@ if __name__ == '__main__':
     plot_model(model, to_file='../model.png',show_shapes = True)
     #model.load_weights('../checkpoints/simple.18-1.65.model')
 
+    #reduce y
+    y = y[:,1:-1,:]
     s_mat = np.ones(y.shape[0:2],dtype = np.float32)
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
@@ -57,13 +58,14 @@ if __name__ == '__main__':
                     end = np.min([j+4,y.shape[1]])
                     s_mat[i,j+1:end] = 1
                     s_mat[i,j] = 5
+                    s_mat[i,end:] = 0
                     break
                 elif y[i,j,37] == 1: #sil
                     s_mat[i,j] = 0.5
 
     opt = Adam(lr = 0.001)
     model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
     cks = ModelCheckpoint('../checkpoints/com.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
 
     model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
