@@ -63,7 +63,6 @@ if __name__ == '__main__':
 
     opt = Adam(lr = 0.001)
     model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    #model.compile(loss=ctc_lambda_func, optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=100)
     cks = ModelCheckpoint('../checkpoints/com.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
 
