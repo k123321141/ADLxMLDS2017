@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     model = Model(input = first_input,output = result)
     plot_model(model, to_file='../model.png',show_shapes = True)
-    #model.load_weights('../checkpoints/simple.18-1.65.model')
+    model.load_weights('../checkpoints/seq.05-1.49.cks')
 
     s_mat = np.ones(y.shape[0:2],dtype = np.float32)
     for i in range(y.shape[0]):
