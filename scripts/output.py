@@ -4,7 +4,7 @@ from mapping import *
 import myinput
 import dic_processing
 import random as r
-
+import sys
 #assert sentenceID & frameID follow the numeric order
 #return sentence_dict
 max_len = 777
@@ -29,10 +29,10 @@ def predict_output(model,input_path,output_path):
             frame_len,feature_num = x.shape
 #            padding for model
             x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-            x = x.reshape(1,max_len,feature_num)
+            x = x.reshape(1,max_len,feature_num,1)
             #
             y = model.predict(x)
-            frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
+            frame_seq = [np.argmax(y[0,j,:]) for j in range(y.shape[1])]
 
             s = convert_label_sequence(frame_seq).replace(',','')
          
@@ -63,11 +63,12 @@ def compare_output(model):
         frame_len,feature_num = x.shape
 #            padding for model
         x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-        x = x.reshape(1,max_len,feature_num)
+        x = x.reshape(1,max_len,feature_num,1)
         #
         y = model.predict(x)
-        frame_seq = [np.argmax(y[0,j,:]) for j in range(frame_len)]
-
+        frame_seq = [np.argmax(y[0,j,:]) for j in range(y.shape[1])]
+        print frame_seq
+    
         s = convert_label_sequence(frame_seq)
         
 
@@ -131,17 +132,22 @@ def convert_label_sequence(label_seq):
 #read and save
 if __name__ == '__main__':
     output_path = '../data/output.csv'
-    model_path = '../models/baseline.hdf5'
+    model_path = '../models/seq.13-1.60.hdf5'
     test1_path = '../data/mfcc/test.ark'
     test2_path = '../data/fbank/test.ark'
     
-    
-    
+    assert len(sys.argv) == 2 or len(sys.argv) == 3
+    model_path = sys.argv[1]
     model = load_model(model_path)
     
-    predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
-    compare_output(model)
-#    generate_seq_y(output_path='../data/mfcc/seq_y.lab')
+    if len(sys.argv) == 2:
+        compare_output(model)
+    else:
+        output_path = sys.argv[2]
+        predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
+    
+
+
     print 'Done'
 
 
