@@ -1,5 +1,9 @@
 from keras.models import *
 from keras.layers import *
+from keras.utils import to_categorical
+import keras.backend as K
+def ctc_lambda_func(y_true, y_pred):
+    return K.ctc_batch_cost(y_true, y_pred, 777, 80)
 
 if __name__ == '__main__':
     import myinput
@@ -12,45 +16,57 @@ if __name__ == '__main__':
     num_classes = 48
     features_count = 39
     max_out_len = 80
-    seq = False
     dic1 = myinput.load_input('mfcc')
-    
     dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
-
     dic_processing.catogorate_dic(dic1,num_classes+1)
     x,y = dic_processing.toXY(dic1)
     num = x.shape[0]
-    y = y[:,1:-1,:]
+    
+    print x.shape
     x = x.reshape(num,max_len,features_count,1)
-
     first_input = Input(shape=(max_len,features_count,1))
-    cnn_input = first_input
-    cnn_output = Conv2D(10,kernel_size = (3,5),use_bias = False,activation = 'tanh')(cnn_input)
-    #(777,39,1) -> (775,35,10)
-    seq_input = Reshape((775,35*10))(cnn_output)
-    #
+    cnn_input = BatchNormalization(axis = -1)(first_input)
+    cnn_output = Conv2D(30,kernel_size = (3,5),use_bias = False,activation = 'relu',padding = 'valid')(cnn_input)
+    #(87,39,1) -> (85,35,10)
+    seq_input = Reshape((max_len-2,35*30))(cnn_output)
     seq_input = Masking()(seq_input)
     #
-    rnn_out = Bidirectional(GRU(200,activation = 'tanh',return_sequences = True))(seq_input)
-    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
+    rnn_lay = LSTM
+
+    #xx,state_h, state_c = (rnn_lay(300,activation = 'tanh',return_state = True))(seq_input)
+    #bidirection
+    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True)(seq_input)
+    x2,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,go_backwards = True)(seq_input,[state_h, state_c])
+    xx = Concatenate(axis = -1)([x1,x2])
+
+    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(xx)
+    x2 = rnn_lay(300,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = True)(xx,[state_h, state_c])
+    xx = Concatenate(axis = -1)([x1,x2])
+    
+    xx = Dropout(0.25)(xx)
+    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 
     model = Model(input = first_input,output = result)
     plot_model(model, to_file='../model.png',show_shapes = True)
-#    model.load_weights('../checkpoints/seq2.00-3.64.model')
+    #model.load_weights('../checkpoints/simple.18-1.65.model')
 
-    #
     s_mat = np.ones(y.shape[0:2],dtype = np.float32)
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j+1:] = 0
-                    s_mat[i,j] = 3
+                    end = np.min([j+4,y.shape[1]])
+                    s_mat[i,j+1:end] = 1
+                    s_mat[i,j] = 5
                     break
-    #
-    sgd_opt = SGD(lr = 0.01)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=4)
-    cks = ModelCheckpoint('../checkpoints/cnn+rnn_alignment.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
+                elif y[i,j,37] == 1: #sil
+                    s_mat[i,j] = 0.5
 
-    model.fit(x,y,batch_size = 100,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    opt = Adam(lr = 0.001)
+    model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
+    #model.compile(loss=ctc_lambda_func, optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+    cks = ModelCheckpoint('../checkpoints/com.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
+
+    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    #model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
     print 'Done'
