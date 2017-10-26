@@ -62,7 +62,7 @@ if __name__ == '__main__':
     x2 = rnn_lay(300,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = True)(xx,[state_h, state_c])
     xx = Concatenate(axis = -1)([x1,x2])
     
-    xx = Dropout(0.15)(xx)
+    xx = Dropout(0.25)(xx)
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 
     model = Model(input = first_input,output = result)
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j+1:] = 0.1
+                    s_mat[i,j+1:] = 0
                     s_mat[i,j] = 5
                     break
 
@@ -83,6 +83,6 @@ if __name__ == '__main__':
     early_stopping = EarlyStopping(monitor='val_loss', patience=100)
     cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 2)
 
-    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
-    #model.fit(x,y,batch_size = 300,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
+    #model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
     print 'Done'
