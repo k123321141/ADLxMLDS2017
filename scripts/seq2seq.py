@@ -57,8 +57,7 @@ if __name__ == '__main__':
     xx = Concatenate(axis = -1)([x1,x2])
 
     xx = RepeatVector(max_out_len)(xx)
-    #xx = (rnn_lay(300,activation = 'tanh',return_sequences = True)) (xx,initial_state = [state_h, state_c])  
-    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(xx)
+    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(xx,[state_h, state_c])
     x2 = rnn_lay(300,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = True)(xx,[state_h, state_c])
     xx = Concatenate(axis = -1)([x1,x2])
     
@@ -73,16 +72,19 @@ if __name__ == '__main__':
     for i in range(y.shape[0]):
             for j in range(y.shape[1]):
                 if y[i,j,-1] == 1:
-                    s_mat[i,j+1:] = 0
+                    end = np.min([j+4,y.shape[1]])
+                    s_mat[i,j+1:end] = 1
                     s_mat[i,j] = 5
                     break
+                elif y[i,j,37] == 1: #sil
+                    s_mat[i,j] = 0.5
 
     opt = Adam(lr = 0.001)
     model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     #model.compile(loss=ctc_lambda_func, optimizer=sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=100)
-    cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 2)
+    cks = ModelCheckpoint('../checkpoints/seq.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
 
-    #model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
-    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
+    model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
+    #model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
     print 'Done'
