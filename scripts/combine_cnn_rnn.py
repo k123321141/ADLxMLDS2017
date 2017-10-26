@@ -14,18 +14,8 @@ if __name__ == '__main__':
     max_out_len = 80
     seq = False
     dic1 = myinput.load_input('mfcc')
-    if seq == True:
-        seq_dict = myinput.read_seq_Y('../data//mfcc/seq_y.lab')
-        for sentenceID in sorted(seq_dict.keys()):
-            frame_dic = seq_dict[sentenceID]
-            seq_y = myinput.dic2ndarray(frame_dic)
-            seq_y = seq_y.reshape(seq_y.shape[0],1)
-
-            x,y = dic1[sentenceID]
-            dic1[sentenceID] = x,seq_y
-        dic_processing.pad_dic(dic1,max_len,max_out_len,num_classes)
-    else:
-        dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
+    
+    dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
 
     dic_processing.catogorate_dic(dic1,num_classes+1)
     x,y = dic_processing.toXY(dic1)
