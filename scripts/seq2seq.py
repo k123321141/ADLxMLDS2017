@@ -50,12 +50,18 @@ if __name__ == '__main__':
     #
     rnn_lay = LSTM
 
-    xx,state_h, state_c = (rnn_lay(300,activation = 'tanh',return_state = True))(seq_input)
+    #xx,state_h, state_c = (rnn_lay(300,activation = 'tanh',return_state = True))(seq_input)
+    #bidirection
+    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True)(seq_input)
+    x2,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,go_backwards = True)(seq_input,[state_h, state_c])
+    xx = Concatenate(axis = -1)([x1,x2])
 
     xx = RepeatVector(max_out_len)(xx)
-    xx = (rnn_lay(300,activation = 'tanh',return_sequences = True))(xx,initial_state = [state_h, state_c])
-    xx = Dropout(0.25)(xx)
-    xx = Bidirectional(rnn_lay(300,activation = 'tanh',return_sequences = True))(xx)
+    #xx = (rnn_lay(300,activation = 'tanh',return_sequences = True)) (xx,initial_state = [state_h, state_c])  
+    x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(xx)
+    x2 = rnn_lay(300,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = True)(xx,[state_h, state_c])
+    xx = Concatenate(axis = -1)([x1,x2])
+    
     xx = Dropout(0.15)(xx)
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 
