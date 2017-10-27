@@ -5,3 +5,4 @@
 *.ark
 *.cks
 *nohup*
+.DS_Store
