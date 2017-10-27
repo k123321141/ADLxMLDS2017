@@ -1,5 +1,6 @@
 import numpy as np
-from keras.models import *
+from keras.models import load_model
+
 from mapping import * 
 import myinput
 import dic_processing
@@ -10,10 +11,9 @@ import sys
 max_len = 777
 num_classes = 48
 
-map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict = read_maps()
 
 
-def predict_output(model,input_path,output_path):
+def predict_output(model,test_path,output_path):
     
     dic_x = myinput.load_test(input_path)
     
@@ -112,38 +112,46 @@ def convert_label_sequence(label_seq):
     #eof trimming
     if num_classes in label_seq:
         label_seq = label_seq[0: label_seq.index(num_classes)]
+    c_arr = label_seq
+    
     #reversed from index to char
-    c_arr = [map_48_reverse[y] for y in label_seq]
+    c_arr = mapping(c_arr,'48_reverse')
         
-            
-    c_arr = [map_48_39_dict[c] for c in c_arr]
+    #48 -> 39   
+    c_arr = mapping(c_arr,'48_39')
+   
     #trimming
     #c_arr = trim_sil(c_arr)
     #c_arr = trim_repeat(c_arr)
-    #
-    #c_arr = [map_48_char_dict[c] for c in c_arr]
 
+    #index -> char
+    c_arr = mapping(c_arr,'48_char')
+
+    #to string
     s = ''
     for c in c_arr:
         s += c +','
     return s
 
-#read and save
+#python <model_path>   ->   output random 10 training predict with correct labels to stdout
+#python <model_path> <test_path> <output_path> ->   output test predict to <output_path>
 if __name__ == '__main__':
+    '''
     output_path = '../data/output.csv'
     model_path = '../models/seq.13-1.60.hdf5'
-    test1_path = '../data/mfcc/test.ark'
-    test2_path = '../data/fbank/test.ark'
-    
-    assert len(sys.argv) == 2 or len(sys.argv) == 3
+    test_path = '../data/mfcc/test.ark'
+    '''
+    assert len(sys.argv) == 2 or len(sys.argv) == 4
     model_path = sys.argv[1]
     model = load_model(model_path)
     
     if len(sys.argv) == 2:
         compare_output(model)
     else:
-        output_path = sys.argv[2]
-        predict_output(model,input_path = '../data/mfcc/test.ark',output_path = output_path)
+        test_path = sys.argv[2]
+        output_path = sys.argv[3]
+
+        predict_output(model,test_path = test_path,output_path = output_path)
     
 
 

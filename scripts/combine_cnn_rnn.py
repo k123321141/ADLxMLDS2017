@@ -28,12 +28,11 @@ def init_model():
     
     #rnn layers
     seq_input = Reshape((max_len-4,31*30))(cnn_output)
-    seq_input = Masking()(seq_input)
+    seq_input = Masking()(seq_input)    #whether the timestep masked depends on the prior cnn layer does use bias or not.
     seq_input= Dropout(0.5)(seq_input)
     rnn_lay = LSTM
 
-    #xx,state_h, state_c = (rnn_lay(300,activation = 'tanh',return_state = True))(seq_input)
-    #bidirection
+    #depth 2 bidirection lstm
     x1,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True)(seq_input)
     x2,state_h, state_c  = rnn_lay(300,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(seq_input,[state_h, state_c])
     xx = Concatenate(axis = -1)([x1,x2])
@@ -43,11 +42,16 @@ def init_model():
     xx = Concatenate(axis = -1)([x1,x2])
     
     xx = Dropout(0.5)(xx)
+    #softmax each timestep
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 
+    #define output model
     model = Model(input = first_input,output = result)
+    
+    #model visualization
     plot_model(model, to_file='../model.png',show_shapes = True)
     #model.load_weights('../checkpoints/simple.18-1.65.model')
+    
     return model
 def sample_weight(y):
     s_mat = np.ones(y.shape[0:2],dtype = np.float32)
@@ -61,7 +65,7 @@ def sample_weight(y):
                 s_mat[i,j] = 0.5
     return s_mat 
 if __name__ == '__main__':
-    #dic init setting,reshape
+    #read input from pre-proccessing npz
     dic1 = myinput.load_input('mfcc')
     dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
     dic_processing.catogorate_dic(dic1,num_classes+1)
@@ -71,11 +75,15 @@ if __name__ == '__main__':
     y = y[:,2:-2,:]
     #model setting
     model = init_model()
+
+    #training attributes
     opt = Adam(lr = 0.001)
     model.compile(loss=loss.loss_with_mask, optimizer=opt,metrics=[loss.acc_with_mask],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=3)
     #make check points to trace the performance of model during training
     cks = ModelCheckpoint('../checkpoints/comwithmask.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
+    
     #sample weight matrix in uesd or not
     #model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
     model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
+
