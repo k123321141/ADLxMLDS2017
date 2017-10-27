@@ -66,10 +66,7 @@ def sample_weight(y):
     return s_mat 
 if __name__ == '__main__':
     #read input from pre-proccessing npz
-    dic1 = myinput.load_input('mfcc')
-    dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
-    dic_processing.catogorate_dic(dic1,num_classes+1)
-    x,y = dic_processing.toXY(dic1)
+    x,y = myinput.load_input('mfcc')
     
     #reduce y to fit output[773,49]
     y = y[:,2:-2,:]

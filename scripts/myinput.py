@@ -80,10 +80,12 @@ def read_x(path,padding_len,padding_val):
     return x
 def read_y(path,padding_len,padding_val,ont_hot = True):
     sentence_dict = read_label(path)
-
+    for v in sentence_dict.values():
+        #print(v.shape)
+        assert (v[:,0] >= 0).all() and (v[:,0] <= 47).all()
     dic_processing.pad_dic(sentence_dict,padding_len,padding_val)
     if ont_hot:
-        dic_processing.catogorate_dic(sentence_dict)
+        dic_processing.catogorate_dic(sentence_dict,configuration.num_classes+1)#include the padding symbol
     y = dic_processing.vstack_dic(sentence_dict)
     return y
 def write_npz(x,y,path):

@@ -5,6 +5,7 @@ import numpy as np
 
 
 def pad_dic(dic,max_len,padding_val):
+    
     for sentence_id in dic.keys():
         #x is a ndarray in shape (sentence_len,feature number) ,or (sentence_len,1) for labels data
         x = dic[sentence_id]
@@ -14,10 +15,10 @@ def pad_dic(dic,max_len,padding_val):
         
         dic[sentence_id] = x
 
-def catogorate_dic(dic):
+def catogorate_dic(dic,num_classes):
     for sentence_id in dic.keys():
         x = dic[sentence_id]
-        x = ( to_categorical(x) )
+        x = ( to_categorical(x,num_classes) )
         dic[sentence_id] = x
 
 def vstack_dic(dic):
@@ -29,8 +30,6 @@ def vstack_dic(dic):
         
         x = x.reshape(1,length,feature_dim)
         a,b,c = x.shape
-
-        print (x.shape)
         assert a == 1 and b == 777  and (c == 49 or c == 39)
 
         buf.append(x)
