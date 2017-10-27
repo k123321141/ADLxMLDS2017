@@ -1,24 +1,0 @@
-Using TensorFlow backend.
-seq2seq.py:67: UserWarning: Update your `Model` call to the Keras 2 API: `Model(outputs=Tensor("ti..., inputs=Tensor("in...)`
-  model = Model(input = first_input,output = result)
-2017-10-26 18:25:11.375721: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
-2017-10-26 18:25:11.375752: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
-2017-10-26 18:25:11.375760: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
-2017-10-26 18:25:11.375766: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
-2017-10-26 18:25:11.375773: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
-2017-10-26 18:25:11.475551: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2017-10-26 18:25:11.475789: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
-name: GeForce GTX 970
-major: 5 minor: 2 memoryClockRate (GHz) 1.253
-pciBusID 0000:01:00.0
-Total memory: 3.94GiB
-Free memory: 3.82GiB
-2017-10-26 18:25:11.475805: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
-2017-10-26 18:25:11.475812: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
-2017-10-26 18:25:11.475822: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
-reading  ../data/mfcc.npz
-reading done
-(3696, 777, 39)
-Train on 3511 samples, validate on 185 samples
-Epoch 1/2000
-  30/3511 [..............................] - ETA: 494s - loss: 3.0000 - acc: 0.5696  60/3511 [..............................] - ETA: 421s - loss: 3.1669 - acc: 0.5888  90/3511 [..............................] - ETA: 394s - loss: 3.1094 - acc: 0.5996 120/3511 [>.............................] - ETA: 379s - loss: 3.0905 - acc: 0.6051 150/3511 [>.............................] - ETA: 368s - loss: 3.1033 - acc: 0.6088 180/3511 [>.............................] - ETA: 360s - loss: 3.0922 - acc: 0.6113 210/3511 [>.............................] - ETA: 358s - loss: 3.0772 - acc: 0.6095 240/3511 [=>............................] - ETA: 349s - loss: 3.0723 - acc: 0.6075
