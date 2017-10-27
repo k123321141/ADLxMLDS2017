@@ -101,7 +101,7 @@ def read_npz(path):
 def init_npz(data_dir,cur_dir):
     mfcc_path = join(data_dir , 'mfcc/train.ark')
     fbank_path = join(data_dir ,'fbank/train.ark')
-    label_path = join((data_dir , 'label/train.lab')
+    label_path = join(data_dir , 'label/train.lab')
 
     npz_path = join(cur_dir , 'mfcc.npz')
     print('start init')

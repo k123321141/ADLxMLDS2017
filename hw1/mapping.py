@@ -1,6 +1,8 @@
 from os.path import join
+global map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict 
 
 def init(data_dir):
+    global map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict
     map_48_int_dict,map_48_reverse,map_48_char_dict,map_48_39_dict = read_maps(join(data_dir,'phones','48_39.map'),join(data_dir,'48phone_char.map'))
 
 

@@ -6,24 +6,23 @@ import myinput
 import dic_processing
 import random as r
 import sys
-import combine_cnn_rnn,rnn
+import copy
+from os.path import join
+
+import model_cnn,model_rnn
 from configuration import max_len,num_classes
 from keras.utils import to_categorical
 
-#assert sentenceID & frameID follow the numeric order
-#return sentence_dict
-max_len = 777
-num_classes = 48
+
 
 
 
 def predict_output(model,test_path,output_path):
     
-    sentence_dict = read_data(test_path)
+    sentence_dict = myinput.read_data(test_path)
 
     dic_processing.pad_dic(sentence_dict,max_len,0)
     x = dic_processing.vstack_dic(sentence_dict)
-    
     
     print('start predict..')
     y = model.predict(x)
@@ -39,11 +38,12 @@ def predict_output(model,test_path,output_path):
         for i in range(len(keys)):
             sentenceID = keys[i]
 
-            frame_seq = [np.argmax(y[i,j,:]) for j in range(max_len)]
+            frame_seq = [np.argmax(y[i,j,:]) for j in range(y.shape[1])]
+
 
             s = convert_label_sequence(frame_seq).replace(',','')
          
-            f.write('%s,%s\n' % (setenceID,s))
+            f.write('%s,%s\n' % (sentenceID,s))
             
 def compare_output(model):
     
@@ -150,7 +150,7 @@ def convert_label_sequence(label_seq):
 def phoneme_threshold(c_arr,thresd_hold = 3):
     t = 0
     pre = 'start'
-    buf = c_arr.copy()
+    buf = copy.copy(c_arr)
     for i in range(len(buf)):
         c = buf[i]
         if c == pre:
@@ -168,31 +168,31 @@ def phoneme_threshold(c_arr,thresd_hold = 3):
 
 
 
+
 #python <model_path>   ->   output random 10 training predict with correct labels to stdout
 #python <model_path> <test_path> <output_path> ->   output test predict to <output_path>
-if __name__ == '__main__':
-    assert len(sys.argv) == 2 or len(sys.argv) == 4
-    model_path = sys.argv[1]
-    if 'cnn+rnn' in model_path:
-        model = combine_cnn_rnn.init_model()
+def main(argv,data_dir):
+    assert len(argv) == 2 or len(argv) == 4
+    model_path = argv[1]
+    if 'cnn' in model_path:
+        model = model_cnn.init_model()
     elif 'rnn' in model_path:
-        model = rnn.init_model()
+        model = model_rnn.init_model()
+    elif 'best' in model_path:
+        model = model_cnn.init_model()
     else:
         print('error with model path : %s' % model_path)
         sys.exit(1)
     model.load_weights(model_path)
-    
-    if len(sys.argv) == 2:
+    #mapping init
+    init(data_dir) 
+    if len(argv) == 2:
         compare_output(model)
     else:
-        test_path = sys.argv[2]
-        output_path = sys.argv[3] 
+        test_path = argv[2]
+        output_path = argv[3] 
         predict_output(model,test_path = test_path,output_path = output_path)
-    
 
 
-    print('Done')
-
-
-
-
+if __name__ == '__main__':
+    main(sys.argv,data_dir ='../data/')
