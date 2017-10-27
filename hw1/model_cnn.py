@@ -21,7 +21,6 @@ def init_model():
     cnn_input = Reshape( (max_len,features_count,1) ) (cnn_input)
     cnn_output = Conv2D(10,kernel_size = (3,5),use_bias = True,activation = 'relu',padding = 'valid')(cnn_input)
     #(777,39,1) -> (777,35,10)
-    cnn_output = Conv2D(30,kernel_size = (3,5),use_bias = True,activation = 'relu',padding = 'valid')(cnn_output)
     cnn_output = BatchNormalization(axis = -1)(cnn_output)
     #(777,35,10) -> (773,31,30)
     
@@ -42,6 +41,7 @@ def init_model():
     xx = Concatenate(axis = -1)([x1,x2])
     
     xx = Dropout(0.5)(xx)
+    xx = Conv2D(30,kernel_size = (3,5),use_bias = True,activation = 'tanh',padding = 'valid')(xx)
     #softmax each timestep
     result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 

@@ -14,8 +14,8 @@ if __name__ == '__main__':
     
     print('cur_dir         :  %s\ndata_dir       :   %s\noutput_path     :   %s\n' % (cur_dir,data_dir,output_path))
      
-    if not exists( join(cur_dir,'mfcc.npz') ): 
-        myinput.init_npz(data_dir,cur_dir)
+    #if not exists( join(cur_dir,'mfcc.npz') ): 
+    #    myinput.init_npz(data_dir,cur_dir)
     if model_name == 'rnn':
         #prediction of rnn
         print('predict rnn model')

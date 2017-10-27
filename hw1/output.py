@@ -133,7 +133,7 @@ def convert_label_sequence(label_seq):
     c_arr = mapping(c_arr,'48_39')
    
     #threshold
-    c_arr = phoneme_threshold(c_arr,3)
+    #c_arr = phoneme_threshold(c_arr,3)
     
     #trimming
     c_arr = trim_sil(c_arr)
@@ -183,6 +183,13 @@ def main(argv,data_dir):
     else:
         print('error with model path : %s' % model_path)
         sys.exit(1)
+    '''
+    import loss
+    import tensorflow as tf
+    if 'rnn' not in model_path:
+        loss.mask_vector = tf.constant([48]*773,tf.int64)
+    model = load_model(model_path,custom_objects = {'loss_with_mask' : loss.loss_with_mask,'acc_with_mask':loss.acc_with_mask})
+    ''' 
     model.load_weights(model_path)
     #mapping init
     init(data_dir) 
