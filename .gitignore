@@ -6,3 +6,4 @@
 *.cks
 *nohup*
 .DS_Store
+*.swp
