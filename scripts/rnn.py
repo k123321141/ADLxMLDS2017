@@ -1,74 +1,60 @@
 from keras.models import *
 from keras.layers import *
+from keras.utils import plot_model
+from keras.callbacks import *
+from keras.optimizers import *
+from keras.utils import to_categorical
 
-num_classes = 48
-features_count = 39
+import myinput
+import dic_processing
+import tensorflow as tf
+import loss
+from configuration import max_len,num_classes,max_out_len,features_count
 
+loss.mask_vector = tf.constant([num_classes]*777,tf.int64)
 
-def output(rnn_input,hidden_dim = 200,rnn_lay = SimpleRNN,bidirect = False,depth = 2,activation = 'tanh',dropout = 0.10):
-    xx = rnn_input    
-    if bidirect == True:
-        for i in range(depth):
-            xx = Bidirectional(rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less ='mem'))(xx)
-            xx = Dropout(dropout)(xx)
-
-    else:
-        for i in range(depth):
-            xx = rnn_lay(hidden_dim,activation=activation,return_sequences=True,consume_less = 'mem')(xx)
-            xx = Dropout(dropout)(xx)
-    return xx
-
-if __name__ == '__main__':
-    import myinput
-    import dic_processing
-    from keras.utils import plot_model
-    from keras.optimizers import *
-    from keras.callbacks import *
-#dic init setting,reshape
-    max_len = 777
-    dic1 = myinput.load_input('mfcc')
-    dic_processing.pad_dic(dic1,max_len,max_len,num_classes)
-
-    dic_processing.catogorate_dic(dic1,num_classes+1)
-
-    x,y = dic_processing.toXY(dic1)
-    num = x.shape[0]
-
-
-
-
-    #model
-
+def init_model():
     first_input = Input(shape=(max_len,features_count))
-    #rnn_input = BatchNormalization(input_shape = (max_len,features_count),axis = -1) (first_input)
-    rnn_input = Masking(input_shape = (max_len,features_count))(first_input)
-    rnn_out = output(rnn_input,bidirect = True,depth = 2,rnn_lay = GRU,hidden_dim = 128)
+     
+    #rnn layers
+    seq_input = Masking()(first_input)    #whether the timestep masked depends on the prior cnn layer does use bias or not.
+    rnn_lay = GRU
 
-    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(rnn_out)
-
-    model = Model(input = first_input,output = result)
-#    model = load_model('../checkpoints/')
-    plot_model(model, to_file='../model.png',show_shapes = True)
-
-    #construct sample matrix
-    s_mat = np.zeros(y.shape[0:2],dtype = np.float32)
-    np.place(s_mat,s_mat == 0,1)
-
-    for i in range(y.shape[0]):
-            for j in range(y.shape[1]):
-                if y[i,j,-1] == 1:
-                    s_mat[i,j:] = 1
-                    break
-    #
-    sgd_opt = SGD(lr = 0.01)
-    model.compile(loss='categorical_crossentropy', optimizer = sgd_opt,metrics=['accuracy'],sample_weight_mode = 'temporal')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
-    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.model',save_best_only=True,period = 1)
-    #model.fit(x,y,batch_size = 40,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = s_mat)
-    model.fit(x,y,batch_size = 40,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05)
+    #depth 2 bidirection GRU
+    x1,state_h  = rnn_lay(128,activation = 'tanh',return_state = True,return_sequences = True)(seq_input)
+    x2,state_h  = rnn_lay(128,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(seq_input,state_h)
+    xx = Concatenate(axis = -1)([x1,x2])
+    xx = Dropout(0.5)(xx)
+    x1,state_h  = rnn_lay(128,activation = 'tanh',return_state = True,return_sequences = True)(xx)
+    x2 = rnn_lay(128,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = True)(xx,state_h)
+    xx = Concatenate(axis = -1)([x1,x2])
     
-    print 'Done'
-    model.save('../models/rnn.model')
+    xx = Dropout(0.5)(xx)
+    #softmax each timestep
+    result = TimeDistributed(Dense(num_classes+1,activation='softmax'))(xx)
 
+    #define output model
+    model = Model(input = first_input,output = result)
+    
+    #model visualization
+    plot_model(model, to_file='../model.png',show_shapes = True)
+    
+    return model
+if __name__ == '__main__':
+    #read input from pre-proccessing npz
+    x,y = myinput.load_input('mfcc')
+    
+    #model setting
+    model = init_model()
 
+    #training attributes
+    opt = RMSprop(lr = 0.001)
+
+    model.compile(loss=loss.loss_with_mask, optimizer=opt,metrics=[loss.acc_with_mask],sample_weight_mode = 'temporal')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+    #make check points to trace the performance of model during training
+    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
+    
+    #sample weight matrix in uesd or not
+    model.fit(x,y,batch_size = 400,epochs = 200,callbacks=[early_stopping,cks],validation_split = 0.05)
 
