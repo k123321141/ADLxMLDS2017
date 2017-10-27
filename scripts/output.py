@@ -6,6 +6,9 @@ import myinput
 import dic_processing
 import random as r
 import sys
+from configuration import max_len,num_classes
+from keras.utils import to_categorical
+
 #assert sentenceID & frameID follow the numeric order
 #return sentence_dict
 max_len = 777
@@ -15,101 +18,106 @@ num_classes = 48
 
 def predict_output(model,test_path,output_path):
     
-    dic_x = myinput.load_test(input_path)
-    
-    
+    sentence_dict = read_data(test_path)
 
-    i = 1
-    total = len(dic_x.keys())
+    dic_processing.pad_dic(sentence_dict,max_len,0)
+    x = dic_processing.vstack_dic(sentence_dict)
+    
+    
+    print('start predict..')
+    y = model.predict(x)
+    print('output prediction to %s ..' % output_path)
+   
+    #
+    keys = sorted(sentence_dict.keys())
+    #
+
     with open(output_path,'w') as f:
         f.write('id,phone_sequence\n')
         
-        for setenceID in dic_x.keys():
-            x = dic_x[setenceID]
-            frame_len,feature_num = x.shape
-#            padding for model
-            x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-            x = x.reshape(1,max_len,feature_num,1)
-            #
-            y = model.predict(x)
-            frame_seq = [np.argmax(y[0,j,:]) for j in range(y.shape[1])]
+        for i in range(len(keys)):
+            sentenceID = keys[i]
+
+            frame_seq = [np.argmax(y[i,j,:]) for j in range(max_len)]
 
             s = convert_label_sequence(frame_seq).replace(',','')
          
             f.write('%s,%s\n' % (setenceID,s))
             
-            print '%d/%d    %s,%s\n' % (i,total,setenceID,s)
-            i+=1
 def compare_output(model):
     
     
     
     #
     x,y = myinput.load_input('mfcc')
-    #
+    #random select sample
+    sample_count = 5
     random_indices = range(x.shape[0])
-    :qqqqqqqq
-    keys = src.keys()
-    r.shuffle(keys)
-    sub_keys = keys[0:10]
-    #sub_keys = keys
-#    sub_keys = ['fadg0_si1279']
-    sub_x ={k:(src[k]) for k in sub_keys }
+    r.shuffle(random_indices)
+    random_indices = random_indices[:sample_count]
+    #
+    sub_x = x[random_indices,:,:]
+    sub_y = y[random_indices,:,:]
+    #
     
-    dic_x = sub_x
-
-    i = 1
-    total = len(dic_x.keys())
+    
+    for i in range(sample_count):
         
-    for setenceID in dic_x.keys():
-        x,src_y = dic_x[setenceID]
-        frame_len,feature_num = x.shape
-#            padding for model
-        x = np.pad(x,((0,max_len-frame_len),(0,0)),'constant', constant_values=0)
-        x = x.reshape(1,max_len,feature_num,1)
+        x = sub_x[i,:,:]
+        y_true = sub_y[i,:,:]
         #
-        y = model.predict(x)
-        frame_seq = [np.argmax(y[0,j,:]) for j in range(y.shape[1])]
+        y_pred = model.predict(x)
     
-        s = convert_label_sequence(frame_seq)
+        y_true_seq = [np.argmax(y_true[j,:]) for j in range(y_true.shape[0])]  #777
+        y_pred_seq = [np.argmax(y_pred[j,:]) for j in range(y_pred.shape[0])]
+    
+        s_true = convert_label_sequence(y_true_seq)
+        s_pred = convert_label_sequence(y_pred_seq)
         
 
-        src_y = src_y.reshape(frame_len)
-        src_y = src_y.astype(np.int32)
-        y_seq = src_y.tolist()
-        s2 = convert_label_sequence(y_seq)[:-1]
-
-        print '(%d/%d)  %s    \n' % (i,total,setenceID)
+        print( '(%d/%d)    \n' % (i+1,sample_count) )
         h = 80
         k = int ( np.ceil((len(s) / float(h))) ) 
         for j in range(k):
             start = j*h
             end = (j+1)*h
-            print 'result  :   %s\nsrc     :   %s\n' % (s[start:end],s2[start:end])
-#        print 'result  :   %s\nsrc     :   %s\n' % (s[end:],s2[end:])
+            print ( 'result  :   %s\nsrc     :   %s\n' % (s_pred[start:end],s_true[start:end]) )
+#        print( 'result  :   %s\nsrc     :   %s\n' % (s_pred[end:],s_true[end:]))
 
-        i+=1
-def generate_seq_y(output_path):
-    
-    dic_x = myinput.load_input('mfcc')
-    
-    i = 1
-    total = len(dic_x.keys())
-    with open(output_path,'w') as f:
-         
-        for setenceID in dic_x.keys():
-            x,src_y = dic_x[setenceID]
-            frame_len,feature_num = x.shape
+#assert input y is one-hot and with padding tensor
+def to_seq_y(y_with_padding,max_len=80):
+    y = y_with_padding
+    assert max_len < y.shape[1]
+    buf = []
+    for i in range(y.shape[0]):
+        y_true_seq = [np.argmax(y_true[i,j,:]) for j in range(y.shape[1])]  #777
+        #eos trimming
+        eos = (y.shape[-1] - 1)
+        if eos in y_true_seq:
+            y_true_seq = y_true_seq[0: y_true_seq.index(eos)]
+        c_arr = y_true_seq
+        
+        #reversed from index to char
+        c_arr = mapping(c_arr,'48_reverse')
             
+        #48 -> 39   
+        c_arr = mapping(c_arr,'48_39')
+       
+        #trimming
+        c_arr = trim_sil(c_arr)
+        c_arr = trim_repeat(c_arr)
 
-            src_y = src_y.reshape(frame_len)
-            src_y = src_y.astype(np.int32)
-            y_seq = src_y.tolist()
-            s2 = convert_label_sequence(y_seq)[:-1]
-
-            print '(%d/%d)  %s    \n' % (i,total,setenceID)
-            f.write('%s,%s\n' % (setenceID,s2))
-            i+=1
+        #back to index
+        c_arr = mapping(c_arr,'48_int')
+        #padding eos
+        if(len(c_arr) < max_len):
+            c_arr.extend( [eos]*( max_len-len(c_arr) ) )
+        #to ndarray
+        y_ndarr = np.asarray(c_arr).reshape(1,max_len)
+        #to one hot
+        y_ndarr = to_categorical(y_ndarr,eos+1)
+        buf.append(y_ndarr)
+    return np.vstack(buf)
 #y is a list
 def convert_label_sequence(label_seq):
     #eof trimming

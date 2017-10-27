@@ -121,9 +121,6 @@ def load_input(feature_name = 'mfcc'):
         sys.exit(1)
 
     return read_npz(npz_path)
-def load_test(path = 'mfcc'):
-
-    return read_y(path,padding_len = configuration.max_len,padding_val = configuration.num_classes)
 
 
 if __name__ == '__main__':
