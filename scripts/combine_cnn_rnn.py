@@ -50,7 +50,7 @@ def init_model():
     
     #model visualization
     plot_model(model, to_file='../model.png',show_shapes = True)
-    #model.load_weights('../checkpoints/simple.18-1.65.model')
+    #model.load_weights('../checkpoints/comwithmask.09-0.27.cks')
     
     return model
 def sample_weight(y):

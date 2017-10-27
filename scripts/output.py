@@ -45,7 +45,10 @@ def compare_output(model):
     
     
     #
-    src = myinput.load_input('mfcc')
+    x,y = myinput.load_input('mfcc')
+    #
+    random_indices = range(x.shape[0])
+    :qqqqqqqq
     keys = src.keys()
     r.shuffle(keys)
     sub_keys = keys[0:10]
