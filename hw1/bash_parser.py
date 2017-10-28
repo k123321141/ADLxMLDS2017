@@ -19,17 +19,17 @@ if __name__ == '__main__':
     if model_name == 'rnn':
         #prediction of rnn
         print('predict rnn model')
-        argv = ['',join(cur_dir,'rnn.hdf5') , join(data_dir,'mfcc','test.ark'),output_path]
+        argv = ['',join(cur_dir,'models','rnn.hdf5') , join(data_dir,'mfcc','test.ark'),output_path]
         output.main(argv,data_dir)
     elif model_name == 'cnn':
         #prediction of cnn + rnn
         print('predict cnn + rnn model')
-        argv = ['',join(cur_dir,'cnn.hdf5') , join(data_dir,'mfcc','test.ark'),output_path]
+        argv = ['',join(cur_dir,'models','cnn.hdf5') , join(data_dir,'mfcc','test.ark'),output_path]
         output.main(argv,data_dir)
     elif model_name == 'best':
         #prediction of cnn + rnn
         print('predict cnn + rnn model')
-        argv = ['',join(cur_dir,'cnn.hdf5') , join(data_dir,'mfcc','test.ark'),output_path]
+        argv = ['',join(cur_dir,'models','best.hdf5') , join(data_dir,'mfcc','test.ark'),output_path]
         output.main(argv,data_dir)
     else:
         print('error')

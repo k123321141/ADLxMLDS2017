@@ -80,7 +80,7 @@ if __name__ == '__main__':
     model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=[loss.acc_with_mask,'accuracy'],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=3)
     #make check points to trace the performance of model during training
-    cks = ModelCheckpoint('../cnn_gpu.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 1)
+    #cks = ModelCheckpoint('../cnn.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 1)
     
     #sample weight matrix in uesd or not
     model.fit(x,y,batch_size = 30,epochs = 2000,callbacks=[early_stopping,cks],validation_split = 0.05,sample_weight = sample_weight(y))

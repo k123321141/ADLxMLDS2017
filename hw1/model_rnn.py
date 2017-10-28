@@ -53,7 +53,7 @@ if __name__ == '__main__':
     model.compile(loss=loss.loss_with_mask, optimizer=opt,metrics=[loss.acc_with_mask],sample_weight_mode = 'temporal')
     early_stopping = EarlyStopping(monitor='val_loss', patience=3)
     #make check points to trace the performance of model during training
-    cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
+    #cks = ModelCheckpoint('../checkpoints/rnn.{epoch:02d}-{val_loss:.2f}.cks',save_best_only=True,period = 2)
     
     #sample weight matrix in uesd or not
     model.fit(x,y,batch_size = 100,epochs = 200,callbacks=[early_stopping,cks],validation_split = 0.05)

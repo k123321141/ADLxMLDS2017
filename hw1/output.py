@@ -176,21 +176,14 @@ def main(argv,data_dir):
     model_path = argv[1]
     if 'cnn' in model_path:
         model = model_cnn.init_model()
-        '''
-        import best
-        model = best.init_model()
-        '''
     elif 'rnn' in model_path:
         model = model_rnn.init_model()
     elif 'best' in model_path:
         import best
         model = best.init_model()
-        #model = model_cnn.init_model()
     else:
-        import tail
-        model = tail.init_model()
-       # print('error with model path : %s' % model_path)
-       # sys.exit(1)
+        print('error with model path : %s' % model_path)
+        sys.exit(1)
     '''
     import loss
     import tensorflow as tf
