@@ -10,7 +10,7 @@ output_path=$2
 #init npz to speed up data IO
 #echo ${current_path+'myinput.py'}
 #python ${current_path}'myinput.py'
-KERAS_BACKEND=tensorflow python ${current_dir}'bash_parser.py' ${current_dir} ${data_dir} ${output_path} 'rnn'
+KERAS_BACKEND=tensorflow python3 ${current_dir}'bash_parser.py' ${current_dir} ${data_dir} ${output_path} 'rnn'
 #python ${py_path} ${current_path} $1 $2
 
 exit 0

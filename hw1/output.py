@@ -9,7 +9,7 @@ import sys
 import copy
 from os.path import join
 
-import model_cnn,model_rnn
+import model_cnn,model_rnn,model_best
 from configuration import max_len,num_classes
 from keras.utils import to_categorical
 
@@ -179,8 +179,7 @@ def main(argv,data_dir):
     elif 'rnn' in model_path:
         model = model_rnn.init_model()
     elif 'best' in model_path:
-        import best
-        model = best.init_model()
+        model = model_best.init_model()
     else:
         print('error with model path : %s' % model_path)
         sys.exit(1)
