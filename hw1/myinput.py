@@ -116,7 +116,7 @@ def load_input(npz_path):
     return read_npz(npz_path)
 
 if __name__ == '__main__':
-    init_npz()
+    init_npz(sys.argv[1],sys.argv[2])
     print('Done')
 
 

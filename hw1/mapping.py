@@ -33,13 +33,15 @@ def mapping(y_list,map_name):
     return [map_dic[y] for y in y_list]
 
 def trim_sil(arr):
+    start_index = 0
     for i in range(len(arr)):
         a = arr[i]
         if a != 'sil':
             start_index = i
             break
     arr = arr[start_index:]
-
+    
+    end_index = len(arr)-1
     for i in range(len(arr)-1,-1,-1):
         a = arr[i]
         if a != 'sil':

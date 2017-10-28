@@ -10,8 +10,10 @@ def acc_with_mask(y_true, y_pred):
     mask = tf.not_equal(tf.argmax(y_true,-1),mask_vector)
     correct = tf.equal(tf.argmax(y_true,-1),tf.argmax(y_pred,-1))
     #3696,777 
+    
     mask = tf.cast(mask,tf.float32)
     correct = tf.cast(correct,tf.float32)
+    
     correct = tf.reduce_sum(mask * correct)
 
     
