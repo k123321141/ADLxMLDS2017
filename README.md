@@ -14,6 +14,7 @@ loss.py跟configuration.py是訓練模型上的一些常數及函式定義
 model_cnn就是model_best
 
 
+  
 
 
 # ADLxMLDS2017
