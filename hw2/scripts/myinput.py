@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import json
+import random
 from os.path import join
 '''
 max caption length = 40
@@ -71,20 +72,30 @@ def read_input(data_path=data_path,label_path = label_path):
     x_num = len(file_name_list)
     caption_num = int(sum([len(caption_list) for caption_list in dic.values()]))
     vocab_dim = len(vocab_map.keys())
+    fetch_num = 5 
     print (caption_num,vocab_dim)
-    buf_x = np.zeros([caption_num,80,4096],dtype=np.float32)
-    buf_y = np.zeros([caption_num,50,vocab_dim],dtype=np.float32)
+    buf_x = np.zeros([x_num*fetch_num,80,4096],dtype=np.float32)
+    buf_y = np.zeros([x_num*fetch_num,50,vocab_dim],dtype=np.float32)
     #sort for pairing with label
     #pair 5 random caption for each x
-    for f in sorted(file_name_list):
+    for i,f in enumerate(sorted(file_name_list)):
         feats = np.load(join(data_path,f)).reshape([1,80,4096])
         movie_id = f[:-4]               #replace('.npy','')
         caption_list = dic[movie_id]
         #random 5
         indices = range(len(caption_list))
+        random.shuffle(indices)
+        indices = indices[:fetch_num]
+        #
+        for j,idx in enumerate(indices):
+            caption = caption_list[idx]
+            buf_x[i+j,:,:] = feats[:,:,:]
+            buf_y[i+j,:,:] = caption_one_hot(caption)
+        '''
         for i,caption in enumerate(caption_list):
             buf_x[i,:,:] = feats[:,:,:]
             buf_y[i,:,:] = caption_one_hot(caption)
+        '''
     #total 1450 movie on training,each movie has 14-19 caption
     #the output will be
     return buf_x,buf_y
@@ -102,6 +113,7 @@ def caption_one_hot(caption,pad_len = 50):
         buf[0,i,0] = 0
         buf[0,i,vocab_idx] = 1
     return buf
+'''
 dic = load_y()
 le = 0
 m = 'noe'
@@ -121,6 +133,6 @@ def gb(x):
     x = float(x)
     x /= (1024**3)
     return '%.2f' % (x)
+print x.shape,y.shape
 print gb(nx),gb(ny)
 #np.savez('traing.npz',x=x,y=y)
-'''
