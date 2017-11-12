@@ -77,9 +77,15 @@ if __name__ == '__main__':
         print()
         print('-' * 50)
         print('Iteration', iteration)
+        #check point
+        model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=[loss.acc_with_mask,'accuracy'],sample_weight_mode = 'temporal')
+        cks = ModelCheckpoint(filepath = ('/home//models/epochs:%d_{val_loss:.2f}.cks'%iteration),save_best_only=True)
+        #
+
+
         model.fit(x=[x_train,train_cheat], y=y_train,
                   batch_size=BATCH_SIZE,
-                  epochs=1,validation_data =([x_val,val_cheat],y_val))
+                  epochs=1,validation_data =([x_val,val_cheat],y_val),callbacks = [cks,])
         # Select 10 samples from the validation set at random so we can visualize
         # errors.
         for i in range(1):
