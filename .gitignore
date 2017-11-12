@@ -1,0 +1,12 @@
+*.zip
+*.lab
+*.pyc
+*.npz
+*.ark
+*.cks
+*nohup*
+.DS_Store
+*.swp
+*.wav
+*.avi
+*.npy
