@@ -35,6 +35,7 @@ if __name__ == '__main__':
     # Shuffle (x, y) in unison as the later parts of x will almost all be larger
     # digits.
     print 'start'
+    '''
     indices = np.arange(len(y))
     np.random.shuffle(indices)
     x = x[indices,:,:]
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     print('Validation Data:')
     print(x_val.shape)
     print(y_val.shape)
-
+    '''
     BATCH_SIZE = 128
 
     input_len = x.shape[1]
