@@ -18,19 +18,6 @@ def decode(y):
             s += decode_map[vocab_idx] + ' '
     s = s.strip() + '.' 
     return s.encode('utf-8')
-    '''
-    #for batch
-    num,output_len = y.shape[0:2]
-    str_list = []
-    y = np.argmax(y,axis = -1)
-    for i in range(num):
-        s = ''
-        for j in range(output_len):
-            vocab_idx = y[i,j]
-            s += decode_map[vocab_idx] + ' '
-        str_list.append(s)
-    return str_list
-    '''
 if __name__ == '__main__':
 
     x,y = myinput.read_input()
@@ -38,8 +25,6 @@ if __name__ == '__main__':
     # digits.
     print 'start'
     print 'shape ',x.shape,y.shape
-    x_train = x
-    y_train = y
     '''
     indices = np.arange(len(y))
     np.random.shuffle(indices)
@@ -50,7 +35,7 @@ if __name__ == '__main__':
     split_at = len(x) - len(x) // 10
     (x_train, x_val) = x[:split_at], x[split_at:]
     (y_train, y_val) = y[:split_at], y[split_at:]
-
+   
     print('Training Data:')
     print(x_train.shape)
     print(y_train.shape)
@@ -70,13 +55,23 @@ if __name__ == '__main__':
     # dataset.
     train_cheat = np.zeros(y_train.shape, dtype=np.bool)
     train_cheat[:,0,:] = myinput.caption_one_hot('<bos>')[0,0,:]
-    print 
-    
     train_cheat[:,1:,:] = y_train[:,:-1,:]
     val_cheat = np.zeros(y_val.shape, dtype=np.bool)
     val_cheat[:,0,:] = myinput.caption_one_hot('<bos>')[0,0,:]
     val_cheat[:,1:,:] = y_val[:,:-1,:]
     print 'start training'
+    #
+    print 'train cheat '
+    print decode(train_cheat[0,:,:]) 
+    print np.argmax(train_cheat[0,:,:],axis = -1)
+    print 'train'
+    print decode(y_train[0,:,:]) 
+    print np.argmax(y_train[0,:,:],axis = -1)
+    print 'val'
+    print decode(val_cheat[0,:,:]) 
+    print np.argmax(val_cheat[0,:,:],axis = -1)
+
+
     #
     for iteration in range(1, 200):
         print()
@@ -84,10 +79,10 @@ if __name__ == '__main__':
         print('Iteration', iteration)
         model.fit(x=[x_train,train_cheat], y=y_train,
                   batch_size=BATCH_SIZE,
-                  epochs=1)
+                  epochs=1,validation_data =([x_val,val_cheat],y_val))
         # Select 10 samples from the validation set at random so we can visualize
         # errors.
-        for i in range(2):
+        for i in range(1):
             ind = np.random.randint(0, len(x_val))
             rowx, rowy = x_val[np.array([ind])], y_val[np.array([ind])]
             #

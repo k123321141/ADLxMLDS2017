@@ -56,10 +56,12 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #masking
     x = data
     y = label
-
+    #y = Masking()(y)
+    x,hi_h = RNN(HIDDEN_SIZE,activation = 'relu',return_state = True,return_sequences = True)(x)
     _,hi_h = RNN(HIDDEN_SIZE,activation = 'relu',return_state = True)(x)
     
     pred = RNN(HIDDEN_SIZE,activation = 'relu',return_sequences = True)(y,hi_h) 
+    pred = RNN(HIDDEN_SIZE,activation = 'relu',return_sequences = True)(pred) 
 
     #
     pred = TimeDistributed(Dense(vocab_dim,activation='softmax'))(pred)
@@ -72,11 +74,30 @@ def model(input_len,input_dim,output_len,vocab_dim):
     model.summary()
     return model
 
+vocab_map = myinput.init_vocabulary_map()
+decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
+def decode(y):
+    output_len = y.shape[0]
+    y = np.argmax(y,axis = -1)
+    s = ''
+    for j in range(output_len):
+        vocab_idx = y[j]
+        if vocab_idx != 0:      #<pad>
+            s += decode_map[vocab_idx] + ' '
+    s = s.strip() + '.' 
+    return s.encode('utf-8')
 def my_pred(model,x,input_len,output_len):
     y_pred = myinput.caption_one_hot('<bos>')
-
+    y_pred[0,1:,:] = 0
     for i in range(1,output_len):
+        '''
+        print 'pred'
+        print decode(y_pred[0,:,:]) 
+        print np.argmax(y_pred[0,:,:],axis = -1)
+        '''
         y = model.predict([x,y_pred])
-        y_pred[:,i,:] = y[:,i,:]
+        next_idx = np.argmax(y[:,i-1,:],axis = -1)[0]
+        y_pred[0,i,next_idx] = 1
+        #print 'next ',i,next_idx
 
     return y_pred[:,1:,:]
