@@ -75,10 +75,13 @@ def read_input(data_path=data_path,label_path = label_path):
     buf_x = np.zeros([caption_num,80,4096],dtype=np.float32)
     buf_y = np.zeros([caption_num,50,vocab_dim],dtype=np.float32)
     #sort for pairing with label
+    #pair 5 random caption for each x
     for f in sorted(file_name_list):
         feats = np.load(join(data_path,f)).reshape([1,80,4096])
         movie_id = f[:-4]               #replace('.npy','')
         caption_list = dic[movie_id]
+        #random 5
+        indices = range(len(caption_list))
         for i,caption in enumerate(caption_list):
             buf_x[i,:,:] = feats[:,:,:]
             buf_y[i,:,:] = caption_one_hot(caption)
