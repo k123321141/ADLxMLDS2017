@@ -42,7 +42,7 @@ def split_y_shape(input_shape):
     assert len(shape) == 3  # only valid for 3D tensors
     shape[-2] = DIGITS+1
     return tuple(shape)
-def model(input_len,vocab_dim,output_len):
+def model(input_len,input_dim,output_len,vocab_dim):
     print('Build model...')
     # Try replacing GRU, or SimpleRNN.
     RNN = GRU
@@ -50,7 +50,7 @@ def model(input_len,vocab_dim,output_len):
     LAYERS = 1
     DEPTH = 1
     #
-    data = Input(shape=(input_len,vocab_dim))
+    data = Input(shape=(input_len,input_dim))
     #in this application, input dim = vocabulary dim
     label = Input(shape=(output_len,vocab_dim))
     #masking
@@ -62,7 +62,7 @@ def model(input_len,vocab_dim,output_len):
     pred = RNN(HIDDEN_SIZE,activation = 'relu',return_sequences = True)(y,hi_h) 
 
     #
-    pred = TimeDistributed(Dense(len(chars),activation='softmax'))(pred)
+    pred = TimeDistributed(Dense(vocab_dim,activation='softmax'))(pred)
     
     
     model = Model(inputs = [data,label],output=pred)  
@@ -79,4 +79,4 @@ def my_pred(model,x,input_len,output_len):
         y = model.predict([x,y_pred])
         y_pred[:,i,:] = y[:,i,:]
 
-    return y_pred
+    return y_pred[:,1:,:]

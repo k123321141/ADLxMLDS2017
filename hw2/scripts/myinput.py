@@ -15,7 +15,7 @@ def init_vocabulary_map(label_path = label_path):
     for test_json in test:
         caption_list = test_json['caption']
         for caption in caption_list:
-            caption = caption[:-1]
+            caption = caption[:-1] if caption[-1] == '.' else caption    #trim last . 'Hello.' -> 'Hello'
             caption = caption.lower()
             for v in caption.split(' '):
                 vocabulary_set.add(v)
@@ -27,6 +27,7 @@ def init_vocabulary_map(label_path = label_path):
     vocab_list = sorted(vocabulary_set)
     vocab_map = { v:(i+1) for i,v in enumerate(vocab_list)}
     vocab_map['<pad>'] = 0
+
     return vocab_map
 
 
@@ -72,7 +73,7 @@ def read_input(data_path=data_path,label_path = label_path):
     x_num = len(file_name_list)
     caption_num = int(sum([len(caption_list) for caption_list in dic.values()]))
     vocab_dim = len(vocab_map.keys())
-    fetch_num = 5 
+    fetch_num = 1 
     print (caption_num,vocab_dim)
     buf_x = np.zeros([x_num*fetch_num,80,4096],dtype=np.float32)
     buf_y = np.zeros([x_num*fetch_num,50,vocab_dim],dtype=np.float32)
@@ -101,7 +102,7 @@ def read_input(data_path=data_path,label_path = label_path):
     return buf_x,buf_y
 def caption_one_hot(caption,pad_len = 50):
     #trim caption
-    caption = caption[0:-1]     #trim last . 'Hello.' -> 'Hello'
+    caption = caption[:-1] if caption[-1] == '.' else caption    #trim last . 'Hello.' -> 'Hello'
     caption = caption + ' <eos>'
     caption = caption.lower()
     #
