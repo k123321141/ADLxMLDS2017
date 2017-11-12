@@ -39,14 +39,10 @@ def load_x(data_path=data_path):
     
     file_name_list = [f for f in fl if f.endswith('.npy')]
     #sort for pairing with label
-    buf = [np.load(join(data_path,f)) for f in sorted(file_name_list)]
-
-    for i in range(len(buf)):
-        num,feats = buf[i].shape
-        buf[i] = buf[i].reshape([1,num,feats])
-        
-    x = np.vstack(buf)
-    return x
+    dic = {}
+    for f in file_name_list:
+        dic[f[:-4]] = np.load(join(data_path,f)).reshape([1,80,4096])
+    return dic
 def load_y(label_path = label_path):
     test = json.load(open(label_path,'r'))
     dic = {}
@@ -74,7 +70,7 @@ def read_input(data_path=data_path,label_path = label_path):
     x_num = len(file_name_list)
     caption_num = int(sum([len(caption_list) for caption_list in dic.values()]))
     vocab_dim = len(vocab_map.keys())
-    fetch_num = 5
+    fetch_num = 10
     print (caption_num,vocab_dim)
     buf_x = np.zeros([x_num*fetch_num,80,4096],dtype=np.float32)
     buf_y = np.zeros([x_num*fetch_num,50,vocab_dim],dtype=np.float32)

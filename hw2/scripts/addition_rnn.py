@@ -44,13 +44,15 @@ if __name__ == '__main__':
     print(x_val.shape)
     print(y_val.shape)
     
-    BATCH_SIZE = 128
+    BATCH_SIZE = 32
 
     input_len,input_dim = x_train.shape[1:]
     output_len,vocab_dim = y_train.shape[1:]
 
 
     model = my_model.model(input_len,input_dim,output_len,vocab_dim)
+#    model.load_weights('../models/42.cks')
+   
     # Train the model each generation and show predictions against the validation
     # dataset.
     train_cheat = np.zeros(y_train.shape, dtype=np.bool)
@@ -78,16 +80,18 @@ if __name__ == '__main__':
         print('-' * 50)
         print('Iteration', iteration)
         #check point
-        cks = ModelCheckpoint(filepath = ('../models/epochs:%d_val_{val_loss:.2f}.cks'%iteration),save_best_only=True,period = 1)
+        #cks = ModelCheckpoint(filepath = ('../models/%d_val_{val_loss:.2f}.cks'%iteration),save_best_only=True,period = 1)
         #
 
 
         model.fit(x=[x_train,train_cheat], y=y_train,
                   batch_size=BATCH_SIZE,
-                  epochs=1,validation_data =([x_val,val_cheat],y_val),callbacks = [cks,])
+                  epochs=1,validation_data =([x_val,val_cheat],y_val))
+        if iteration % 5 ==0:
+            model.save('../models/1024_%d.cks'%iteration)
         # Select 10 samples from the validation set at random so we can visualize
         # errors.
-        for i in range(1):
+        for i in range(2):
             ind = np.random.randint(0, len(x_val))
             rowx, rowy = x_val[np.array([ind])], y_val[np.array([ind])]
             #

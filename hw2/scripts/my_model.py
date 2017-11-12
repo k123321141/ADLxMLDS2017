@@ -45,8 +45,8 @@ def split_y_shape(input_shape):
 def model(input_len,input_dim,output_len,vocab_dim):
     print('Build model...')
     # Try replacing GRU, or SimpleRNN.
-    RNN = GRU
-    HIDDEN_SIZE = 512
+    RNN = LSTM
+    HIDDEN_SIZE = 1024
     LAYERS = 1
     DEPTH = 1
     #
@@ -57,12 +57,19 @@ def model(input_len,input_dim,output_len,vocab_dim):
     x = data
     y = label
     #y = Masking()(y)
-    x,hi_h = RNN(HIDDEN_SIZE,activation = 'relu',return_state = True,return_sequences = True)(x)
-    _,hi_h = RNN(HIDDEN_SIZE,activation = 'relu',return_state = True)(x)
-    
-    pred = RNN(HIDDEN_SIZE,activation = 'relu',return_sequences = True)(y,hi_h) 
-    pred = RNN(HIDDEN_SIZE,activation = 'relu',return_sequences = True)(pred) 
 
+    #decoder
+    x1,h,c  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
+    x2,h,c  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,[h,c])
+    x = Concatenate(axis = -1)([x1,x2])
+    x1,h,c  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = False,go_backwards = False)(x)
+    x2,h2,c2  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = False,go_backwards = True)(x,[h,c])
+    h = Concatenate(axis = -1)([h,h2])
+    c = Concatenate(axis = -1)([c,c2])
+
+    #encoder
+    pred  = RNN(HIDDEN_SIZE*2,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = False)(y,[h,c])
+    
     #
     pred = TimeDistributed(Dense(vocab_dim,activation='softmax'))(pred)
     
