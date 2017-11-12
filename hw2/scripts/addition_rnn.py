@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from keras.callbacks import *
 import keras
 import numpy as np
 import my_model
@@ -78,8 +78,7 @@ if __name__ == '__main__':
         print('-' * 50)
         print('Iteration', iteration)
         #check point
-        model.compile(loss='categorical_crossentropy', optimizer=opt,metrics=[loss.acc_with_mask,'accuracy'],sample_weight_mode = 'temporal')
-        cks = ModelCheckpoint(filepath = ('../models/epochs:%d_{val_loss:.2f}.cks'%iteration),save_best_only=True,period = 1)
+        cks = ModelCheckpoint(filepath = ('../models/epochs:%d_val_{val_loss:.2f}.cks'%iteration),save_best_only=True,period = 1)
         #
 
 
