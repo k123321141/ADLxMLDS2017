@@ -125,7 +125,7 @@ for l in dic.values():
 
 print le
 print m
-'''
+
 x,y = read_input() 
 nx = x.nbytes
 ny = y.nbytes
@@ -135,4 +135,5 @@ def gb(x):
     return '%.2f' % (x)
 print x.shape,y.shape
 print gb(nx),gb(ny)
+'''
 #np.savez('traing.npz',x=x,y=y)
