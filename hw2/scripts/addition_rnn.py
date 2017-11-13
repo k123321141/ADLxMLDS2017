@@ -4,9 +4,14 @@ import keras
 import numpy as np
 import my_model
 import myinput
-import sys
+import config
+import os
+from os.path import join
+from keras.models import *
 
 vocab_map = myinput.init_vocabulary_map()
+BATCH_SIZE,VALIDATION_PERCENT,CKS_PATH,VERBOSE,PRE_MODEL,SAVE_ITERATION = config.trainging_config()
+
 decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
 def decode(y):
     output_len = y.shape[0]
@@ -23,8 +28,7 @@ if __name__ == '__main__':
     x,y = myinput.read_input()
     # Shuffle (x, y) in unison as the later parts of x will almost all be larger
     # digits.
-    print 'start'
-    print 'shape ',x.shape,y.shape
+    print 'start training'
     '''
     indices = np.arange(len(y))
     np.random.shuffle(indices)
@@ -32,7 +36,7 @@ if __name__ == '__main__':
     y = y[indices,:,:]
     '''
     # Explicitly set apart 10% for validation data that we never train over.
-    split_at = len(x) - len(x) // 10
+    split_at = len(x) - len(x) // VALIDATION_PERCENT
     (x_train, x_val) = x[:split_at], x[split_at:]
     (y_train, y_val) = y[:split_at], y[split_at:]
    
@@ -44,14 +48,14 @@ if __name__ == '__main__':
     print(x_val.shape)
     print(y_val.shape)
     
-    BATCH_SIZE = 32
 
     input_len,input_dim = x_train.shape[1:]
     output_len,vocab_dim = y_train.shape[1:]
 
 
     model = my_model.model(input_len,input_dim,output_len,vocab_dim)
-#    model.load_weights('../models/42.cks')
+    if os.path.isfile(PRE_MODEL):
+        model = load_model(PRE_MODEL)
    
     # Train the model each generation and show predictions against the validation
     # dataset.
@@ -75,7 +79,7 @@ if __name__ == '__main__':
 
 
     #
-    for iteration in range(1, 200):
+    for iteration in range(1, 20000):
         print()
         print('-' * 50)
         print('Iteration', iteration)
@@ -85,10 +89,10 @@ if __name__ == '__main__':
 
 
         model.fit(x=[x_train,train_cheat], y=y_train,
-                  batch_size=BATCH_SIZE,
+                  batch_size=BATCH_SIZE,verbose=VERBOSE,
                   epochs=1,validation_data =([x_val,val_cheat],y_val))
-        if iteration % 5 ==0:
-            model.save('../models/1024_%d.cks'%iteration)
+        if iteration % SAVE_ITERATION == 0:
+            model.save(join(CKS_PATH,'1024_%d.cks'%iteration))
         # Select 10 samples from the validation set at random so we can visualize
         # errors.
         for i in range(2):

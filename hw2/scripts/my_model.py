@@ -1,10 +1,14 @@
 from keras.models import *
 from keras.layers import *
+import config
 import keras.backend as K
 import tensorflow as tf
 import numpy as np
 import myinput
+import config
+
 assert K._BACKEND == 'tensorflow'
+
 def loss_with_mask(y_true, y_pred):
     mask = tf.not_equal(tf.argmax(y_true,-1),mask_vector)
     mask = tf.cast(mask,tf.float32)
@@ -45,10 +49,7 @@ def split_y_shape(input_shape):
 def model(input_len,input_dim,output_len,vocab_dim):
     print('Build model...')
     # Try replacing GRU, or SimpleRNN.
-    RNN = LSTM
-    HIDDEN_SIZE = 1024
-    LAYERS = 1
-    DEPTH = 1
+    RNN,HIDDEN_SIZE,DEPTH = config.model_config()
     #
     data = Input(shape=(input_len,input_dim))
     #in this application, input dim = vocabulary dim
@@ -64,11 +65,9 @@ def model(input_len,input_dim,output_len,vocab_dim):
     x = Concatenate(axis = -1)([x1,x2])
     x1,h,c  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = False,go_backwards = False)(x)
     x2,h2,c2  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = False,go_backwards = True)(x,[h,c])
-    h = Concatenate(axis = -1)([h,h2])
-    c = Concatenate(axis = -1)([c,c2])
 
     #encoder
-    pred  = RNN(HIDDEN_SIZE*2,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = False)(y,[h,c])
+    pred  = RNN(HIDDEN_SIZE,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = False)(y,[h2,c2])
     
     #
     pred = TimeDistributed(Dense(vocab_dim,activation='softmax'))(pred)
