@@ -27,7 +27,7 @@ if __name__ == '__main__':
         buf_x = np.zeros([num,input_len,feats_dim],dtype=np.float32)
         for i,k in enumerate(sorted(test_dic.keys())):
             buf_x[i,:,:] = test_dic[k]
-        preds = my_model.batch_pred(model,buf_x,input_len,output_len)
+        preds = my_model.batch_pred(model,buf_x,output_len)
 
         guess = batch_decode(decode_map,preds)
         for i,k in enumerate(sorted(test_dic.keys())):

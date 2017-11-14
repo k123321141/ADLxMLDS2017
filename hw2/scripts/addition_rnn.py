@@ -7,23 +7,24 @@ import myinput
 import config
 import HW2_config
 import os
+from myinput import decode,batch_decode
 from os.path import join
 from keras.models import *
 
 vocab_map = myinput.init_vocabulary_map()
-BATCH_SIZE,VALIDATION_PERCENT,CKS_PATH,VERBOSE,PRE_MODEL,SAVE_ITERATION = config.trainging_config()
-
 decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
-def decode(y):
-    output_len = y.shape[0]
-    y = np.argmax(y,axis = -1)
-    s = ''
-    for j in range(output_len):
-        vocab_idx = y[j]
-        if vocab_idx != 0:      #<pad>
-            s += decode_map[vocab_idx] + ' '
-    s = s.strip() + '.' 
-    return s.encode('utf-8')
+def testing(model,x,y,test_num = 1):
+    
+    idx = np.random.choice(len(x),test_num)
+    rowx, rowy = x[idx,:,:], y[idx,:,:]
+    #
+    preds = my_model.batch_pred(model,rowx,HW2_config.output_len)
+    correct = batch_decode(decode_map,rowy)
+    guess = batch_decode(decode_map,preds)
+    for i,c in enumerate(correct):
+        print('T', c)
+        print('G',guess[i])
+        print('---')
 if __name__ == '__main__':
 
     x = myinput.read_x()
@@ -35,34 +36,33 @@ if __name__ == '__main__':
     
 
     epoch_idx = 0
-    if os.path.isfile(PRE_MODEL):
-        print('loading PRE-MODEL : ',PRE_MODEL)
-        model = load_model(PRE_MODEL)
-        epoch_idx = int( PRE_MODEL.slpit('_')[:-4] )
+    if os.path.isfile(config.PRE_MODEL):
+        print('loading PRE-MODEL : ',config.PRE_MODEL)
+        model = load_model(config.PRE_MODEL)
+        epoch_idx = int( config.PRE_MODEL.slpit('_')[:-4] )
     else:
-        model = my_model.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,HW2_config.vocab_dim)
+        vocab_dim = len(myinput.init_vocabulary_map())
+        model = my_model.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
    
     print 'start training' 
     for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
-        #for caption_idx in range(HW2_config.caption_list_mean):
-        for caption_idx in range(2):
+        for caption_idx in range(HW2_config.caption_list_mean):
             y = y_generator.next()
-            print train_cheat.shape,y.shape
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
-
+            print('(%3d/%3d)' % (caption_idx+1,HW2_config.caption_list_mean))
             model.fit(x=[x,train_cheat], y=y,
-                      batch_size=BATCH_SIZE,verbose=VERBOSE,
+                      batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
                       epochs=1)
 
         #test_y just for testing,no need for iter as a whole epoch 
         test_y = test_y_generator.next()
         #after a epoch
-        if epoch_idx % SAVE_ITERATION == 0:
-            model.save(join(CKS_PATH,'%d.cks'%epoch_idx))
+        if epoch_idx % config.SAVE_ITERATION == 0:
+            model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
         # Select 2 samples from the test set at random so we can visualize errors.
-        testing(model,test_x,test_y,2) 
+        testing(model,test_x,test_y,5) 
 
 
     #

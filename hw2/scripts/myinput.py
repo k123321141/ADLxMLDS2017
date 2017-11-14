@@ -9,9 +9,8 @@ from os.path import join
 '''
 max caption length = 40
 '''
-data_path,label_path,FETCH_NUM = config.input_config()
 
-def init_vocabulary_map(label_path = label_path):
+def init_vocabulary_map(label_path = config.LABEL_PATH):
     test = json.load(open(label_path,'r'))
     vocabulary_set = set()
     for test_json in test:
@@ -24,10 +23,14 @@ def init_vocabulary_map(label_path = label_path):
     #add <bos> <eos>
     vocabulary_set.add('<bos>')
     vocabulary_set.add('<eos>')
+    #vocabulary_set.add('<pad>')
+    vocabulary_set.add('<vocab not in training set>')
+
 
     #one hot encoding
     vocab_list = sorted(vocabulary_set)
     vocab_map = { v:(i+1) for i,v in enumerate(vocab_list)}
+    
     vocab_map['<pad>'] = 0
     return vocab_map
 
@@ -51,6 +54,7 @@ def batch_decode(decode_map,y):
         output_list.append(s.encode('utf-8'))
     return output_list
 def decode(decode_map,y):
+    #(50,vocab_dim)
     output_len = y.shape[0]
     y = np.argmax(y,axis = -1)
     s = ''
@@ -61,7 +65,7 @@ def decode(decode_map,y):
     s = s.strip() + '.' 
     return s.encode('utf-8')
 
-def load_x_dic(data_path=data_path):
+def load_x_dic(data_path=config.DATA_PATH):
     print('load data from : ',data_path)
     fl = os.listdir(data_path)
     
@@ -71,7 +75,7 @@ def load_x_dic(data_path=data_path):
     for f in file_name_list:
         dic[f[:-4]] = np.load(join(data_path,f))
     return dic
-def load_y(label_path = label_path):
+def load_y(label_path = config.LABEL_PATH):
     test = json.load(open(label_path,'r'))
     dic = {}
     for test_json in test:
@@ -80,7 +84,7 @@ def load_y(label_path = label_path):
         dic[movie_id] = caption_list
        
     return dic
-def load_y_generator(label_path = label_path):
+def load_y_generator(label_path = config.LABEL_PATH):
     dic = load_y(label_path)
     #iter loop index
     #every video has different number of captions.
@@ -97,14 +101,14 @@ def load_y_generator(label_path = label_path):
             y[i,:,:] = caption_one_hot(caption)
         idx += 1
         yield y
-def read_x(data_path = data_path):
+def read_x(data_path = config.DATA_PATH):
     dic = load_x_dic(data_path)
     video_num = len(dic)
     x = np.zeros([video_num,HW2_config.input_len,HW2_config.input_dim],np.float32)
     for i,video_name in enumerate(sorted(dic.keys())):
         x[i,:,:] =  dic[video_name]
     return x
-def read_input(data_path=data_path,label_path = label_path):
+def read_input(data_path=config.DATA_PATH,label_path = config.LABEL_PATH):
     print ('read label from : ',label_path)
     test = json.load(open(label_path,'r'))
     dic = {}
@@ -123,8 +127,8 @@ def read_input(data_path=data_path,label_path = label_path):
     caption_num = int(sum([len(caption_list) for caption_list in dic.values()]))
     vocab_dim = len(vocab_map.keys())
     print (caption_num,vocab_dim)
-    buf_x = np.zeros([x_num*FETCH_NUM,80,4096],dtype=np.float32)
-    buf_y = np.zeros([x_num*FETCH_NUM,50,vocab_dim],dtype=np.float32)
+    buf_x = np.zeros([x_num*config.FETCH_NUM,80,4096],dtype=np.float32)
+    buf_y = np.zeros([x_num*config.FETCH_NUM,50,vocab_dim],dtype=np.float32)
     #sort for pairing with label
     #pair 5 random caption for each x
     for i,f in enumerate(sorted(file_name_list)):
@@ -134,13 +138,13 @@ def read_input(data_path=data_path,label_path = label_path):
         #random 5
         indices = range(len(caption_list))
         random.shuffle(indices)
-        indices = indices[:FETCH_NUM]
+        indices = indices[:config.FETCH_NUM]
         #
         for j,idx in enumerate(indices):
             caption = caption_list[idx]
-            buf_x[i*FETCH_NUM+j,:,:] = feats[:,:,:]
-            buf_y[i*FETCH_NUM+j,:,:] = caption_one_hot(caption)
-            #print i*FETCH_NUM+j,i,j
+            buf_x[i*config.FETCH_NUM+j,:,:] = feats[:,:,:]
+            buf_y[i*config.FETCH_NUM+j,:,:] = caption_one_hot(caption)
+            #print i*config.FETCH_NUM+j,i,j
         '''
         for i,caption in enumerate(caption_list):
             buf_x[i,:,:] = feats[:,:,:]
@@ -158,15 +162,18 @@ def caption_one_hot(caption,pad_len = 50):
     #
     vocab_dim = len(vocab_map.keys())
     buf = np.zeros([1,pad_len,vocab_dim],np.bool)
-    buf[0,:,0] = 1  #<pad>
     for i,v in enumerate(caption.split(' ')):
+        if v not in vocab_map:
+            v = '<vocab not in training set>'
+
         vocab_idx = vocab_map[v]
-        buf[0,i,0] = 0
         buf[0,i,vocab_idx] = 1
     return buf
 if __name__ == '__main__':
-    print len(vocab_map.keys())
-
+    with open('./map','w') as f:
+        for k in vocab_map.keys():
+            out = '%10s%10s\n'%(k,vocab_map[k])
+            f.write(out.encode('utf-8'))
     '''
     buf = []
     for l in dic.values():
