@@ -71,23 +71,29 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #scaling data
     x = BatchNormalization()(x)
     #decoder
-    x1,h,c  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
-    x2,h,c  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,[h,c])
-    x = Concatenate(axis = -1)([x1,x2])
-    x1,h,c  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = False,go_backwards = False)(x)
-    x2,h2,c2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = False,go_backwards = True)(x,[h,c])
+    for _ in range(config.DEPTH):
+        #forward RNN
+        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
+        hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
+        #backward RNN
+        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,initail_state = hi_st)
+        #concatenate both side
+        x = Concatenate(axis = -1)([ret1[0],ret2[0]])
+        #prepare hidden state for encoder
+        hi_st = ret2[1:] if config.RNN == LSTM else ret2[1]
 
     #word embedding
     y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
     y = Masking()(y)
     #encoder
-    pred  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = False,return_sequences = True,go_backwards = False)(y,[h2,c2])
+    for _ in range(config.DEPTH):
+        y  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_sequences = True)(y,initial_state = hi_st)
+        
+        #
+    y = TimeDistributed(Dense(vocab_dim,activation='softmax'))(y)
     
-    #
-    pred = TimeDistributed(Dense(vocab_dim,activation='softmax'))(pred)
     
-    
-    model = Model(inputs = [data,label],output=pred)  
+    model = Model(inputs = [data,label],output=y)  
     model.compile(loss=loss_with_mask,
                   optimizer='adam',
                   metrics=[acc_with_mask])
