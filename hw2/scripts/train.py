@@ -84,7 +84,8 @@ if __name__ == '__main__':
 
         #after a epoch
         if epoch_idx % config.SAVE_ITERATION == 0:
-            model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
+            #model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
+            model.save(join(config.CKS_PATH,'best.cks'))
             #test_y just for testing,no need for iter as a whole epoch 
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
