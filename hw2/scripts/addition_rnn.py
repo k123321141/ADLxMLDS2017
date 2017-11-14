@@ -51,7 +51,7 @@ if __name__ == '__main__':
         for caption_idx in range(HW2_config.caption_list_mean):
             y = y_generator.next()
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
-            print('(%3d/%3d)' % (caption_idx+1,HW2_config.caption_list_mean))
+            print('caption iteration : (%3d/%3d)' % (caption_idx,HW2_config.caption_list_mean))
             model.fit(x=[x,train_cheat], y=y,
                       batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
                       epochs=1)

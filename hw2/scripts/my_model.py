@@ -91,7 +91,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     model.compile(loss=loss_with_mask,
                   optimizer='adam',
                   metrics=[acc_with_mask])
-    model.summary()
+    #model.summary()
     return model
 
 vocab_map = myinput.init_vocabulary_map()
