@@ -4,7 +4,7 @@ import json
 import random 
 import sys
 import config
-from HW2_config import *
+import HW2_config
 from os.path import join
 '''
 max caption length = 40
@@ -29,12 +29,39 @@ def init_vocabulary_map(label_path = label_path):
     vocab_list = sorted(vocabulary_set)
     vocab_map = { v:(i+1) for i,v in enumerate(vocab_list)}
     vocab_map['<pad>'] = 0
-
     return vocab_map
 
+def init_decode_map(vocab_map):
+    decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
+    return decode_map
 
 vocab_map = init_vocabulary_map()
-def load_x(data_path=data_path):
+
+def batch_decode(decode_map,y):
+    num,output_len = y.shape[0:2]
+    y = np.argmax(y,axis = -1)
+    output_list= []
+    for i in range(num):
+        s = ''
+        for j in range(output_len):
+            vocab_idx = y[i,j]
+            if vocab_idx != 0:      #<pad>
+                s += decode_map[vocab_idx] + ' '
+        s = s.strip() + '.' 
+        output_list.append(s.encode('utf-8'))
+    return output_list
+def decode(decode_map,y):
+    output_len = y.shape[0]
+    y = np.argmax(y,axis = -1)
+    s = ''
+    for j in range(output_len):
+        vocab_idx = y[j]
+        if vocab_idx != 0:      #<pad>
+            s += decode_map[vocab_idx] + ' '
+    s = s.strip() + '.' 
+    return s.encode('utf-8')
+
+def load_x_dic(data_path=data_path):
     print('load data from : ',data_path)
     fl = os.listdir(data_path)
     
@@ -42,7 +69,7 @@ def load_x(data_path=data_path):
     #sort for pairing with label
     dic = {}
     for f in file_name_list:
-        dic[f[:-4]] = np.load(join(data_path,f)).reshape([1,80,4096])
+        dic[f[:-4]] = np.load(join(data_path,f))
     return dic
 def load_y(label_path = label_path):
     test = json.load(open(label_path,'r'))
@@ -62,7 +89,7 @@ def load_y_generator(label_path = label_path):
     vocab_dim = len(vocab_map.keys())
     idx = 0
     while True:
-        y = np.zeros(video_num,output_len,vocab_dim)
+        y = np.zeros([video_num,HW2_config.output_len,vocab_dim],np.bool)
         for i,video_name in enumerate(sorted(dic.keys())):
             caption_list = dic[video_name]
             caption_idx = idx % len(caption_list)
@@ -70,6 +97,13 @@ def load_y_generator(label_path = label_path):
             y[i,:,:] = caption_one_hot(caption)
         idx += 1
         yield y
+def read_x(data_path = data_path):
+    dic = load_x_dic(data_path)
+    video_num = len(dic)
+    x = np.zeros([video_num,HW2_config.input_len,HW2_config.input_dim],np.float32)
+    for i,video_name in enumerate(sorted(dic.keys())):
+        x[i,:,:] =  dic[video_name]
+    return x
 def read_input(data_path=data_path,label_path = label_path):
     print ('read label from : ',label_path)
     test = json.load(open(label_path,'r'))
@@ -131,10 +165,8 @@ def caption_one_hot(caption,pad_len = 50):
         buf[0,i,vocab_idx] = 1
     return buf
 if __name__ == '__main__':
+    print len(vocab_map.keys())
 
-    dic = load_x()
-    x = dic['7_XASfcYdBk_3_13.avi']
-    print x[0,24,:]
     '''
     buf = []
     for l in dic.values():
