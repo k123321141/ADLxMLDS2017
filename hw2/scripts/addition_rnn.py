@@ -55,6 +55,7 @@ if __name__ == '__main__':
 
     model = my_model.model(input_len,input_dim,output_len,vocab_dim)
     if os.path.isfile(PRE_MODEL):
+        print('loading PRE-MODEL : PRE_MODEL')
         model = load_model(PRE_MODEL)
    
     # Train the model each generation and show predictions against the validation
