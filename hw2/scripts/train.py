@@ -48,8 +48,8 @@ if __name__ == '__main__':
     epoch_idx = 0
     if os.path.isfile(config.PRE_MODEL):
         print('loading PRE_MODEL : ',config.PRE_MODEL)
-        model = load_model(config.PRE_MODEL)
-        epoch_idx = int( config.PRE_MODEL.slpit('_')[:-4] )
+        model = load_model(config.PRE_MODEL,
+                custom_objects={'loss_with_mask':my_model.loss_with_mask,'acc_with_mask':my_model.acc_with_mask})
     else:
         vocab_dim = len(myinput.init_vocabulary_map())
         model = my_model.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         #after a epoch
         if epoch_idx % config.SAVE_ITERATION == 0:
             #model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
-            model.save(join(config.CKS_PATH,'best.cks'))
+            model.save(join(config.CKS_PATH,'mask.cks'))
             #test_y just for testing,no need for iter as a whole epoch 
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
