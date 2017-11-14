@@ -28,7 +28,7 @@ def testing(model,x,y,test_x,test_y,test_num = 1):
     rowx, rowy = test_x[idx,:,:],test_y[idx,:,:]
     test_preds = my_model.batch_pred(model,rowx,HW2_config.output_len)
     test_correct = batch_decode(decode_map,rowy)
-    test_guess = batch_decode(decode_map,preds)
+    test_guess = batch_decode(decode_map,test_preds)
     for i,c in enumerate(train_correct):
         print('---')
         print('%20s : %s' % ('training set label',c))
