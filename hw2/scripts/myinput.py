@@ -4,6 +4,7 @@ import json
 import random 
 import sys
 import config
+from HW2_config import *
 from os.path import join
 '''
 max caption length = 40
@@ -51,7 +52,24 @@ def load_y(label_path = label_path):
         movie_id = test_json['id']
         dic[movie_id] = caption_list
        
-    return dic 
+    return dic
+def load_y_generator(label_path = label_path):
+    dic = load_y(label_path)
+    #iter loop index
+    #every video has different number of captions.
+    #so iter each caption with same index,some video with small number caption will iterate more time.
+    video_num = len(dic)
+    vocab_dim = len(vocab_map.keys())
+    idx = 0
+    while True:
+        y = np.zeros(video_num,output_len,vocab_dim)
+        for i,video_name in enumerate(sorted(dic.keys())):
+            caption_list = dic[video_name]
+            caption_idx = idx % len(caption_list)
+            caption = caption_list[caption_idx]
+            y[i,:,:] = caption_one_hot(caption)
+        idx += 1
+        yield y
 def read_input(data_path=data_path,label_path = label_path):
     print ('read label from : ',label_path)
     test = json.load(open(label_path,'r'))
@@ -113,12 +131,17 @@ def caption_one_hot(caption,pad_len = 50):
         buf[0,i,vocab_idx] = 1
     return buf
 if __name__ == '__main__':
-    dic = load_y()
+
+    dic = load_x()
+    x = dic['7_XASfcYdBk_3_13.avi']
+    print x[0,24,:]
+    '''
     buf = []
     for l in dic.values():
         buf.append(len(l))
     print sorted(buf)
     print np.mean(buf),np.var(buf)
+    '''
 '''
 x,y = read_input() 
 nx = x.nbytes
