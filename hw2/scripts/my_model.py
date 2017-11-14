@@ -107,3 +107,19 @@ def my_pred(model,x,input_len,output_len):
         #print 'next ',i,next_idx
 
     return y_pred[:,1:,:]
+def batch_pred(model,x,input_len,output_len):
+    num = x.shape[0]
+    y_pred = np.repeat(myinput.caption_one_hot('<bos>'),num,axis = 0)
+
+    y_pred[:,1:,:] = 0
+    for i in range(1,output_len):
+        '''
+        print 'pred'
+        print decode(y_pred[0,:,:]) 
+        print np.argmax(y_pred[0,:,:],axis = -1)
+        '''
+        y = model.predict([x,y_pred])
+        y_pred[:,i,:] = y[:,i-1,:] 
+        #print 'next ',i,next_idx
+
+    return y_pred[:,1:,:]
