@@ -8,6 +8,7 @@ import myinput
 import config
 import HW2_config
 import os
+import sys
 from myinput import decode,batch_decode
 from os.path import join
 from keras.models import *
@@ -90,7 +91,7 @@ if __name__ == '__main__':
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
             testing(model,x,y,test_x,test_y,2) 
-
+        sys.stdout.flush()
 
     #
     '''
