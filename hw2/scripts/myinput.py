@@ -112,19 +112,14 @@ def caption_one_hot(caption,pad_len = 50):
         buf[0,i,0] = 0
         buf[0,i,vocab_idx] = 1
     return buf
+if __name__ == '__main__':
+    dic = load_y()
+    buf = []
+    for l in dic.values():
+        buf.append(len(l))
+    print sorted(buf)
+    print np.mean(buf),np.var(buf)
 '''
-dic = load_y()
-le = 0
-m = 'noe'
-for l in dic.values():
-    for c in l:
-        if len(c.split(' ')) > le:
-            le = len(c.split(' '))
-            m = c
-
-print le
-print m
-
 x,y = read_input() 
 nx = x.nbytes
 ny = y.nbytes
