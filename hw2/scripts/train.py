@@ -73,6 +73,7 @@ if __name__ == '__main__':
                 if metric not in metric_history:
                     metric_history[metric] = 0
                 metric_history[metric] += val[0]
+            sys.stdout.flush()
 
 
         loss = []
@@ -91,7 +92,6 @@ if __name__ == '__main__':
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
             testing(model,x,y,test_x,test_y,2) 
-        sys.stdout.flush()
 
     #
     '''
