@@ -33,8 +33,8 @@ if __name__ == '__main__':
         for i,k in enumerate(sorted(test_dic.keys())):
             out = '%s,%s\n' % (k,guess[i].replace(' <eos>',''))
             f.write(out)
-            print out
-    print 'Done'
+            print(out)
+    print('Done')
 
 
 
