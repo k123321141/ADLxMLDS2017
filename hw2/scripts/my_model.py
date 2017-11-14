@@ -76,7 +76,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
         ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
         hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
         #backward RNN
-        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,initail_state = hi_st)
+        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,initial_state = hi_st)
         #concatenate both side
         x = Concatenate(axis = -1)([ret1[0],ret2[0]])
         #prepare hidden state for encoder
