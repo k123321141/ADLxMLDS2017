@@ -5,6 +5,7 @@ import numpy as np
 import my_model
 import myinput
 import sys
+from HW2_config import *
 from keras.models import load_model
 vocab_map = myinput.init_vocabulary_map()
 decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
@@ -41,18 +42,17 @@ if __name__ == '__main__':
     model = load_model(model_path)
     print('start prdiction.')
     with open(output_path,'w') as f:
-        for k in test_dic.keys():
-            #(1,80,4096)
-            rowx = test_dic[k]
-            print rowx.shape
-            sys.exit(0)
-            preds = my_model.my_pred(model,rowx,80,50)
-            guess = decode(preds[0]).replace(' <eos>','')
-        
-            out = '%s,%s\n' % (k,guess)
+        num = len(test_dic.keys())
+        buf_x = np.zeros([num,input_len,feats_dim],dtype=np.float32)
+        for i,k in enumerate(sorted(test_dic.keys())):
+            buf_x[i,:,:] = test_dic[k]
+        preds = my_model.batch_pred(model,buf_x,input_len,output_len)
+
+        guess = batch_decode(preds)
+        for i,k in enumerate(sorted(test_dic.keys())):
+            out = '%s,%s\n' % (k,guess[i].replace(' <eos>',''))
             f.write(out)
             print out
-
     print 'Done'
 
 
