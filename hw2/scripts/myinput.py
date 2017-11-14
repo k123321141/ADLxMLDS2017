@@ -50,8 +50,10 @@ def batch_decode(decode_map,y):
             vocab_idx = y[i,j]
             if vocab_idx != 0:      #<pad>
                 s += decode_map[vocab_idx] + ' '
-        s = s.strip() + '.' 
-        output_list.append(s.encode('utf-8').replace(' <eos>',''))
+        #trim eos
+        s = s.split(' <eos>')[0]
+        s = s.strip() + '.'
+        output_list.append(s.encode('utf-8'))
     return output_list
 def decode(decode_map,y):
     #(50,vocab_dim)
@@ -62,9 +64,9 @@ def decode(decode_map,y):
         vocab_idx = y[j]
         if vocab_idx != 0:      #<pad>
             s += decode_map[vocab_idx] + ' '
+    s = s.split(' <eos>')[0]
     s = s.strip() + '.' 
-    return s.encode('utf-8').replace(' <eos>','')
-
+    return s.encode('utf-8')
 def load_x_dic(data_path=config.DATA_PATH):
     print('load data from : ',data_path)
     fl = os.listdir(data_path)
