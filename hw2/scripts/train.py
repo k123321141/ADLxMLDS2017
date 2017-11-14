@@ -18,16 +18,24 @@ def testing(model,x,y,test_x,test_y,test_num = 1):
     
     idx = np.random.choice(len(x),test_num)
     rowx, rowy = x[idx,:,:], y[idx,:,:]
-    #
+    #training set
     preds = my_model.batch_pred(model,rowx,HW2_config.output_len)
-    correct = batch_decode(decode_map,rowy)
-    guess = batch_decode(decode_map,preds)
-    for i,c in enumerate(correct):
+    train_correct = batch_decode(decode_map,rowy)
+    train_guess = batch_decode(decode_map,preds)
+    #test set
+    idx = np.random.choice(len(test_x),test_num)
+    rowx, rowy = test_x[idx,:,:],test_y[idx,:,:]
+    test_preds = my_model.batch_pred(model,rowx,HW2_config.output_len)
+    test_correct = batch_decode(decode_map,rowy)
+    test_guess = batch_decode(decode_map,preds)
+    for i,c in enumerate(train_correct):
+        print('---')
         print('%20s : %s' % ('training set label',c))
-        print('%20s : %s' % ('predict lable',guess[i)])
+        print('%20s : %s' % ('predict lable',train_guess[i]))
+        print('%20s : %s' % ('test label',test_correct[i]))
+        print('%20s : %s' % ('predict lable',test_guess[i]))
         print('---')
 if __name__ == '__main__':
-
     x = myinput.read_x()
     y_generator = myinput.load_y_generator()
 
@@ -38,7 +46,7 @@ if __name__ == '__main__':
 
     epoch_idx = 0
     if os.path.isfile(config.PRE_MODEL):
-        print('loading PRE-MODEL : ',config.PRE_MODEL)
+        print('loading PRE_MODEL : ',config.PRE_MODEL)
         model = load_model(config.PRE_MODEL)
         epoch_idx = int( config.PRE_MODEL.slpit('_')[:-4] )
     else:
@@ -49,21 +57,38 @@ if __name__ == '__main__':
     for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
+        #record the loss and acc
+        metric_history = {}
+
         for caption_idx in range(HW2_config.caption_list_mean):
             y = y_generator.next()
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
-            print('caption iteration : (%3d/%3d)' % (caption_idx,HW2_config.caption_list_mean))
-            model.fit(x=[x,train_cheat], y=y,
+            print('caption iteration : (%3d/%3d)' % (caption_idx+1,HW2_config.caption_list_mean))
+            his = model.fit(x=[x,train_cheat], y=y,
                       batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
                       epochs=1)
+            #record the loss and acc
+            for metric,val in his.history.items():
+                if metric not in metric_history:
+                    metric_history[metric] = 0
+                metric_history[metric] += val[0]
 
-        #test_y just for testing,no need for iter as a whole epoch 
-        test_y = test_y_generator.next()
+
+        loss = []
+        #print history
+        print('epoch_idx : %5d' % epoch_idx)
+        for metric,val in metric_history.items():
+            val /= HW2_config.caption_list_mean 
+            print('%15s:%30f'%(metric,val))
+        metric_history.clear()
+
         #after a epoch
         if epoch_idx % config.SAVE_ITERATION == 0:
             model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
-        # Select 2 samples from the test set at random so we can visualize errors.
-        testing(model,x,y,test_x,test_y,2) 
+            #test_y just for testing,no need for iter as a whole epoch 
+            test_y = test_y_generator.next()
+            # Select 2 samples from the test set at random so we can visualize errors.
+            testing(model,x,y,test_x,test_y,2) 
 
 
     #
