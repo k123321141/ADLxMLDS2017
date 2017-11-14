@@ -46,7 +46,8 @@ if __name__ == '__main__':
     for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
-        for caption_idx in range(HW2_config.caption_list_mean):
+        #for caption_idx in range(HW2_config.caption_list_mean):
+        for caption_idx in range(2):
             y = y_generator.next()
             print train_cheat.shape,y.shape
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
