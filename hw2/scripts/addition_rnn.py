@@ -14,7 +14,7 @@ from keras.models import *
 
 vocab_map = myinput.init_vocabulary_map()
 decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
-def testing(model,x,y,test_num = 1):
+def testing(model,x,y,test_x,test_y,test_num = 1):
     
     idx = np.random.choice(len(x),test_num)
     rowx, rowy = x[idx,:,:], y[idx,:,:]
@@ -23,8 +23,8 @@ def testing(model,x,y,test_num = 1):
     correct = batch_decode(decode_map,rowy)
     guess = batch_decode(decode_map,preds)
     for i,c in enumerate(correct):
-        print('T', c)
-        print('G',guess[i])
+        print('%20s : %s' % ('training set label',c))
+        print('%20s : %s' % ('predict lable',guess[i)])
         print('---')
 if __name__ == '__main__':
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         if epoch_idx % config.SAVE_ITERATION == 0:
             model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
         # Select 2 samples from the test set at random so we can visualize errors.
-        testing(model,test_x,test_y,5) 
+        testing(model,x,y,test_x,test_y,2) 
 
 
     #
