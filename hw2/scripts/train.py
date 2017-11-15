@@ -3,12 +3,13 @@
 from keras.callbacks import *
 import keras
 import numpy as np
-import my_model
+import seq2seq
 import myinput
 import config
 import HW2_config
 import os
 import sys
+import utils
 from myinput import decode,batch_decode
 from os.path import join
 from keras.models import *
@@ -20,13 +21,13 @@ def testing(model,x,y,test_x,test_y,test_num = 1):
     idx = np.random.choice(len(x),test_num)
     rowx, rowy = x[idx,:,:], y[idx,:,:]
     #training set
-    preds = my_model.batch_pred(model,rowx,HW2_config.output_len)
+    preds = seq2seq.batch_pred(model,rowx,HW2_config.output_len)
     train_correct = batch_decode(decode_map,rowy)
     train_guess = batch_decode(decode_map,preds)
     #test set
     idx = np.random.choice(len(test_x),test_num)
     rowx, rowy = test_x[idx,:,:],test_y[idx,:,:]
-    test_preds = my_model.batch_pred(model,rowx,HW2_config.output_len)
+    test_preds = seq2seq.batch_pred(model,rowx,HW2_config.output_len)
     test_correct = batch_decode(decode_map,rowy)
     test_guess = batch_decode(decode_map,test_preds)
     for i,c in enumerate(train_correct):
@@ -49,10 +50,10 @@ if __name__ == '__main__':
     if os.path.isfile(config.PRE_MODEL):
         print('loading PRE_MODEL : ',config.PRE_MODEL)
         model = load_model(config.PRE_MODEL,
-                custom_objects={'loss_with_mask':my_model.loss_with_mask,'acc_with_mask':my_model.acc_with_mask})
+                custom_objects={'loss_with_mask':utils.loss_with_mask,'acc_with_mask':utils.acc_with_mask})
     else:
         vocab_dim = len(myinput.init_vocabulary_map())
-        model = my_model.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
+        model = seq2seq.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
    
     print 'start training' 
     for epoch_idx in range(2000000):
@@ -111,7 +112,7 @@ def testing(model,x,y,test_num = 1):
         idx = np.random.randint(0, len(x))
         rowx, rowy = x[idx,:,:], y[idx,:,:]
         #
-        preds = my_model.my_pred(model,rowx,input_len,output_len)
+        preds = seq2seq.my_pred(model,rowx,input_len,output_len)
         correct = decode(rowy[0])
         guess = decode(preds[0])
 
