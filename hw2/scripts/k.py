@@ -1,12 +1,13 @@
 from __future__ import division,print_function
-
+import keras
 
 from keras import backend as K
 from keras.datasets import mnist
 from keras.models import *
 from keras.layers import *
+from keras.initializers import *
 import tensorflow as tf
-
+import keras.backend as K
 from keras.preprocessing import sequence
 from keras.datasets import imdb
 
@@ -50,121 +51,159 @@ class MyLayer(SimpleRNN):
 
 class GG(GRU):
     @interfaces.legacy_recurrent_support
-    def __init__(self, units,
+    def __init__(self, units,attention_vec,
                  activation='tanh',
                  use_bias=True,
                  **kwargs):
-        super(GG,self).__init__(units,**kwargs)
         self.implementation = 1
+        self.attention_vec = attention_vec
+        super(GG,self).__init__(units,implementation = 1, **kwargs)
     def build(self, input_shape):
-        if isinstance(input_shape, list):
-            input_shape = input_shape[0]
+        super(GG,self).build(input_shape)
 
-        self.input_dim = input_shape[2]
-        self.input_spec[0] = InputSpec(shape=(None, None, self.input_dim))
-
-        self.states = [None]
-
-        self.kernel = self.add_weight(shape=(self.input_dim, self.units * 3),
-                                      name='kernel',
-                                      initializer=self.kernel_initializer,
-                                      regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint)
-        self.recurrent_kernel = self.add_weight(
-            shape=(self.units, self.units * 3),
-            name='recurrent_kernel',
-            initializer=self.recurrent_initializer,
-            regularizer=self.recurrent_regularizer,
-            constraint=self.recurrent_constraint)
-
-        if self.use_bias:
-            self.bias = self.add_weight(shape=(self.units * 3,),
-                                        name='bias',
-                                        initializer=self.bias_initializer,
-                                        regularizer=self.bias_regularizer,
-                                        constraint=self.bias_constraint)
-        else:
-            self.bias = None
-
-        self.kernel_z = self.kernel[:, :self.units]
-        self.recurrent_kernel_z = self.recurrent_kernel[:, :self.units]
-        self.kernel_r = self.kernel[:, self.units: self.units * 2]
-        self.recurrent_kernel_r = self.recurrent_kernel[:,
-                                                        self.units:
-                                                        self.units * 2]
-        self.kernel_h = self.kernel[:, self.units * 2:]
-        self.recurrent_kernel_h = self.recurrent_kernel[:, self.units * 2:]
-
-        if self.use_bias:
-            self.bias_z = self.bias[:self.units]
-            self.bias_r = self.bias[self.units: self.units * 2]
-            self.bias_h = self.bias[self.units * 2:]
-        else:
-            self.bias_z = None
-            self.bias_r = None
-            self.bias_h = None
-        self.built = True
+        self.timestep_len = input_shape[-2]
+        #self.attention_vec = K.random_uniform(shape = (self.input_shape,self.units))
 
     def step(self, inputs, states):
-        h_tm1 = states[0]  # previous memory
-        rec_dp_mask = states[2]
-
-        if self.implementation == 1:
-            x_z = K.dot(inputs , self.kernel_z)
-            x_r = K.dot(inputs , self.kernel_r)
-            x_h = K.dot(inputs , self.kernel_h)
-            if self.use_bias:
-                x_z = K.bias_add(x_z, self.bias_z)
-                x_r = K.bias_add(x_r, self.bias_r)
-                x_h = K.bias_add(x_h, self.bias_h)
-        else:
-            raise ValueError('Unknown `implementation` mode.')
-        z = self.recurrent_activation(x_z + K.dot(h_tm1 * rec_dp_mask[0],
-                                                  self.recurrent_kernel_z))
-        r = self.recurrent_activation(x_r + K.dot(h_tm1 * rec_dp_mask[1],
-                                                  self.recurrent_kernel_r))
-
-        hh = self.activation(x_h + K.dot(r * h_tm1 * rec_dp_mask[2],
-                                             self.recurrent_kernel_h))
-        h = z * h_tm1 + (1 - z) * hh
-        if 0 < self.dropout + self.recurrent_dropout:
-            h._uses_learning_phase = True
-        return h, [h]
+        y,h =  super(GG,self).step(inputs,states) 
+        return y,h
 
 
+encoder_units = 300
+match_units = 128
+decoder_units = 100
+match_dim  = 200
+input_len = 80
+def Encoder():
+    model = Sequential()
+    
+    model.add(GRU(encoder_units,activation = 'tanh',return_sequences = True,input_shape = [input_len,4096]))
+    return model
+def Match():
+    encoder_out = Input(shape = [input_len,encoder_units])
+    z = Input(shape = [decoder_units])
+    
+    zz = RepeatVector(input_shape)(z)
+    
+    
+    m = Concatenate(axis = -1)(encoder_out,zz)
+    a = Dense(match_dim,activation = 'linear')(m)
+    a = Dense(1,activation = 'softmax')(a)
+    #(80,1)
+    energy = Permute([1,0])(a)
+    #(1,80)
+    def weight_by_a(energy,x):
+        #x (80,300)
+        #a (80,1)
+        return tf.matmul(energy,x)
+    
+    def weight_by_a_output_shape(shape_energy,shape_x):
+        output_shape = tuple( list(shape_energy)[0] , list(shape_x)[1])
+        return output_shape
+    context = Lambda(weight_by_energy,output_shape = weight_by_energy_output_shape)(energy,encoder_out)
 
-max_features = 20000
-maxlen = 80  # cut texts after this number of words (among top max_features most common words)
-batch_size = 32
+    model = Model(input=[encoder_out,z],output = context)
+    return model
 
-print('Loading data...')
-(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
-print(len(x_train), 'train sequences')
-print(len(x_test), 'test sequences')
+def Decoder():
+    context = Input(shape = [1,encoder_units])
 
-print('Pad sequences (samples x time)')
-x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
-x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
-print('x_train shape:', x_train.shape)
-print('x_test shape:', x_test.shape)
+def end2end():
+    encoder_model = Encoder()
+    match_model = Match()
+    decoder_model = Decoder()
+    
+    x = Input(shape = [80,4096])
+    cheat_y = Input(shape = [])
 
-print('Build model...')
-model = Sequential()
-model.add(Embedding(max_features, 128))
-model.add(GG(128))
-model.add(Dense(1, activation='sigmoid'))
 
-# try using different optimizers and different optimizer configs
-model.compile(loss='binary_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
 
-print('Train...')
-model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=15,
-          validation_data=(x_test, y_test))
-score, acc = model.evaluate(x_test, y_test,
-                            batch_size=batch_size)
-print('Test score:', score)
-print('Test accuracy:', acc)
+    
+
+from keras.models import *
+from keras.layers import *
+import config
+import keras.backend as K
+import tensorflow as tf
+import numpy as np
+import myinput
+import config
+import utils
+
+assert K._BACKEND == 'tensorflow'
+
+def model(input_len,input_dim,output_len,vocab_dim):
+    print('Build model...')
+    # Try replacing GRU, or SimpleRNN.
+    #
+    data = Input(shape=(input_len,input_dim))
+    #in this application, input dim = vocabulary dim
+    label = Input(shape=(output_len,vocab_dim))
+    #masking
+    x = data
+    y = label
+    #scaling data
+    x = BatchNormalization()(x)
+    #decoder
+    for _ in range(config.DEPTH):
+        #forward RNN
+        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
+        hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
+        #backward RNN
+        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,initial_state = hi_st)
+        #concatenate both side
+        x = Concatenate(axis = -1)([ret1[0],ret2[0]])
+        #prepare hidden state for encoder
+        hi_st = ret2[1:] if config.RNN == LSTM else ret2[1]
+
+    #word embedding
+    y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
+    y = Masking()(y)
+    #encoder
+    for _ in range(config.DEPTH):
+        y  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_sequences = True)(y,initial_state = hi_st)
+        
+        #
+    y = TimeDistributed(Dense(vocab_dim,activation='softmax'))(y)
+    
+    
+    model = Model(inputs = [data,label],output=y)  
+    model.compile(loss=utils.loss_with_mask,
+                  optimizer='adam',
+                  metrics=[utils.acc_with_mask])
+    #model.summary()
+    return model
+
+def my_pred(model,x,output_len):
+    #(80,4096)
+    x = x.reshape([1,80,4096])
+    y_pred = myinput.caption_one_hot('<bos>')
+    y_pred[0,1:,:] = 0
+    for i in range(1,output_len):
+        '''
+        print 'pred'
+        print decode(y_pred[0,:,:]) 
+        print np.argmax(y_pred[0,:,:],axis = -1)
+        '''
+        y = model.predict([x,y_pred])
+        next_idx = np.argmax(y[:,i-1,:],axis = -1)[0]
+        y_pred[0,i,next_idx] = 1
+        #print 'next ',i,next_idx
+
+    return y_pred[0,1:,:]
+def batch_pred(model,x,output_len):
+    num = x.shape[0]
+    y_pred = np.repeat(myinput.caption_one_hot('<bos>'),num,axis = 0)
+    y_pred = y_pred.astype(np.float32)
+    y_pred[:,1:,:] = 0
+    for i in range(1,output_len):
+        '''
+        print 'pred'
+        print decode(y_pred[0,:,:]) 
+        print np.argmax(y_pred[0,:,:],axis = -1)
+        '''
+        y = model.predict([x,y_pred])
+        np.copyto(y_pred[:,i,:],y[:,i-1,:])
+        #print 'next ',i,next_idx
+
+    return y_pred[:,1:,:]
