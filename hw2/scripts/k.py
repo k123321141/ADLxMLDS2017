@@ -1,18 +1,24 @@
-from __future__ import division,print_function
-import keras
+# -*- coding: utf-8 -*-
 
-from keras import backend as K
-from keras.datasets import mnist
-from keras.models import *
-from keras.layers import *
-from keras.initializers import *
 import tensorflow as tf
-import keras.backend as K
-from keras.preprocessing import sequence
-from keras.datasets import imdb
+from keras.callbacks import *
+import keras
+import numpy as np
+import seq2seq
+import myinput
+import config
+import HW2_config
+import os
+import sys
+import utils
+from myinput import decode,batch_decode
+from os.path import join
+from keras.models import *
 
 
 
+vocab_map = myinput.init_vocabulary_map()
+vocab_dim = len(vocab_map)
 class MyLayer(SimpleRNN):
     def lstm_cell(is_training = True):
         cell = tf.contrib.rnn.BasicLSTMCell(
@@ -114,96 +120,47 @@ def end2end():
     decoder_model = Decoder()
     
     x = Input(shape = [80,4096])
-    cheat_y = Input(shape = [])
 
+    cheat_y = Input(shape = [50,vocab_dim])
+    
+    encoder_out = encoder_model(x)
+
+    context = match_model(encoder_out,z0)
 
 
     
 
-from keras.models import *
-from keras.layers import *
-import config
-import keras.backend as K
-import tensorflow as tf
-import numpy as np
-import myinput
-import config
-import utils
+if __name__ == '__main__':
+    x = myinput.read_x()
+    y_generator = myinput.load_y_generator()
 
-assert K._BACKEND == 'tensorflow'
+    #testing
+    test_x = myinput.read_x('../data/testing_data/feat/')
+    test_y_generator = myinput.load_y_generator('../data/testing_label.json')
+    
 
-def model(input_len,input_dim,output_len,vocab_dim):
-    print('Build model...')
-    # Try replacing GRU, or SimpleRNN.
+    model = end2end()
+   
+    print 'start training' 
+    for epoch_idx in range(2000000):
+        #train by labels
+        train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
+
+        for caption_idx in range(HW2_config.caption_list_mean):
+            y = y_generator.next()
+            np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
+            model.fit(x=[x,train_cheat], y=y,
+                      batch_size=10,verbose=1,
+                      epochs=1)
+
+        '''
+        #after a epoch
+        if epoch_idx % config.SAVE_ITERATION == 0:
+            #model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
+            model.save(join(config.CKS_PATH,'mask.cks'))
+            #test_y just for testing,no need for iter as a whole epoch 
+            test_y = test_y_generator.next()
+            # Select 2 samples from the test set at random so we can visualize errors.
+            testing(model,x,y,test_x,test_y,2) 
+        '''
     #
-    data = Input(shape=(input_len,input_dim))
-    #in this application, input dim = vocabulary dim
-    label = Input(shape=(output_len,vocab_dim))
-    #masking
-    x = data
-    y = label
-    #scaling data
-    x = BatchNormalization()(x)
-    #decoder
-    for _ in range(config.DEPTH):
-        #forward RNN
-        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
-        hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
-        #backward RNN
-        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,initial_state = hi_st)
-        #concatenate both side
-        x = Concatenate(axis = -1)([ret1[0],ret2[0]])
-        #prepare hidden state for encoder
-        hi_st = ret2[1:] if config.RNN == LSTM else ret2[1]
-
-    #word embedding
-    y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
-    y = Masking()(y)
-    #encoder
-    for _ in range(config.DEPTH):
-        y  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_sequences = True)(y,initial_state = hi_st)
-        
-        #
-    y = TimeDistributed(Dense(vocab_dim,activation='softmax'))(y)
-    
-    
-    model = Model(inputs = [data,label],output=y)  
-    model.compile(loss=utils.loss_with_mask,
-                  optimizer='adam',
-                  metrics=[utils.acc_with_mask])
-    #model.summary()
-    return model
-
-def my_pred(model,x,output_len):
-    #(80,4096)
-    x = x.reshape([1,80,4096])
-    y_pred = myinput.caption_one_hot('<bos>')
-    y_pred[0,1:,:] = 0
-    for i in range(1,output_len):
-        '''
-        print 'pred'
-        print decode(y_pred[0,:,:]) 
-        print np.argmax(y_pred[0,:,:],axis = -1)
-        '''
-        y = model.predict([x,y_pred])
-        next_idx = np.argmax(y[:,i-1,:],axis = -1)[0]
-        y_pred[0,i,next_idx] = 1
-        #print 'next ',i,next_idx
-
-    return y_pred[0,1:,:]
-def batch_pred(model,x,output_len):
-    num = x.shape[0]
-    y_pred = np.repeat(myinput.caption_one_hot('<bos>'),num,axis = 0)
-    y_pred = y_pred.astype(np.float32)
-    y_pred[:,1:,:] = 0
-    for i in range(1,output_len):
-        '''
-        print 'pred'
-        print decode(y_pred[0,:,:]) 
-        print np.argmax(y_pred[0,:,:],axis = -1)
-        '''
-        y = model.predict([x,y_pred])
-        np.copyto(y_pred[:,i,:],y[:,i-1,:])
-        #print 'next ',i,next_idx
-
-    return y_pred[:,1:,:]
