@@ -71,7 +71,7 @@ def get_high_belu():
         score = int(f.replace('buffer.cks0','') )
         if score > high:
             high = score
-    r
+    return high
 def compute_belu(model):
     test_dic = myinput.load_x_dic('../data/testing_data/feat/')
     output_path = './out.txt'
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     #testing
     test_x = myinput.read_x('../data/testing_data/feat/')
     test_y_generator = myinput.load_y_generator('../data/testing_label.json')
-    now_belu = 0
+    now_belu = get_high_belu()
 
     epoch_idx = 0
     if os.path.isfile(config.PRE_MODEL):
