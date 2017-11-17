@@ -3,7 +3,7 @@
 *.pyc
 *.npz
 *.ark
-*.cks
+*cks*
 *nohup*
 .DS_Store
 *.swp

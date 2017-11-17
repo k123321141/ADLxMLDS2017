@@ -64,10 +64,17 @@ def weighted_by_frequency(y):
             mat[i,j] /= fre[v_idx]
     
     return mat
-def compute_belu():
+def get_high_belu():
+    buffer_list = [f for f in os.listdir('../checkpoints/') if f.startswith('buffer.cks0')]
+    high = 0
+    for f in buffer_list:
+        score = int(f.replace('buffer.cks0.','') )
+        if score > high:
+            high = score
+    return high
+def compute_belu(model):
     test_dic = myinput.load_x_dic('../data/testing_data/feat/')
     output_path = './out.txt'
-    model = load_model(config.PRE_MODEL,custom_objects={'loss_with_mask':utils.loss_with_mask,'acc_with_mask':utils.acc_with_mask})
     #
     print('start prdiction.')
     with open(output_path,'w') as f:
@@ -91,7 +98,7 @@ if __name__ == '__main__':
     #testing
     test_x = myinput.read_x('../data/testing_data/feat/')
     test_y_generator = myinput.load_y_generator('../data/testing_label.json')
-    now_belu = 0
+    now_belu = get_high_belu()
 
     epoch_idx = 0
     if os.path.isfile(config.PRE_MODEL):
@@ -143,7 +150,7 @@ if __name__ == '__main__':
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
             testing(model,x,y,test_x,test_y,2) 
-            belu = compute_belu()
+            belu = compute_belu(model)
             if belu > now_belu:
                 now_belu = belu
                 print('new high bleu : ',belu,'save model..')
