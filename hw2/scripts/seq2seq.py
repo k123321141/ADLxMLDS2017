@@ -39,8 +39,9 @@ def model(input_len,input_dim,output_len,vocab_dim):
     y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
     #y = Masking()(y)
     #concatenate x and label
-    hi_st = hi_st[0] if config.RNN == LSTM else hi_st
-    c = RepeatVector(output_len)(hi_st)
+    if config.RNN == LSTM:
+        hi_concat = Concatenate(axis = -1)(hi_st)
+    c = RepeatVector(output_len)(hi_concat)
     y = Concatenate(axis =-1)([c,y])
 
     #decoder
