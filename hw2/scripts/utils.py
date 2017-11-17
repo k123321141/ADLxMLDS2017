@@ -45,9 +45,12 @@ def mask_zeros(x,src):
     mask = tf.sign(tf.abs(src)) 
     x = tf.multiply(mask,x)
     return x
-def data_length():
-    mask = tf.sign(tf.abs(x)) 
-    length = tf.reduce(mask)
+def none_zeros_length(x):
+    #(50,6528)
+    for i in range(len(x)):
+        if (x[i,:] == 0).all():
+            break
+        length = i
     return length
 def my_pred(model,x,output_len):
     #(80,4096)

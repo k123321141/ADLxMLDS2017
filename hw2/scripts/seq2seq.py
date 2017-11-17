@@ -22,7 +22,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     y = label
     #scaling data
     x = BatchNormalization()(x)
-    #decoder
+    #encoder, bidirectional RNN
     for _ in range(config.DEPTH):
         #forward RNN
         ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
@@ -33,11 +33,17 @@ def model(input_len,input_dim,output_len,vocab_dim):
         x = Concatenate(axis = -1)([ret1[0],ret2[0]])
         #prepare hidden state for encoder
         hi_st = ret2[1:] if config.RNN == LSTM else ret2[1]
+     
 
     #word embedding
     y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
-    y = Masking()(y)
-    #encoder
+    #y = Masking()(y)
+    #concatenate x and label
+    hi_st = hi_st[0] if config.RNN == LSTM else hi_st
+    c = RepeatVector(output_len)(hi_st)
+    y = Concatenate(axis =-1)([c,y])
+
+    #decoder
     for _ in range(config.DEPTH):
         y  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_sequences = True)(y,initial_state = hi_st)
         
@@ -46,10 +52,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     
     
     model = Model(inputs = [data,label],output=y)  
-    model.compile(loss=utils.loss_with_mask,
-                  optimizer='adam',
-                  metrics=[utils.acc_with_mask])
-    #model.summary()
+    model.summary()
     return model
 
 def my_pred(model,x,output_len):

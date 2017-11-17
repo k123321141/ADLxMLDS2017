@@ -37,6 +37,13 @@ def testing(model,x,y,test_x,test_y,test_num = 1):
         print('%20s : %s' % ('test label',test_correct[i]))
         print('%20s : %s' % ('predict lable',test_guess[i]))
         print('---')
+def valid_sample_weight(y):
+    video_num,output_len,vocab_dim = y.shape 
+    mat = np.zeros([video_num,output_len])
+    for i in range(video_num):
+        length = utils.none_zeros_length(y[i,:,:])
+        mat[i,0:length] = 1
+    return mat
 if __name__ == '__main__':
     x = myinput.read_x()
     y_generator = myinput.load_y_generator()
@@ -56,6 +63,9 @@ if __name__ == '__main__':
         model = seq2seq.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
    
     print 'start training' 
+    model.compile(loss=utils.loss_with_mask,
+                  optimizer='adam',
+                  metrics=[utils.acc_with_mask],sample_weight_mode = 'temporal')
     for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
