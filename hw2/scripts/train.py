@@ -149,7 +149,7 @@ if __name__ == '__main__':
                 print('new high bleu : ',belu,'save model..')
                 buffer_list = [f for f in os.listdir('../checkpoints/') if f.startswith('buffer.cks0')]
                 for f in buffer_list:
-                    os.remove(f)
+                    os.remove(join('../checkpoints/',f))
                 model.save(config.CKS_PATH+str(belu))
                 
 
