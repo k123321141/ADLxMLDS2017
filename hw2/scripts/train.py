@@ -91,7 +91,6 @@ def compute_belu():
     bleu_eval.main('./out.txt','../data/testing_label.json')
 
 if __name__ == '__main__':
-    compute_belu()
     x = myinput.read_x()
     y_generator = myinput.load_y_generator()
 
@@ -153,6 +152,7 @@ if __name__ == '__main__':
             belu = compute_belu()
             if belu > now_belu:
                 now_belu = belu
+                print('new high bleu : ',bleu,'save model..')
                 model.save(config.CKS_PATH+str(belu))
                 
 
