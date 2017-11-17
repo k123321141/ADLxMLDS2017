@@ -68,7 +68,7 @@ def get_high_belu():
     buffer_list = [f for f in os.listdir('../checkpoints/') if f.startswith('buffer.cks0')]
     high = 0
     for f in buffer_list:
-        score = int(f.replace('buffer.cks0','') )
+        score = int(f.replace('buffer.cks0.','') )
         if score > high:
             high = score
     return high
