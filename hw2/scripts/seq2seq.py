@@ -41,6 +41,11 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #concatenate x and label
     if config.RNN == LSTM:
         hi_concat = Concatenate(axis = -1)(hi_st)
+<<<<<<< HEAD
+=======
+    else:
+        hi_concat = hi_st
+>>>>>>> 28e1bfb8bed59ea547c8984de379d5a75de6d5bd
     c = RepeatVector(output_len)(hi_concat)
     y = Concatenate(axis =-1)([c,y])
 
