@@ -88,7 +88,7 @@ def compute_belu():
             out = '%s,%s\n' % (k,guess[i].replace(' <eos>',''))
             f.write(out)
     #
-    bleu_eval.main('./out.txt','../data/testing_label.json')
+    return bleu_eval.main('./out.txt','../data/testing_label.json')
 
 if __name__ == '__main__':
     x = myinput.read_x()
