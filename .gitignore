@@ -10,4 +10,5 @@
 *.wav
 *.avi
 *.npy
+out.txt
 config.py
