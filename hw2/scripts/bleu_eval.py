@@ -100,9 +100,8 @@ def BLEU(s,t):
     return score
 ### Usage: python bleu_eval.py caption.txt
 ### Ref : https://github.com/vikasnar/Bleu
-if __name__ == "__main__" :
-    test = json.load(open('testing_label.json','r'))
-    output = sys.argv[1]
+def main(output,testing_label):
+    test = json.load(open(testing_label,'r'))
     result = {}
     with open(output,'r') as f:
         for line in f:
@@ -119,5 +118,10 @@ if __name__ == "__main__" :
         bleu.append(sum(score_per_video)/len(score_per_video))
     average = sum(bleu) / len(bleu)
     print("Average bleu score is " + str(average))
-
+    return average
+if __name__ == "__main__" :
+    assert len(sys.argv) == 2
+    output = sys.argv[1]
+    testing_label = './testing_label.json' 
+    main(output,testing_label)
 

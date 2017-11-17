@@ -10,6 +10,7 @@ import HW2_config
 import os
 import sys
 import utils
+import bleu_eval
 from myinput import decode,batch_decode
 from os.path import join
 from keras.models import *
@@ -44,14 +45,60 @@ def valid_sample_weight(y):
         length = utils.none_zeros_length(y[i,:,:])
         mat[i,0:length] = 1
     return mat
+def weighted_by_frequency(y):
+    video_num,output_len,vocab_dim = y.shape
+
+    #count frequency
+    fre = {idx:0 for idx in decode_map.keys()}
+    for i in range(video_num):
+        V = np.argmax(y[i,:,:],axis = -1)
+        for j in range(output_len):
+            v_idx = V[j]
+            fre[v_idx] += 1
+    #devide by frequency 
+    mat = np.ones([video_num,output_len])
+    for i in range(video_num):
+        V = np.argmax(y[i,:,:],axis = -1)
+        for j in range(output_len):
+            v_idx = V[j]
+            mat[i,j] /= fre[v_idx]
+    
+    return mat
+def compute_belu():
+    print('load testing data.')
+    test_dic = myinput.load_x_dic('../data/testing_data/feat/')
+    print('load model.')
+    output_path = './out.txt'
+    model = load_model(config.PRE_MODEL,custom_objects={'loss_with_mask':utils.loss_with_mask,'acc_with_mask':utils.acc_with_mask})
+    #
+    print('init decode map')
+    vocab_map = myinput.init_vocabulary_map()
+    decode_map = myinput.init_decode_map(vocab_map)
+    #
+    print('start prdiction.')
+    with open(output_path,'w') as f:
+        num = len(test_dic.keys())
+        buf_x = np.zeros([num,HW2_config.input_len,HW2_config.input_dim],dtype=np.float32)
+        for i,k in enumerate(sorted(test_dic.keys())):
+            buf_x[i,:,:] = test_dic[k]
+        preds = seq2seq.batch_pred(model,buf_x,HW2_config.output_len)
+
+        guess = batch_decode(decode_map,preds)
+        for i,k in enumerate(sorted(test_dic.keys())):
+            out = '%s,%s\n' % (k,guess[i].replace(' <eos>',''))
+            f.write(out)
+    #
+    bleu_eval.main('./out.txt','../data/testing_label.json')
+
 if __name__ == '__main__':
+    compute_belu()
     x = myinput.read_x()
     y_generator = myinput.load_y_generator()
 
     #testing
     test_x = myinput.read_x('../data/testing_data/feat/')
     test_y_generator = myinput.load_y_generator('../data/testing_label.json')
-    
+    now_belu = 0
 
     epoch_idx = 0
     if os.path.isfile(config.PRE_MODEL):
@@ -77,7 +124,7 @@ if __name__ == '__main__':
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
             his = model.fit(x=[x,train_cheat], y=y,
                       batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
-                      epochs=1)
+                      epochs=1,sample_weight = weighted_by_frequency(y))
             print('caption iteration : (%3d/%3d)' % (caption_idx+1,HW2_config.caption_list_mean))
             #record the loss and acc
             for metric,val in his.history.items():
@@ -98,11 +145,16 @@ if __name__ == '__main__':
         #after a epoch
         if epoch_idx % config.SAVE_ITERATION == 0:
             #model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
-            model.save(join(config.CKS_PATH,'mask.cks'))
+            model.save(config.CKS_PATH)
             #test_y just for testing,no need for iter as a whole epoch 
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
             testing(model,x,y,test_x,test_y,2) 
+            belu = compute_belu()
+            if belu > now_belu:
+                now_belu = belu
+                model.save(config.CKS_PATH+str(belu))
+                
 
     #
     '''
