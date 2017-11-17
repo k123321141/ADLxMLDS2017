@@ -14,7 +14,7 @@ import bleu_eval
 from myinput import decode,batch_decode
 from os.path import join
 from keras.models import *
-
+import os
 vocab_map = myinput.init_vocabulary_map()
 decode_map = {vocab_map[k]:k for k in vocab_map.keys()}
 def testing(model,x,y,test_x,test_y,test_num = 1):
@@ -65,15 +65,9 @@ def weighted_by_frequency(y):
     
     return mat
 def compute_belu():
-    print('load testing data.')
     test_dic = myinput.load_x_dic('../data/testing_data/feat/')
-    print('load model.')
     output_path = './out.txt'
     model = load_model(config.PRE_MODEL,custom_objects={'loss_with_mask':utils.loss_with_mask,'acc_with_mask':utils.acc_with_mask})
-    #
-    print('init decode map')
-    vocab_map = myinput.init_vocabulary_map()
-    decode_map = myinput.init_decode_map(vocab_map)
     #
     print('start prdiction.')
     with open(output_path,'w') as f:
@@ -152,7 +146,10 @@ if __name__ == '__main__':
             belu = compute_belu()
             if belu > now_belu:
                 now_belu = belu
-                print('new high bleu : ',bleu,'save model..')
+                print('new high bleu : ',belu,'save model..')
+                buffer_list = [f for f in os.listdir('../checkpoints/') if f.startswith('buffer.cks0')]
+                for f in buffer_list:
+                    os.remove(f)
                 model.save(config.CKS_PATH+str(belu))
                 
 
