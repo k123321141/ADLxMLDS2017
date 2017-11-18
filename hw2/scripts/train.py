@@ -38,8 +38,10 @@ if __name__ == '__main__':
         vocab_dim = len(myinput.init_vocabulary_map())
         if config.MODEL_NAME == 'attention':
             model = attention.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
+            print('build model',config.MODEL_NAME)
         elif config.MODEL_NAME == 'seq2seq':
             model = seq2seq.model(HW2_config.input_len,HW2_config.input_dim,HW2_config.output_len,vocab_dim)
+            print('build model',config.MODEL_NAME)
         else:
             print('unknown model name.')
             sys.exit(1)
