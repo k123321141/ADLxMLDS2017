@@ -103,8 +103,9 @@ def BLEU(s,t,flag = False):
     return score
 ### Usage: python bleu_eval.py caption.txt
 ### Ref : https://github.com/vikasnar/Bleu
-def main(output,testing_label):
-    test = json.load(open(testing_label,'r'))
+if __name__ == "__main__" :
+    test = json.load(open('testing_label.json','r'))
+    output = sys.argv[1]
     result = {}
     with open(output,'r') as f:
         for line in f:
@@ -113,15 +114,16 @@ def main(output,testing_label):
             test_id = line[:comma]
             caption = line[comma+1:]
             result[test_id] = caption
+    #count by average
     bleu=[]
     for item in test:
         score_per_video = []
         for caption in item['caption']:
+            caption = caption.rstrip('.')
             score_per_video.append(BLEU(result[item['id']],caption))
         bleu.append(sum(score_per_video)/len(score_per_video))
     average = sum(bleu) / len(bleu)
-    belu1 = average
-    #print("Originally, average bleu score is " + str(average))
+    print("Originally, average bleu score is " + str(average))
     #count by the method described in the paper https://aclanthology.info/pdf/P/P02/P02-1040.pdf
     bleu=[]
     for item in test:
@@ -129,11 +131,7 @@ def main(output,testing_label):
         captions = [x.rstrip('.') for x in item['caption']]
         score_per_video.append(BLEU(result[item['id']],captions,True))
         bleu.append(score_per_video[0])
-    belu2 = average = sum(bleu) / len(bleu)
-    #print("By another method, average bleu score is " + str(average))
-    return belu1,belu2
-if __name__ == "__main__" :
-    assert len(sys.argv) == 2
-    output = sys.argv[1]
-    testing_label = './testing_label.json' 
-    main(output,testing_label)
+    average = sum(bleu) / len(bleu)
+    print("By another method, average bleu score is " + str(average))
+
+

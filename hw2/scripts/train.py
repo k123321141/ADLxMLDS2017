@@ -65,18 +65,31 @@ def weighted_by_frequency(y):
     
     return mat
 def get_high_belu():
-    buffer_list = [f for f in os.listdir('../checkpoints/') if f.startswith('buffer.cks0')]
+    #belu1
+    belu1_header = 'belu1.'
+    buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith(belu1_header)]
     high = 0
     for f in buffer_list:
-        score = int(f.replace('buffer.cks0.','') )
+        score = int(f.replace(belu1_header,'') )
         if score > high:
             high = score
-    return high
+    belu1 = high
+    #belu2
+    belu2_header = 'belu2.'
+    buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith(belu2_header)]
+    high = 0
+    for f in buffer_list:
+        score = int(f.replace(belu2_header,'') )
+        if score > high:
+            high = score
+    belu2 = high
+
+    return belu1,belu2
 def compute_belu(model):
     test_dic = myinput.load_x_dic('../data/testing_data/feat/')
     output_path = './out.txt'
     #
-    print('start prdiction.')
+    print('start prdition.')
     with open(output_path,'w') as f:
         num = len(test_dic.keys())
         buf_x = np.zeros([num,HW2_config.input_len,HW2_config.input_dim],dtype=np.float32)
@@ -98,7 +111,7 @@ if __name__ == '__main__':
     #testing
     test_x = myinput.read_x('../data/testing_data/feat/')
     test_y_generator = myinput.load_y_generator('../data/testing_label.json')
-    now_belu = get_high_belu()
+    belu1_high,belu2_high = get_high_belu()
 
     epoch_idx = 0
     if os.path.isfile(config.PRE_MODEL):
@@ -149,15 +162,25 @@ if __name__ == '__main__':
             #test_y just for testing,no need for iter as a whole epoch 
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
-            testing(model,x,y,test_x,test_y,2) 
-            belu = compute_belu(model)
-            if belu > now_belu:
-                now_belu = belu
-                print('new high bleu : ',belu,'save model..')
-                buffer_list = [f for f in os.listdir('../checkpoints/') if f.startswith('buffer.cks0')]
+            testing(model,x,y,test_x,test_y,2)
+
+
+            #save the high belu score model
+            belu1,belu2 = compute_belu(model)
+            if belu1 > belu1_high:
+                belu1_high = belu1
+                print('new high bleu original score : ',belu1,'save model..')
+                buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith('belu1')]
                 for f in buffer_list:
-                    os.remove(join('../checkpoints/',f))
-                model.save(config.CKS_PATH+str(belu))
+                    os.remove(join(config.BELU_PATH,f))
+                model.save(config.BELU_PATH+'belu1.'+str(belu1))
+            if belu2 > belu2_high:
+                belu2_high = belu2
+                print('new high bleu new modified score : ',belu2,'save model..')
+                buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith('belu2.')]
+                for f in buffer_list:
+                    os.remove(join(config.BELU_PATH,f))
+                model.save(config.BELU_PATH+'belu2.'+str(belu2))
                 
 
     #
