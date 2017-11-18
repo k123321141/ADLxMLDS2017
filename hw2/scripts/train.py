@@ -15,7 +15,7 @@ import attention
 from os.path import join
 from keras.models import *
 import os,sys
-from keras.utils import plot_model
+#from keras.utils import plot_model
 vocab_map = myinput.init_vocabulary_map()
 
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
             sys.exit(1)
    
     print 'start training' 
-    plot_model(model, to_file='./model.png',show_shapes = True)
+     #plot_model(model, to_file='./model.png',show_shapes = True)
     model.compile(loss=utils.loss_with_mask,
                   optimizer='adam',
                   metrics=[utils.acc_with_mask],sample_weight_mode = 'temporal')
