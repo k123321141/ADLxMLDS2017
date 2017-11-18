@@ -61,13 +61,13 @@ if __name__ == '__main__':
         for caption_idx in range(1):
             y = y_generator.next()
             num,output_len,vocab_dim = y.shape
-            y2 = np.zeros([nu,80,vocab_dim])
+            y2 = np.zeros([num,80,vocab_dim])
             np.copyto(y2[:,:50,:],y)
             
             #np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
             his = model.fit(x=x, y=y2,
                       batch_size=config.BATCH_SIZE,verbose=1,
-                      epochs=1,sample_weight = weighted_by_frequency(y))
+                      epochs=1)
 
 
                 
