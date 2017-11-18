@@ -10,6 +10,8 @@ class AttentionDecoder(Recurrent):
 
     def __init__(self, units, output_dim,
                  activation='tanh',
+                 recurrent_activation='hard_sigmoid',
+                 use_bias = True,
                  return_probabilities=False,
                  name='AttentionDecoder',
                  kernel_initializer='glorot_uniform',
@@ -35,8 +37,10 @@ class AttentionDecoder(Recurrent):
         """
         self.units = units
         self.output_dim = output_dim
+        self.use_bias = use_bias
         self.return_probabilities = return_probabilities
         self.activation = activations.get(activation)
+        self.recurrent_activation = activations.get(recurrent_activation)
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.recurrent_initializer = initializers.get(recurrent_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
@@ -68,103 +72,52 @@ class AttentionDecoder(Recurrent):
             super(AttentionDecoder, self).reset_states()
 
         self.states = [None, None]  # y, s
+        """
+            Matrices for GRU cells, copy source from keras.layers.recurrent.py with tag 2.0.7
 
         """
-            Matrices for creating the context vector
-        """
+        self.kernel = self.add_weight(shape=(self.input_dim, self.units * 4),
+                                      name='kernel',
+                                      initializer=self.kernel_initializer,
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint)
+        self.recurrent_kernel = self.add_weight(
+            shape=(self.units, self.units * 4),
+            name='recurrent_kernel',
+            initializer=self.recurrent_initializer,
+            regularizer=self.recurrent_regularizer,
+            constraint=self.recurrent_constraint)
 
-        self.V_a = self.add_weight(shape=(self.units,),
-                                   name='V_a',
-                                   initializer=self.kernel_initializer,
-                                   regularizer=self.kernel_regularizer,
-                                   constraint=self.kernel_constraint)
-        self.W_a = self.add_weight(shape=(self.units, self.units),
-                                   name='W_a',
-                                   initializer=self.kernel_initializer,
-                                   regularizer=self.kernel_regularizer,
-                                   constraint=self.kernel_constraint)
-        self.U_a = self.add_weight(shape=(self.input_dim, self.units),
-                                   name='U_a',
-                                   initializer=self.kernel_initializer,
-                                   regularizer=self.kernel_regularizer,
-                                   constraint=self.kernel_constraint)
-        self.b_a = self.add_weight(shape=(self.units,),
-                                   name='b_a',
-                                   initializer=self.bias_initializer,
-                                   regularizer=self.bias_regularizer,
-                                   constraint=self.bias_constraint)
+        if self.use_bias:
+            self.bias = self.add_weight(shape=(self.units * 4,),
+                                        name='bias',
+                                        initializer=self.bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint)
+        else:
+            self.bias = None
         """
-            Matrices for the r (reset) gate
+            Setting matrics variables
         """
-        self.C_r = self.add_weight(shape=(self.input_dim, self.units),
-                                   name='C_r',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.U_r = self.add_weight(shape=(self.units, self.units),
-                                   name='U_r',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.W_r = self.add_weight(shape=(self.output_dim, self.units),
-                                   name='W_r',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.b_r = self.add_weight(shape=(self.units, ),
-                                   name='b_r',
-                                   initializer=self.bias_initializer,
-                                   regularizer=self.bias_regularizer,
-                                   constraint=self.bias_constraint)
+        self.kernel_z = self.kernel[:, :self.units]
+        self.recurrent_kernel_z = self.recurrent_kernel[:, :self.units]
 
+        self.kernel_r = self.kernel[:, self.units: self.units * 2]
+        self.recurrent_kernel_r = self.recurrent_kernel[:,self.units : self.units * 2]
+
+        self.kernel_h = self.kernel[:, self.units * 2:self.units * 3]
+        self.recurrent_kernel_h = self.recurrent_kernel[:, self.units * 2:self.units * 3]
+
+        if self.use_bias:
+            self.bias_z = self.bias[:self.units]
+            self.bias_r = self.bias[self.units: self.units * 2]
+            self.bias_h = self.bias[self.units * 2:self.units * 3]
+        else:
+            self.bias_z = None
+            self.bias_r = None
+            self.bias_h = None
         """
-            Matrices for the z (update) gate
-        """
-        self.C_z = self.add_weight(shape=(self.input_dim, self.units),
-                                   name='C_z',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.U_z = self.add_weight(shape=(self.units, self.units),
-                                   name='U_z',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.W_z = self.add_weight(shape=(self.output_dim, self.units),
-                                   name='W_z',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.b_z = self.add_weight(shape=(self.units, ),
-                                   name='b_z',
-                                   initializer=self.bias_initializer,
-                                   regularizer=self.bias_regularizer,
-                                   constraint=self.bias_constraint)
-        """
-            Matrices for the proposal
-        """
-        self.C_p = self.add_weight(shape=(self.input_dim, self.units),
-                                   name='C_p',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.U_p = self.add_weight(shape=(self.units, self.units),
-                                   name='U_p',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.W_p = self.add_weight(shape=(self.output_dim, self.units),
-                                   name='W_p',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.b_p = self.add_weight(shape=(self.units, ),
-                                   name='b_p',
-                                   initializer=self.bias_initializer,
-                                   regularizer=self.bias_regularizer,
-                                   constraint=self.bias_constraint)
-        """
-            Matrices for making the final prediction vector
+            Output softmax matrics 
         """
         self.C_o = self.add_weight(shape=(self.input_dim, self.output_dim),
                                    name='C_o',
@@ -186,6 +139,21 @@ class AttentionDecoder(Recurrent):
                                    initializer=self.bias_initializer,
                                    regularizer=self.bias_regularizer,
                                    constraint=self.bias_constraint)
+        """
+            Setting matrices for creating the context vector
+        """
+        self.V_a = self.add_weight(shape=(self.units,),
+                                   name='V_a',
+                                   initializer=self.kernel_initializer,
+                                   regularizer=self.kernel_regularizer,
+                                   constraint=self.kernel_constraint)
+        self.W_a = self.recurrent_kernel[:, self.units * 3:]
+        self.U_a = self.kernel[:, self.units * 3:]
+        if self.use_bias:
+            self.b_a = self.bias[self.units * 3:]
+        else:
+            self.b_a = None
+
 
         # For creating the initial state:
         self.W_s = self.add_weight(shape=(self.output_dim, self.units),
@@ -221,16 +189,20 @@ class AttentionDecoder(Recurrent):
 
         # from keras.layers.recurrent to initialize a vector of (batchsize,
         # output_dim)
+        '''
         y0 = K.zeros_like(inputs)  # (samples, timesteps, input_dims)
         y0 = K.sum(y0, axis=(1, 2))  # (samples, )
         y0 = K.expand_dims(y0)  # (samples, 1)
         y0 = K.tile(y0, [1, self.output_dim])
-
+        '''
+        y0 = inputs[:,0]
         return [y0, s0]
 
     def step(self, x, states):
 
         ytm, stm = states
+        if self.train_by_label:
+            ytm = x
 
         # repeat the hidden state to the length of the sequence
         _stm = K.repeat(stm, self.timesteps)
@@ -250,39 +222,33 @@ class AttentionDecoder(Recurrent):
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
         # ~~~> calculate new hidden state
-        # first calculate the "r" gate:
+        """
+            Original GRU cell operations.
+        
+        """
 
-        rt = activations.sigmoid(
-            K.dot(ytm, self.W_r)
-            + K.dot(stm, self.U_r)
-            + K.dot(context, self.C_r)
-            + self.b_r)
+        x_z = K.dot(context, self.kernel_z)
+        x_r = K.dot(context, self.kernel_r)
+        x_h = K.dot(context, self.kernel_h)
+        if self.use_bias:
+            x_z = K.bias_add(x_z, self.bias_z)
+            x_r = K.bias_add(x_r, self.bias_r)
+            x_h = K.bias_add(x_h, self.bias_h)
+        z = self.recurrent_activation(x_z + K.dot(stm, self.recurrent_kernel_z))
+        r = self.recurrent_activation(x_r + K.dot(stm, self.recurrent_kernel_r))
 
-        # now calculate the "z" gate
-        zt = activations.sigmoid(
-            K.dot(ytm, self.W_z)
-            + K.dot(stm, self.U_z)
-            + K.dot(context, self.C_z)
-            + self.b_z)
-
-        # calculate the proposal hidden state:
-        s_tp = activations.tanh(
-            K.dot(ytm, self.W_p)
-            + K.dot((rt * stm), self.U_p)
-            + K.dot(context, self.C_p)
-            + self.b_p)
-
-        # new hidden state:
-        st = (1-zt)*stm + zt * s_tp
-        if self.train_by_label:
-            ytm = x
-
-        yt = activations.softmax(
+        hh = self.activation(x_h + K.dot(r * stm, self.recurrent_kernel_h))
+        h = z * stm + (1 - z) * hh
+        if 0 < self.dropout + self.recurrent_dropout:
+            h._uses_learning_phase = True
+        
+        #yt = activations.softmax(
+        yt = activations.tanh(
             K.dot(ytm, self.W_o)
             + K.dot(stm, self.U_o)
             + K.dot(context, self.C_o)
             + self.b_o)
-
+        st = h
         if self.return_probabilities:
             return at, [yt, st]
         else:
