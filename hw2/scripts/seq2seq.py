@@ -33,7 +33,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
         x = Concatenate(axis = -1)([ret1[0],ret2[0]])
         #prepare hidden state for encoder
         hi_st = ret2[1:] if config.RNN == LSTM else ret2[1]
-     
+        x = Dropout(config.DROPOUT)(x)
 
     #word embedding
     y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
@@ -49,7 +49,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #decoder
     for _ in range(config.DEPTH):
         y  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_sequences = True)(y,initial_state = hi_st)
-        
+        y = Dropout(config.DROPOUT)(y) 
         #
     y = TimeDistributed(Dense(vocab_dim,activation='softmax'))(y)
     
