@@ -16,10 +16,8 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #
     data = Input(shape=(input_len,input_dim))
     #in this application, input dim = vocabulary dim
-    label = Input(shape=(output_len,vocab_dim))
     #masking
     x = data
-    y = label
     #scaling data
     x = BatchNormalization()(x)
     #encoder, bidirectional RNN
@@ -37,16 +35,12 @@ def model(input_len,input_dim,output_len,vocab_dim):
             x = Dropout(config.DROPOUT)(x)
 
     #word embedding
-    y = Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False)(y)
-    #y = Masking()(y)
-    #concatenate x and label
-
     #decoder
     print('build attention')
     y = custom_recurrents.AttentionDecoder(100,output_dim = vocab_dim)(x)
     print('build attention done')
     
-    model = Model(inputs = [data,label],output=y)  
+    model = Model(inputs = data,output=y)  
     #model.summary()
     return model
 
