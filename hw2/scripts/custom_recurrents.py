@@ -64,11 +64,10 @@ class AttentionDecoder(Recurrent):
           See Appendix 2 of Bahdanau 2014, arXiv:1409.0473
           for model details that correspond to the matrices here.
         """
-        self.batch_size, self.timesteps, self.input_dim = input_shape[0]
-        self.output_len,self.label_dim = input_shape[1][1:]
+        print('build',input_shape)
+        self.batch_size, self.timesteps, self.input_dim = input_shape
         self.input_spec = [
-            InputSpec(shape=(self.batch_size, self.timesteps, self.input_dim)),
-            InputSpec(shape=(input_shape[1]))]
+            InputSpec(shape=(self.batch_size, self.timesteps, self.input_dim))]
 
         if self.stateful:
             super(AttentionDecoder, self).reset_states()
@@ -145,9 +144,7 @@ class AttentionDecoder(Recurrent):
     def call(self, x):
         # store the whole sequence so we can "attend" to it at each timestep
         print('call x',x)
-        self.x_seq = x[0]
-        self_label = x[1]
-
+        self.x_seq = x
         # apply the a dense layer over the time dimension of the sequence
         # do it here because it doesn't depend on any previous steps
         # thefore we can save computation time:
@@ -159,7 +156,7 @@ class AttentionDecoder(Recurrent):
         return super(AttentionDecoder, self).call(self.x_seq)
 
     def get_initial_state(self, inputs):
-        inputs = inputs[0]
+        print('get init',inputs)
         print('inputs shape:', inputs.get_shape())
 
         # apply the matrix on the first time step to get the initial s0.

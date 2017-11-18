@@ -39,7 +39,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear'))(label)
     #decoder
     print('build attention')
-    y = custom_recurrents.AttentionDecoder(100,output_dim = vocab_dim)([x,y])
+    y = custom_recurrents.AttentionDecoder(100,output_dim = vocab_dim)(x)
     y = TimeDistributed(Dense(vocab_dim,activation = 'softmax'))(y) 
     print('build attention done')
     
