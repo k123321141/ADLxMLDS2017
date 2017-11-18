@@ -36,7 +36,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
             x = Dropout(config.DROPOUT)(x)
 
     #word embedding
-    y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear'))(label)
+    y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False))(label)
     #y = label
     #decoder
     print('build attention')
