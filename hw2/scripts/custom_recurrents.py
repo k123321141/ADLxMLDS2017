@@ -23,7 +23,6 @@ class AttentionDecoder(Recurrent):
                  kernel_constraint=None,
                  bias_constraint=None,
                  train_by_label=False,
-                 use_bias = True,
                  **kwargs):
         """
         Implements an AttentionDecoder that takes in a sequence encoded by an
