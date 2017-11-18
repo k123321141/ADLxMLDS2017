@@ -184,34 +184,3 @@ if __name__ == '__main__':
                 
 
     #
-    '''
-    print 'train cheat '
-    print decode(train_cheat[0,:,:]) 
-    print np.argmax(train_cheat[0,:,:],axis = -1)
-    print 'train'
-    print decode(y_train[0,:,:]) 
-    print np.argmax(y_train[0,:,:],axis = -1)
-    print 'val'
-    print decode(val_cheat[0,:,:]) 
-    print np.argmax(val_cheat[0,:,:],axis = -1)
-    '''
-
-def testing(model,x,y,test_num = 1):
-    for _ in range(test_num):
-        idx = np.random.randint(0, len(x))
-        rowx, rowy = x[idx,:,:], y[idx,:,:]
-        #
-        preds = seq2seq.my_pred(model,rowx,input_len,output_len)
-        correct = decode(rowy[0])
-        guess = decode(preds[0])
-
-        print('T', correct)
-        print('G',guess)
-        print('---')
-
-
-
-
-
-
-
