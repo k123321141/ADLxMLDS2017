@@ -65,8 +65,8 @@ if __name__ == '__main__':
             np.copyto(y2[:,:50,:],y)
             
             #np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
-            his = model.fit(x=x, y=y2,
-                      batch_size=config.BATCH_SIZE,verbose=1,
+            his = model.fit(x=[x,y], y=y2,
+                      batch_size=2,verbose=1,
                       epochs=1)
 
 
