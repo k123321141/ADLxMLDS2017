@@ -14,8 +14,8 @@ def model(input_len,input_dim,output_len,vocab_dim):
     print('Build model...')
     # Try replacing GRU, or SimpleRNN.
     #
-    data = Input(shape=(input_len,input_dim))
-    label = Input(shape=(output_len,vocab_dim))
+    data = Input(shape=(input_len,input_dim), name = 'data_input')
+    label = Input(shape=(output_len,vocab_dim), name = 'label_input')
     #in this application, input dim = vocabulary dim
     #masking
     x = data
@@ -39,7 +39,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear'))(label)
     #decoder
     print('build attention')
-    y = custom_recurrents.AttentionDecoder(100,output_dim = vocab_dim)(x)
+    y = custom_recurrents.AttentionDecoder(100,output_dim = vocab_dim)([x,y])
     y = TimeDistributed(Dense(vocab_dim,activation = 'softmax'))(y) 
     print('build attention done')
     

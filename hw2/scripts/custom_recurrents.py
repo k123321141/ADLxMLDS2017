@@ -65,10 +65,12 @@ class AttentionDecoder(Recurrent):
           for model details that correspond to the matrices here.
         """
         print('build',input_shape)
-        self.batch_size, self.timesteps, self.input_dim = input_shape
-        self.input_spec = [
-            InputSpec(shape=(self.batch_size, self.timesteps, self.input_dim))]
+        self.batch_size, self.timesteps, self.input_dim = input_shape[0]
+        _, self.output_len, self.vocab_dim = input_shape[1]
+        self.input_spec = [InputSpec(ndim = 3),InputSpec(ndim = 3)]
+        self.input_spec[0] = InputSpec(shape = [self.batch_size, self.timesteps, self.input_dim])
 
+        self.input_spec[1] = InputSpec(shape = [self.batch_size, self.output_len, self.vocab_dim])
         if self.stateful:
             super(AttentionDecoder, self).reset_states()
 
@@ -141,10 +143,10 @@ class AttentionDecoder(Recurrent):
                                    constraint=self.recurrent_constraint)
         self.built = True
 
-    def call(self, x):
+    def call(self, inputs):
         # store the whole sequence so we can "attend" to it at each timestep
-        print('call x',x)
-        self.x_seq = x
+        self.x_seq = inputs[0]
+        self.y_seq = inputs[1]
         # apply the a dense layer over the time dimension of the sequence
         # do it here because it doesn't depend on any previous steps
         # thefore we can save computation time:
@@ -153,18 +155,16 @@ class AttentionDecoder(Recurrent):
                                              timesteps=self.timesteps,
                                              output_dim=self.units)
 
-        return super(AttentionDecoder, self).call(self.x_seq)
+        return super(AttentionDecoder, self).call(self.y_seq)
 
     def get_initial_state(self, inputs):
-        print('get init',inputs)
-        print('inputs shape:', inputs.get_shape())
-
+        print('inputs shape:', self.x_seq.get_shape())
         # apply the matrix on the first time step to get the initial s0.
         s0 = activations.tanh(K.dot(inputs[:, 0], self.W_s))
 
         # from keras.layers.recurrent to initialize a vector of (batchsize,
         # output_dim)
-        y0 = K.zeros_like(inputs)  # (samples, timesteps, input_dims)
+        y0 = K.zeros_like(self.x_seq)  # (samples, timesteps, input_dims)
         y0 = K.sum(y0, axis=(1, 2))  # (samples, )
         y0 = K.expand_dims(y0)  # (samples, 1)
         y0 = K.tile(y0, [1, self.units])
@@ -172,7 +172,6 @@ class AttentionDecoder(Recurrent):
         return [y0, s0]
 
     def step(self, x, states):
-
         ytm, stm = states
 
         # repeat the hidden state to the length of the sequence
