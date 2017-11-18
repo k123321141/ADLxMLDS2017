@@ -61,7 +61,8 @@ class AttentionDecoder(Recurrent):
           for model details that correspond to the matrices here.
         """
 
-        self.batch_size, self.timesteps, self.input_dim = input_shape
+        self.batch_size, self.timesteps, self.input_dim = input_shape[0]
+        self.batch_size, self.output_len, self.output_dim = input_shape[1]
 
         if self.stateful:
             super(AttentionDecoder, self).reset_states()
@@ -187,20 +188,21 @@ class AttentionDecoder(Recurrent):
                                    constraint=self.bias_constraint)
 
         # For creating the initial state:
-        self.W_s = self.add_weight(shape=(self.input_dim, self.units),
+        self.W_s = self.add_weight(shape=(self.output_dim, self.units),
                                    name='W_s',
                                    initializer=self.recurrent_initializer,
                                    regularizer=self.recurrent_regularizer,
                                    constraint=self.recurrent_constraint)
 
         self.input_spec = [
-            InputSpec(shape=(self.batch_size, self.timesteps, self.input_dim))]
+            InputSpec(shape=(self.batch_size, self.timesteps, self.input_dim)),
+            InputSpec(shape=(self.batch_size, self.output_len, self.output_dim))]
         self.built = True
 
-    def call(self, x):
+    def call(self, inputs):
         # store the whole sequence so we can "attend" to it at each timestep
-        self.x_seq = x
-
+        self.x_seq = inputs[0]
+        self.y_seq = inputs[1]
         # apply the a dense layer over the time dimension of the sequence
         # do it here because it doesn't depend on any previous steps
         # thefore we can save computation time:
@@ -209,7 +211,7 @@ class AttentionDecoder(Recurrent):
                                              timesteps=self.timesteps,
                                              output_dim=self.units)
 
-        return super(AttentionDecoder, self).call(x)
+        return super(AttentionDecoder, self).call(self.y_seq)
 
     def get_initial_state(self, inputs):
         print('inputs shape:', inputs.get_shape())
@@ -273,18 +275,13 @@ class AttentionDecoder(Recurrent):
         # new hidden state:
         st = (1-zt)*stm + zt * s_tp
         if self.train_by_label:
+            ytm = x
 
-            yt = activations.softmax(
-                K.dot(ytm, self.W_o)
-                + K.dot(stm, self.U_o)
-                + K.dot(context, self.C_o)
-                + self.b_o)
-        else:
-            yt = activations.softmax(
-                K.dot(ytm, self.W_o)
-                + K.dot(stm, self.U_o)
-                + K.dot(context, self.C_o)
-                + self.b_o)
+        yt = activations.softmax(
+            K.dot(ytm, self.W_o)
+            + K.dot(stm, self.U_o)
+            + K.dot(context, self.C_o)
+            + self.b_o)
 
         if self.return_probabilities:
             return at, [yt, st]
@@ -298,7 +295,7 @@ class AttentionDecoder(Recurrent):
         if self.return_probabilities:
             return (None, self.timesteps, self.timesteps)
         else:
-            return (None, self.timesteps, self.output_dim)
+            return (None, self.output_len, self.output_dim)
 
     def get_config(self):
         """
