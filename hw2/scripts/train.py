@@ -12,6 +12,7 @@ import sys
 import utils
 import bleu_eval
 import attention
+import custom_recurrents
 from os.path import join
 from keras.models import *
 import os,sys
@@ -33,7 +34,12 @@ if __name__ == '__main__':
     if os.path.isfile(config.PRE_MODEL):
         print('loading PRE_MODEL : ',config.PRE_MODEL)
         model = load_model(config.PRE_MODEL,
-                custom_objects={'loss_with_mask':utils.loss_with_mask,'acc_with_mask':utils.acc_with_mask})
+                custom_objects={'loss_with_mask':utils.loss_with_mask,
+                    'acc_with_mask':utils.acc_with_mask,
+                    'AttentionDecoder':custom_recurrents.AttentionDecoder})
+        if config.MODEL_NAME == 'attention':
+            print 'set flag of TRAIN_BY_LABEL'
+            attention.set_train_by_label(model,config.TRAIN_BY_LABEL)
     else:
         vocab_dim = len(myinput.init_vocabulary_map())
         if config.MODEL_NAME == 'attention':

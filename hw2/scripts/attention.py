@@ -40,10 +40,18 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #y = label
     #decoder
     print('build attention')
-    pred = custom_recurrents.AttentionDecoder(100,output_dim = config.EMBEDDING_DIM,train_by_label = True)([x,y])
+    pred = custom_recurrents.AttentionDecoder(100,output_dim = config.EMBEDDING_DIM,train_by_label = True,name = 'decoder')([x,y])
     print('build attention done')
     pred = TimeDistributed(Dense(vocab_dim,activation ='softmax'))(pred) 
     model = Model(inputs = [data,label],output=pred)  
     #model.summary()
     return model
-
+def set_train_by_label(model,train_by_label):
+    decoder_lay = 'None'
+    print 'model',model.layers
+    for lay in model.layers:
+        if lay.name == 'decoder':
+            decoder_lay = lay
+            print lay.name
+    assert decoder_lay != 'None'
+    decoder_lay.train_by_label = train_by_label
