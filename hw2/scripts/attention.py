@@ -43,7 +43,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     y = TimeDistributed(Dense(vocab_dim,activation = 'softmax'))(y) 
     print('build attention done')
     
-    model = Model(inputs = data,output=y)  
+    model = Model(inputs = [data,label],output=y)  
     #model.summary()
     return model
 
