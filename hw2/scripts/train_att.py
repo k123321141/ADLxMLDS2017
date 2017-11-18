@@ -53,9 +53,12 @@ if __name__ == '__main__':
     print('Done') 
    
     print 'start training' 
+    '''
     model.compile(loss=utils.loss_with_mask,
                   optimizer='adam',
                   metrics=[utils.acc_with_mask],sample_weight_mode = 'temporal')
+    '''
+    model.compile(loss='categorical_crossentropy',optimizer='adam')
     for epoch_idx in range(2000000):
 
         for caption_idx in range(1):
@@ -65,8 +68,13 @@ if __name__ == '__main__':
             np.copyto(y2[:,:50,:],y)
             
             #np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
+<<<<<<< HEAD
             his = model.fit(x=[x,y], y=y,
                       batch_size=config.BATCH_SIZE,verbose=1,
+=======
+            his = model.fit(x=[x,y2], y=y2,
+                      batch_size=2,verbose=1,
+>>>>>>> master
                       epochs=1)
 
 
