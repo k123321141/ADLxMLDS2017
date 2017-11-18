@@ -114,7 +114,7 @@ def weighted_by_frequency(y):
         V = np.argmax(y[i,:,:],axis = -1)
         for j in range(output_len):
             v_idx = V[j]
-            mat[i,j] /= fre[v_idx]
+            mat[i,j] /= (fre[v_idx]**2)
     
     return mat
 def get_high_belu():
