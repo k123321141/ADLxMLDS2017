@@ -8,7 +8,7 @@ tfPrint = lambda d, T: tf.Print(input_=T, data=[T, tf.shape(T)], message=d)
 
 class AttentionDecoder(Recurrent):
 
-    def __init__(self, units,
+    def __init__(self, units, output_dim,
                  activation='tanh',
                  recurrent_activation='hard_sigmoid',
                  use_bias = True,
@@ -54,7 +54,6 @@ class AttentionDecoder(Recurrent):
         self.recurrent_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
 
-        self.use_bias = use_bias
         super(AttentionDecoder, self).__init__(**kwargs)
         self.name = name
         self.return_sequences = True  # must return sequences
@@ -156,21 +155,6 @@ class AttentionDecoder(Recurrent):
             self.b_a = None
 
 
-        """
-            Setting matrices for creating the context vector
-        """
-        self.V_a = self.add_weight(shape=(self.units,),
-                                   name='V_a',
-                                   initializer=self.kernel_initializer,
-                                   regularizer=self.kernel_regularizer,
-                                   constraint=self.kernel_constraint)
-        self.W_a = self.recurrent_kernel[:, self.units * 3:]
-        self.U_a = self.kernel[:, self.units * 3:]
-        if self.use_bias:
-            self.b_a = self.bias[self.units * 3:]
-        else:
-            self.b_a = None
-
         # For creating the initial state:
         self.W_s = self.add_weight(shape=(self.output_dim, self.units),
                                    name='W_s',
@@ -198,9 +182,9 @@ class AttentionDecoder(Recurrent):
         return super(AttentionDecoder, self).call(self.y_seq)
 
     def get_initial_state(self, inputs):
-        print('inputs shape:', self.y_seq.get_shape())
+        print('inputs shape:', inputs.get_shape())
+
         # apply the matrix on the first time step to get the initial s0.
-        print('w_s',self.W_s.get_shape())
         s0 = activations.tanh(K.dot(inputs[:, 0], self.W_s))
 
         # from keras.layers.recurrent to initialize a vector of (batchsize,
@@ -215,6 +199,7 @@ class AttentionDecoder(Recurrent):
         return [y0, s0]
 
     def step(self, x, states):
+
         ytm, stm = states
         if self.train_by_label:
             ytm = x
@@ -267,7 +252,7 @@ class AttentionDecoder(Recurrent):
         if self.return_probabilities:
             return at, [yt, st]
         else:
-            return yt, [yt, h]
+            return yt, [yt, st]
 
     def compute_output_shape(self, input_shape):
         """
