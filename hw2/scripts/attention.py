@@ -25,10 +25,10 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #encoder, bidirectional RNN
     for _ in range(config.DEPTH):
         #forward RNN
-        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False)(x)
+        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False,name='forwar_encoder_%d'%_)(x)
         hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
         #backward RNN
-        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True)(x,initial_state = hi_st)
+        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True,name='backward_encoder_%d'%_)(x,initial_state = hi_st)
         #concatenate both side
         x = Concatenate(axis = -1)([ret1[0],ret2[0]])
         #prepare hidden state for encoder
@@ -37,7 +37,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
             x = Dropout(config.DROPOUT)(x)
 
     #word embedding
-    y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False))(label)
+    y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False,name='word_embedding'))(label)
     #y = label
     #decoder
     print('build attention')
