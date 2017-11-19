@@ -263,7 +263,7 @@ class AttentionDecoder(Recurrent):
 
         #concatebate with label to mix the info
         combine = K.concatenate([context,ytm],axis=-1)
-        context =K.dot(combine,self.mix) + self.mix_a
+        context = K.dot(combine,self.mix) + self.mix_a
 
         # ~~~> calculate new hidden state
         """
