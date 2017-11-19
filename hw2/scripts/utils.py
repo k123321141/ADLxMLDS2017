@@ -98,7 +98,7 @@ def valid_sample_weight(y):
         length = none_zeros_length(y[i,:,:])
         mat[i,0:length] = 1
     return mat
-def weighted_by_frequency(y):
+def weighted_by_frequency(y,inverse_rate = True):
     video_num,output_len,vocab_dim = y.shape
 
     #count frequency
@@ -114,7 +114,11 @@ def weighted_by_frequency(y):
         V = np.argmax(y[i,:,:],axis = -1)
         for j in range(output_len):
             v_idx = V[j]
-            mat[i,j] /= (fre[v_idx]**2)
+            if inverse_rate:
+                mat[i,j] /= (fre[v_idx]**2)
+            else:
+                mat[i,j] /= fre[v_idx]
+
     
     return mat
 def get_high_belu():
