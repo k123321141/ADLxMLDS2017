@@ -78,7 +78,7 @@ def load_test_dic(data_path,file_name_list):
     for f in file_name_list:
         nd_arr = np.load(join(data_path,f))
         video_name = f.replace('.npy','')
-        dic[video_name] = np.load(join(data_path,f))
+        dic[video_name] = nd_arr 
     return dic
 
 def load_y(label_path = config.LABEL_PATH):

@@ -279,7 +279,8 @@ class AttentionDecoder(Recurrent):
         config = {
             'output_dim': self.output_dim,
             'units': self.units,
-            'return_probabilities': self.return_probabilities
+            'return_probabilities': self.return_probabilities,
+            #'input_spec':self.input_spec
         }
         base_config = super(AttentionDecoder, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
