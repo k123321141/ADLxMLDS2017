@@ -21,6 +21,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     x = data
     #scaling data
     x = BatchNormalization()(x)
+
     #encoder, bidirectional RNN
     for _ in range(config.DEPTH):
         #forward RNN
@@ -45,7 +46,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     print('build attention done')
     pred = TimeDistributed(Dense(vocab_dim,activation ='softmax',use_bias = False))(pred) 
     model = Model(inputs = [data,label],output=pred)  
-    #model.summary()
+    model.summary()
     return model
 def set_train_by_label(model,train_by_label):
     decoder_lay = 'None'

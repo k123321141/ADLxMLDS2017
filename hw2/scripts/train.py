@@ -39,7 +39,7 @@ if __name__ == '__main__':
                     'acc_with_mask':utils.acc_with_mask,
                     'AttentionDecoder':custom_recurrents.AttentionDecoder})
         if config.MODEL_NAME == 'attention':
-            print 'set flag of TRAIN_BY_LABEL'
+            print('set flag of TRAIN_BY_LABEL',config.TRAIN_BY_LABEL)
             attention.set_train_by_label(model,config.TRAIN_BY_LABEL)
     else:
         vocab_dim = len(myinput.init_vocabulary_map())
