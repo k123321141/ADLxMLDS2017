@@ -52,6 +52,5 @@ def set_train_by_label(model,train_by_label):
     for lay in model.layers:
         if lay.name == 'decoder':
             decoder_lay = lay
-            print lay.name
     assert decoder_lay != 'None'
     decoder_lay.train_by_label = train_by_label

@@ -15,6 +15,7 @@ import attention
 import custom_recurrents
 from os.path import join
 from keras.models import *
+from keras.optimizers import Adam
 import os,sys
 #from keras.utils import plot_model
 vocab_map = myinput.init_vocabulary_map()
@@ -54,8 +55,9 @@ if __name__ == '__main__':
    
     print 'start training' 
      #plot_model(model, to_file='./model.png',show_shapes = True)
+    opt = Adam(lr = config.LR)
     model.compile(loss=utils.loss_with_mask,
-                  optimizer='adam',
+                  optimizer=opt,
                   metrics=[utils.acc_with_mask],sample_weight_mode = 'temporal')
     for epoch_idx in range(2000000):
         #train by labels
