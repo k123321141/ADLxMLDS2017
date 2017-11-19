@@ -95,7 +95,7 @@ if __name__ == '__main__':
             #test_y just for testing,no need for iter as a whole epoch 
             test_y = test_y_generator.next()
             # Select 2 samples from the test set at random so we can visualize errors.
-            utils.testing(model,x,y,test_x,test_y,2)
+            utils.testing(model,x,y,test_x,test_y,5)
 
 
             #save the high belu score model
