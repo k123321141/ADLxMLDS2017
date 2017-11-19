@@ -174,7 +174,9 @@ class AttentionDecoder(Recurrent):
         # apply the a dense layer over the time dimension of the sequence
         # do it here because it doesn't depend on any previous steps
         # thefore we can save computation time:
-        self._uxpb = _time_distributed_dense(self.x_seq, self.U_a, b=self.b_a,
+
+
+        self._uxpb = _time_distributed_dense(self.x_seq, self.U_a,# b=self.b_a,
                                              input_dim=self.input_dim,
                                              timesteps=self.timesteps,
                                              output_dim=self.units)
@@ -206,19 +208,37 @@ class AttentionDecoder(Recurrent):
 
         # repeat the hidden state to the length of the sequence
         _stm = K.repeat(stm, self.timesteps)
-
         # now multiplty the weight matrix with the repeated hidden state
         _Wxstm = K.dot(_stm, self.W_a)
 
         # calculate the attention probabilities
         # this relates how much other timesteps contributed to this one.
+        print('_stm ,_Wx',_stm.get_shape(),_Wxstm.get_shape())
         et = K.dot(activations.tanh(_Wxstm + self._uxpb),
                    K.expand_dims(self.V_a))
+        print('et',et.get_shape())
         at = K.exp(et)
         at_sum = K.sum(at, axis=1)
         at_sum_repeated = K.repeat(at_sum, self.timesteps)
-        at /= at_sum_repeated  # vector of size (batchsize, timesteps, 1)
+        at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
 
+        # calculate the context vector
+        context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
+        """
+            Just cosine similarity.
+        """
+        '''
+        _stm = K.repeat(stm, self.timesteps)
+        #80,100
+        # calculate the attention probabilities
+        # this relates how much other timesteps contributed to this one.
+        et = K.sum(_stm*self._uxpb,axis = -1)
+        #80,1
+        at = K.exp(et)
+        at_sum = K.sum(at, axis=1)
+        at_sum_repeated = K.repeat(at_sum, self.timesteps)
+        at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
+        '''
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
         # ~~~> calculate new hidden state
@@ -242,8 +262,8 @@ class AttentionDecoder(Recurrent):
         if 0 < self.dropout + self.recurrent_dropout:
             h._uses_learning_phase = True
         
-        #yt = activations.softmax(
-        yt = activations.tanh(
+        yt = activations.softmax(
+        #yt = activations.tanh(
             K.dot(ytm, self.W_o)
             + K.dot(stm, self.U_o)
             + K.dot(context, self.C_o)
@@ -274,7 +294,6 @@ class AttentionDecoder(Recurrent):
         }
         base_config = super(AttentionDecoder, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
 # check to see if it compiles
 if __name__ == '__main__':
     from keras.layers import Input, LSTM
