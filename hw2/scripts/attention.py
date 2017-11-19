@@ -49,7 +49,6 @@ def model(input_len,input_dim,output_len,vocab_dim):
     return model
 def set_train_by_label(model,train_by_label):
     decoder_lay = 'None'
-    print 'model',model.layers
     for lay in model.layers:
         if lay.name == 'decoder':
             decoder_lay = lay

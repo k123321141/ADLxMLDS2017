@@ -132,13 +132,6 @@ class AttentionDecoder(Recurrent):
         """
             Setting matrices for creating the context vector
         """
-        '''
-        self.V_a = self.add_weight(shape=(self.units,),
-                                   name='V_a',
-                                   initializer=self.kernel_initializer,
-                                   regularizer=self.kernel_regularizer,
-                                   constraint=self.kernel_constraint)
-        '''
         self.W_a = self.recurrent_kernel[:, self.units * 3:]
         self.U_a = self.kernel[:, self.units * 3:]
         if self.use_bias:
@@ -204,12 +197,6 @@ class AttentionDecoder(Recurrent):
 
         # from keras.layers.recurrent to initialize a vector of (batchsize,
         # output_dim)
-        '''
-        y0 = K.zeros_like(inputs)  # (samples, timesteps, input_dims)
-        y0 = K.sum(y0, axis=(1, 2))  # (samples, )
-        y0 = K.expand_dims(y0)  # (samples, 1)
-        y0 = K.tile(y0, [1, self.output_dim])
-        '''
         y0 = inputs[:,0]
         return [y0, s0]
 
@@ -218,33 +205,12 @@ class AttentionDecoder(Recurrent):
         ytm, stm = states
         if self.train_by_label:
             ytm = x
-        '''
-        # repeat the hidden state to the length of the sequence
-        _stm = K.repeat(stm, self.timesteps)
-        # now multiplty the weight matrix with the repeated hidden state
-        _Wxstm = K.dot(_stm, self.W_a)
-
-        # calculate the attention probabilities
-        # this relates how much other timesteps contributed to this one.
-        print('_stm ,_Wx',_stm.get_shape(),_Wxstm.get_shape())
-        print('uxpb',self._uxpb.get_shape())
-        et = K.dot(activations.tanh(_Wxstm + self._uxpb),
-                   K.expand_dims(self.V_a))
-        print('et',et.get_shape())
-        at = K.exp(et)
-        at_sum = K.sum(at, axis=1)
-        at_sum_repeated = K.repeat(at_sum, self.timesteps)
-        at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
-
-        # calculate the context vector
-        context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
-        '''
         """
             Just cosine similarity.
         """
         _stm = K.repeat(stm, self.timesteps)
         # now multiplty the weight matrix with the repeated hidden state
-        #_Wxstm = K.dot(_stm, self.W_a)
+        _Wxstm = K.dot(_stm, self.W_a)
 
         # calculate the attention probabilities
         # this relates how much other timesteps contributed to this one.
@@ -263,7 +229,7 @@ class AttentionDecoder(Recurrent):
 
         #concatebate with label to mix the info
         combine = K.concatenate([context,ytm],axis=-1)
-        context =K.dot(combine,self.mix) + self.mix_a
+        context = K.dot(combine,self.mix) + self.mix_a
 
         # ~~~> calculate new hidden state
         """
