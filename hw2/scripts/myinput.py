@@ -68,15 +68,19 @@ def decode(decode_map,y):
     s = s.strip() + '.' 
     return s.encode('utf-8')
 def load_x_dic(data_path=config.DATA_PATH):
-    print('load data from : ',data_path)
     fl = os.listdir(data_path)
-    
     file_name_list = [f for f in fl if f.endswith('.npy')]
+    return load_test_dic(data_path,file_name_list)
+def load_test_dic(data_path,file_name_list):
+    print('load data from : ',data_path)
     #sort for pairing with label
     dic = {}
     for f in file_name_list:
-        dic[f[:-4]] = np.load(join(data_path,f))
+        nd_arr = np.load(join(data_path,f))
+        video_name = f.replace('.npy','')
+        dic[video_name] = np.load(join(data_path,f))
     return dic
+
 def load_y(label_path = config.LABEL_PATH):
     test = json.load(open(label_path,'r'))
     dic = {}
