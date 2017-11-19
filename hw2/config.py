@@ -22,6 +22,6 @@ LR = 0.01
 INVERSE_RATE = True
 #def input_config():
 DATA_PATH = '../data/training_data/feat/'
-LABEL_PATH = '../data/training_label.json'
+LABEL_PATH = './training_label.json'
 FETCH_NUM = 3
 
