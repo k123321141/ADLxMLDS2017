@@ -119,17 +119,7 @@ class AttentionDecoder(Recurrent):
         """
             Output softmax matrics 
         """
-        self.C_o = self.add_weight(shape=(self.input_dim, self.output_dim),
-                                   name='C_o',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.U_o = self.add_weight(shape=(self.units, self.output_dim),
-                                   name='U_o',
-                                   initializer=self.recurrent_initializer,
-                                   regularizer=self.recurrent_regularizer,
-                                   constraint=self.recurrent_constraint)
-        self.W_o = self.add_weight(shape=(self.output_dim, self.output_dim),
+        self.W_o = self.add_weight(shape=(self.units, self.output_dim),
                                    name='W_o',
                                    initializer=self.recurrent_initializer,
                                    regularizer=self.recurrent_regularizer,
@@ -142,17 +132,40 @@ class AttentionDecoder(Recurrent):
         """
             Setting matrices for creating the context vector
         """
+        '''
         self.V_a = self.add_weight(shape=(self.units,),
                                    name='V_a',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
                                    constraint=self.kernel_constraint)
+        '''
         self.W_a = self.recurrent_kernel[:, self.units * 3:]
         self.U_a = self.kernel[:, self.units * 3:]
         if self.use_bias:
             self.b_a = self.bias[self.units * 3:]
         else:
             self.b_a = None
+        #for cosine similarity dense matrix
+        self.m = self.add_weight(shape=(self.units*2, 1),
+                                   name='match',
+                                   initializer=self.recurrent_initializer,
+                                   regularizer=self.recurrent_regularizer,
+                                   constraint=self.recurrent_constraint)
+        self.m_a = self.add_weight(shape=(1,),
+                                        name='match_bias',
+                                        initializer=self.bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint)
+        self.mix = self.add_weight(shape=(self.input_dim + self.output_dim, self.input_dim),
+                                   name='mix',
+                                   initializer=self.recurrent_initializer,
+                                   regularizer=self.recurrent_regularizer,
+                                   constraint=self.recurrent_constraint)
+        self.mix_a = self.add_weight(shape=(self.input_dim,),
+                                        name='mix_bias',
+                                        initializer=self.bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint)
 
 
         # For creating the initial state:
@@ -205,7 +218,7 @@ class AttentionDecoder(Recurrent):
         ytm, stm = states
         if self.train_by_label:
             ytm = x
-
+        '''
         # repeat the hidden state to the length of the sequence
         _stm = K.repeat(stm, self.timesteps)
         # now multiplty the weight matrix with the repeated hidden state
@@ -214,6 +227,7 @@ class AttentionDecoder(Recurrent):
         # calculate the attention probabilities
         # this relates how much other timesteps contributed to this one.
         print('_stm ,_Wx',_stm.get_shape(),_Wxstm.get_shape())
+        print('uxpb',self._uxpb.get_shape())
         et = K.dot(activations.tanh(_Wxstm + self._uxpb),
                    K.expand_dims(self.V_a))
         print('et',et.get_shape())
@@ -224,23 +238,33 @@ class AttentionDecoder(Recurrent):
 
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
+        '''
         """
             Just cosine similarity.
         """
-        '''
         _stm = K.repeat(stm, self.timesteps)
-        #80,100
+        # now multiplty the weight matrix with the repeated hidden state
+        #_Wxstm = K.dot(_stm, self.W_a)
+
         # calculate the attention probabilities
         # this relates how much other timesteps contributed to this one.
-        et = K.sum(_stm*self._uxpb,axis = -1)
-        #80,1
+
+        #during a dense 
+        combine = K.concatenate([_stm,self._uxpb],axis = -1)
+        et = activations.sigmoid( K.dot(combine,self.m) + self.m_a) 
+        #no softmax
         at = K.exp(et)
         at_sum = K.sum(at, axis=1)
         at_sum_repeated = K.repeat(at_sum, self.timesteps)
         at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
-        '''
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
+        #128
+
+        #concatebate with label to mix the info
+        combine = K.concatenate([context,ytm],axis=-1)
+        context =K.dot(combine,self.mix) + self.mix_a
+
         # ~~~> calculate new hidden state
         """
             Original GRU cell operations.
@@ -262,11 +286,10 @@ class AttentionDecoder(Recurrent):
         if 0 < self.dropout + self.recurrent_dropout:
             h._uses_learning_phase = True
         
-        yt = activations.softmax(
-        #yt = activations.tanh(
-            K.dot(ytm, self.W_o)
-            + K.dot(stm, self.U_o)
-            + K.dot(context, self.C_o)
+        #yt = activations.softmax(
+        
+        yt = activations.tanh(
+            K.dot(h, self.W_o)
             + self.b_o)
         st = h
         if self.return_probabilities:
