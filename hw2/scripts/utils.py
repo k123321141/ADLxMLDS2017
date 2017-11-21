@@ -127,7 +127,7 @@ def get_high_belu():
     buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith(belu1_header)]
     high = 0
     for f in buffer_list:
-        score = float(f.replace(belu1_header,'') )
+        score = float(f.replace(belu1_header,'').replace('.cks',''))
         if score > high:
             high = score
     belu1 = high
@@ -136,7 +136,7 @@ def get_high_belu():
     buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith(belu2_header)]
     high = 0
     for f in buffer_list:
-        score = float(f.replace(belu2_header,'') )
+        score = float(f.replace(belu2_header,'').replace('.cks','') )
         if score > high:
             high = score
     belu2 = high
