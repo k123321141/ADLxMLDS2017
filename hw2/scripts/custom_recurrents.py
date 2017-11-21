@@ -182,9 +182,9 @@ class AttentionDecoder(Recurrent):
         # from keras.layers.recurrent to initialize a vector of (batchsize,
         # output_dim)
         y0 = inputs[:,0]
-        combine = K.concatenate([s0,y0],axis = -1)
+        #combine = K.concatenate([s0,y0],axis = -1)
         yt = activations.softmax(
-            K.dot(combine, self.W_o)
+            K.dot(s0, self.W_o)
 
             + self.b_o)
         return [yt, s0]
@@ -243,7 +243,6 @@ class AttentionDecoder(Recurrent):
         
         #yt = activations.softmax(
         #output label
-        #combine = K.concatenate([h,ytm],axis = -1)
         yt = activations.softmax(
             K.dot(h, self.W_o)
 
