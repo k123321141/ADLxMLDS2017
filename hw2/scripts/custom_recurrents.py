@@ -8,7 +8,7 @@ tfPrint = lambda d, T: tf.Print(input_=T, data=[T, tf.shape(T)], message=d)
 
 class AttentionDecoder(Recurrent):
 
-    def __init__(self, units, output_dim,
+    def __init__(self, units, vocab_dim,
                  activation='tanh',
                  recurrent_activation='hard_sigmoid',
                  use_bias = True,
@@ -36,7 +36,7 @@ class AttentionDecoder(Recurrent):
             arXiv preprint arXiv:1409.0473 (2014).
         """
         self.units = units
-        self.output_dim = output_dim
+        self.vocab = vocab_dim 
         self.use_bias = use_bias
         self.return_probabilities = return_probabilities
         self.activation = activations.get(activation)
@@ -65,8 +65,8 @@ class AttentionDecoder(Recurrent):
           for model details that correspond to the matrices here.
         """
 
-        self.batch_size, self.timesteps, self.input_dim = input_shape[0]
-        self.batch_size, self.output_len, self.output_dim = input_shape[1]
+        self.batch_size, self.timesteps, self.encoded_dim = input_shape[0]
+        self.batch_size, self.output_len, self.input_dim = input_shape[1]
 
         if self.stateful:
             super(AttentionDecoder, self).reset_states()
@@ -77,7 +77,7 @@ class AttentionDecoder(Recurrent):
             And bias for attention cell
 
         """
-        self.kernel = self.add_weight(shape=(self.input_dim, self.units * 3),
+        self.kernel = self.add_weight(shape=(self.encoded_dim, self.units * 3),
                                       name='kernel',
                                       initializer=self.kernel_initializer,
                                       regularizer=self.kernel_regularizer,
@@ -121,12 +121,12 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units+self.output_dim, self.output_dim),
+        self.W_o = self.add_weight(shape=(self.units+self.input_dim, self.vocab_dim),
                                    name='W_o',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
                                    constraint=self.kernel_constraint)
-        self.b_o = self.add_weight(shape=(self.output_dim, ),
+        self.b_o = self.add_weight(shape=(self.vocab_dim, ),
                                    name='b_o',
                                    initializer=self.bias_initializer,
                                    regularizer=self.bias_regularizer,
@@ -134,7 +134,7 @@ class AttentionDecoder(Recurrent):
         """
             Setting matrices for creating the context vector
         """
-        self.W_a = self.add_weight(shape=(self.units+self.input_dim, 1),
+        self.W_a = self.add_weight(shape=(self.units+self.encoded_dim, 1),
                                    name='W_a',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
@@ -145,15 +145,15 @@ class AttentionDecoder(Recurrent):
                                     regularizer=self.bias_regularizer,
                                     constraint=self.bias_constraint)
         # For creating the initial state:
-        self.W_s = self.add_weight(shape=(self.output_dim, self.units),
+        self.W_s = self.add_weight(shape=(self.input_dim, self.units),
                                    name='W_s',
                                    initializer=self.recurrent_initializer,
                                    regularizer=self.recurrent_regularizer,
                                    constraint=self.recurrent_constraint)
 
         self.input_spec = [
-            InputSpec(shape=(self.batch_size, self.timesteps, self.input_dim)),
-            InputSpec(shape=(self.batch_size, self.output_len, self.output_dim))]
+            InputSpec(shape=(self.batch_size, self.timesteps, self.encoded_dim)),
+            InputSpec(shape=(self.batch_size, self.output_len, self.input_dim))]
         self.built = True
 
     def call(self, inputs):
@@ -166,7 +166,7 @@ class AttentionDecoder(Recurrent):
 
         '''
         self._uxpb = _time_distributed_dense(self.x_seq, self.U_a,# b=self.b_a,
-                                             input_dim=self.input_dim,
+                                             input_dim=self.encoded_dim,
                                              timesteps=self.timesteps,
                                              output_dim=self.units)
         '''
@@ -200,7 +200,7 @@ class AttentionDecoder(Recurrent):
 
         #during a dense 
         combine = K.concatenate([_stm,self._uxpb],axis = -1)
-        #(80,units + input_dim)
+        #(80,units + encoded_dim)
         et = K.dot(combine,self.W_a) + self.b_a
         #(80,1)
         et = activations.sigmoid(et)
@@ -213,7 +213,7 @@ class AttentionDecoder(Recurrent):
         at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
-        #(input_dim)
+        #(encoded_dim)
 
         # ~~~> calculate new hidden state
         """
@@ -256,14 +256,14 @@ class AttentionDecoder(Recurrent):
         if self.return_probabilities:
             return (None, self.timesteps, self.timesteps)
         else:
-            return (None, self.output_len, self.output_dim)
+            return (None, self.output_len, self.vocab_dim)
 
     def get_config(self):
         """
             For rebuilding models on load time.
         """
         config = {
-            'output_dim': self.output_dim,
+            'vocab_dim': self.vocab_dim,
             'units': self.units,
             'return_probabilities': self.return_probabilities,
             #'input_spec':self.input_spec
