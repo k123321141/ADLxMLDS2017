@@ -209,7 +209,7 @@ class AttentionDecoder(Recurrent):
         et = K.dot(combine,self.W_a) + self.b_a
         #(80,1)
         et = activations.sigmoid(et)
-        
+        print('et',et.get_shape()) 
         #at = K.exp(et)
         #no softmax
         at = et
