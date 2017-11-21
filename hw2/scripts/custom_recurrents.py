@@ -235,7 +235,7 @@ class AttentionDecoder(Recurrent):
             x_h = K.bias_add(x_h, self.bias_h)
         z = self.recurrent_activation(x_z + K.dot(stm, self.recurrent_kernel_z))
         r = self.recurrent_activation(x_r + K.dot(stm, self.recurrent_kernel_r))
-
+ 
         hh = self.activation(x_h + K.dot(r * stm, self.recurrent_kernel_h))
         h = z * stm + (1 - z) * hh
         if 0 < self.dropout + self.recurrent_dropout:
