@@ -201,7 +201,7 @@ class AttentionDecoder(Recurrent):
         #during a dense 
         combine = K.concatenate([_stm,self._uxpb],axis = -1)
         #(80,units + input_dim)
-        et = K.dot(combine,self.W_a) + self.m_a
+        et = K.dot(combine,self.W_a) + self.b_a
         #(80,1)
         et = activations.sigmoid(et)
         
