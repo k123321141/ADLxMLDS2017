@@ -98,10 +98,10 @@ def valid_sample_weight(y):
         length = none_zeros_length(y[i,:,:])
         mat[i,0:length] = 1
     return mat
-def weighted_by_frequency(y,devide_by_frequency = True,inverse_rate = True):
+def weighted_by_frequency(y,divide_by_frequency = True,inverse_rate = True):
     video_num,output_len,vocab_dim = y.shape
     mat = np.ones([video_num,output_len])
-    if not devide_by_frequency:
+    if not divide_by_frequency:
         return mat
     #count frequency
     fre = {idx:0 for idx in decode_map.keys()}
