@@ -77,7 +77,7 @@ class AttentionDecoder(Recurrent):
             And bias for attention cell
 
         """
-        self.kernel = self.add_weight(shape=(self.encoded_dim, self.units * 3),
+        self.kernel = self.add_weight(shape=(self.encoded_dim+self.input_dim, self.units * 3),
                                       name='kernel',
                                       initializer=self.kernel_initializer,
                                       regularizer=self.kernel_regularizer,
@@ -121,7 +121,7 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units+self.input_dim, self.vocab_dim),
+        self.W_o = self.add_weight(shape=(self.units, self.vocab_dim),
                                    name='W_o',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
@@ -219,6 +219,9 @@ class AttentionDecoder(Recurrent):
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
         #(encoded_dim)
+        #concatenate with label
+        context = K.concatenate([ytm,context],axis = -1)
+
 
         # ~~~> calculate new hidden state
         """
@@ -243,9 +246,8 @@ class AttentionDecoder(Recurrent):
         
         #yt = activations.softmax(
         #output label
-        combine = K.concatenate([h,ytm],axis = -1)
         yt = activations.softmax(
-            K.dot(combine, self.W_o)
+            K.dot(h, self.W_o)
 
             + self.b_o)
         st = h
