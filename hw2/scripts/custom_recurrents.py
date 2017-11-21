@@ -36,7 +36,7 @@ class AttentionDecoder(Recurrent):
             arXiv preprint arXiv:1409.0473 (2014).
         """
         self.units = units
-        self.vocab = vocab_dim 
+        self.vocab_dim = vocab_dim 
         self.use_bias = use_bias
         self.return_probabilities = return_probabilities
         self.activation = activations.get(activation)
