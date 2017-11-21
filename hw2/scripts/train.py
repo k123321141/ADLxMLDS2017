@@ -60,7 +60,7 @@ if __name__ == '__main__':
     opt = Adam(lr = config.LR)
     model.compile(loss=utils.loss_with_mask,
                   optimizer=opt,
-                  metrics=[utils.acc_with_mask],sample_weight_mode = 'temporal')
+                  metrics=[utils.acc_with_mask,utils.mask_lengh],sample_weight_mode = 'temporal')
     for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
