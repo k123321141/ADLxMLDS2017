@@ -27,7 +27,7 @@ def loss_with_mask(y_true, y_pred):
     #return tf.reduce_sum(cross_entropy) 
     return tf.reduce_mean(cross_entropy) 
 def mask_lengh(y_true, y_pred):
-    mask = tf.sign(tf.reduce_sum(y_true, axis = -1)) #(batch,50) -> 0,1 matrix
+    mask = tf.sign(tf.reduce_sum(y_pred, axis = -1)) #(batch,50) -> 0,1 matrix
     return tf.reduce_sum(mask)
 def acc_with_mask(y_true, y_pred):
     #(batch,50,6528)
