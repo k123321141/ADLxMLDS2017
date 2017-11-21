@@ -25,7 +25,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #encoder, bidirectional RNN
     for _ in range(config.DEPTH):
         #forward RNN
-        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False,name='forwar_encoder_%d'%_)(x)
+        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False,name='forward_encoder_%d'%_)(x)
         hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
         #backward RNN
         ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True,name='backward_encoder_%d'%_)(x,initial_state = hi_st)
