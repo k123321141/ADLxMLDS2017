@@ -53,9 +53,10 @@ if __name__ == '__main__':
             sys.exit(1)
    
     print 'start training' 
-    
+    '''
     from keras.utils import plot_model
     plot_model(model, to_file='./model.png',show_shapes = True)
+    '''
     opt = Adam(lr = config.LR)
     model.compile(loss=utils.loss_with_mask,
                   optimizer=opt,
