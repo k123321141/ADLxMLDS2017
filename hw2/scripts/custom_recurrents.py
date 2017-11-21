@@ -66,7 +66,7 @@ class AttentionDecoder(Recurrent):
         """
 
         self.batch_size, self.timesteps, self.encoded_dim = input_shape[0]
-        self.batch_size, self.output_len, self.input_dim = input_shape[1]
+        self.batch_size, self.input_len, self.input_dim = input_shape[1]
 
         if self.stateful:
             super(AttentionDecoder, self).reset_states()
@@ -153,7 +153,7 @@ class AttentionDecoder(Recurrent):
 
         self.input_spec = [
             InputSpec(shape=(self.batch_size, self.timesteps, self.encoded_dim)),
-            InputSpec(shape=(self.batch_size, self.output_len, self.input_dim))]
+            InputSpec(shape=(self.batch_size, self.input_len, self.input_dim))]
         self.built = True
 
     def call(self, inputs):
@@ -182,7 +182,12 @@ class AttentionDecoder(Recurrent):
         # from keras.layers.recurrent to initialize a vector of (batchsize,
         # output_dim)
         y0 = inputs[:,0]
-        return [y0, s0]
+        combine = K.concatenate([s0,y0],axis = -1)
+        yt = activations.softmax(
+            K.dot(combine, self.W_o)
+
+            + self.b_o)
+        return [yt, s0]
 
     def step(self, x, states):
 
@@ -256,7 +261,7 @@ class AttentionDecoder(Recurrent):
         if self.return_probabilities:
             return (None, self.timesteps, self.timesteps)
         else:
-            return (None, self.output_len, self.vocab_dim)
+            return (None, self.input_len, self.vocab_dim)
 
     def get_config(self):
         """
