@@ -221,6 +221,7 @@ class AttentionDecoder(Recurrent):
         #(encoded_dim)
         #concatenate with label
         context = K.concatenate([ytm,context],axis = -1)
+        print('context shape',context.get_shape())
         #(encoded_dim + input_dim)
 
         # ~~~> calculate new hidden state
