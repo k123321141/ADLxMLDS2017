@@ -44,7 +44,7 @@ def model(input_len,input_dim,output_len,vocab_dim):
     pred = custom_recurrents.AttentionDecoder(100,output_dim = config.EMBEDDING_DIM,train_by_label = True,name = 'decoder')([x,y])
     #pred = custom_recurrents.AttentionDecoder(100,output_dim = vocab_dim,train_by_label = True,name = 'decoder')([x,y])
     print('build attention done')
-    pred = TimeDistributed(Dense(vocab_dim,activation ='softmax',use_bias = False))(pred) 
+    pred = TimeDistributed(Dense(vocab_dim,activation ='linear',use_bias = False))(pred) 
     model = Model(inputs = [data,label],output=pred)  
     model.summary()
     return model
