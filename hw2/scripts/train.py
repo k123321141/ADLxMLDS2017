@@ -107,14 +107,14 @@ if __name__ == '__main__':
                 buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith('belu1')]
                 for f in buffer_list:
                     os.remove(join(config.BELU_PATH,f))
-                model.save(config.BELU_PATH+'belu1.'+str(belu1))
+                model.save(config.BELU_PATH+'belu1.'+str(belu1)+'.cks')
             if belu2 > belu2_high:
                 belu2_high = belu2
                 print('new high bleu new modified score : ',belu2,'save model..')
                 buffer_list = [f for f in os.listdir(config.BELU_PATH) if f.startswith('belu2.')]
                 for f in buffer_list:
                     os.remove(join(config.BELU_PATH,f))
-                model.save(config.BELU_PATH+'belu2.'+str(belu2))
+                model.save(config.BELU_PATH+'belu2.'+str(belu2)+'.cks')
                 
 
     #

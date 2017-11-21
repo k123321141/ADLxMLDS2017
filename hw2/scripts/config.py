@@ -13,13 +13,13 @@ VALIDATION_PERCENT = 10
 CKS_PATH = '../checkpoints/attention.cks'
 BELU_PATH = '../checkpoints/'
 VERBOSE = 0
-PRE_MODEL = '../checkpoints/attention.cks'
-#PRE_MODEL = 'None'
+#PRE_MODEL = '../checkpoints/attention.cks'
+PRE_MODEL = 'None'
 SAVE_ITERATION = 1
 #TRAIN_BY_LABEL = False
 TRAIN_BY_LABEL = True 
-LR = 0.01
-INVERSE_RATE = True
+LR = 0.0001
+INVERSE_RATE = False
 #def input_config():
 DATA_PATH = '../data/training_data/feat/'
 LABEL_PATH = '../data/training_label.json'
