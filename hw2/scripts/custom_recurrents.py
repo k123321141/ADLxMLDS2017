@@ -121,7 +121,7 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units+self.input_dim, self.vocab_dim),
+        self.W_o = self.add_weight(shape=(self.unit, self.vocab_dim),
                                    name='W_o',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
@@ -243,9 +243,9 @@ class AttentionDecoder(Recurrent):
         
         #yt = activations.softmax(
         #output label
-        combine = K.concatenate([h,ytm],axis = -1)
+        #combine = K.concatenate([h,ytm],axis = -1)
         yt = activations.softmax(
-            K.dot(combine, self.W_o)
+            K.dot(h, self.W_o)
 
             + self.b_o)
         st = h
