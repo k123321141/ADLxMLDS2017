@@ -121,7 +121,7 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units+self.input_dim+self.output_dim, self.output_dim),
+        self.W_o = self.add_weight(shape=(self.units+self.output_dim, self.output_dim),
                                    name='W_o',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
@@ -190,7 +190,7 @@ class AttentionDecoder(Recurrent):
         if self.train_by_label:
             ytm = x
         """
-            Just cosine similarity.
+            For similarity.
         """
         _stm = K.repeat(stm, self.timesteps)
         #(80,units)
@@ -238,7 +238,7 @@ class AttentionDecoder(Recurrent):
         
         #yt = activations.softmax(
         #output label
-        combine = K.concatenate([h,context,ytm],axis = -1)
+        combine = K.concatenate([h,ytm],axis = -1)
         yt = activations.softmax(
             K.dot(combine, self.W_o)
 
