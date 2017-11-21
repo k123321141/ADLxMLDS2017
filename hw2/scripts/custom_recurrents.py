@@ -198,7 +198,7 @@ class AttentionDecoder(Recurrent):
             For similarity.
         """
         _stm = K.repeat(stm, self.timesteps)
-        #(80,units)
+        #(80,units) 
 
         # calculate the attention probabilities
         # this relates how much other timesteps contributed to this one.
