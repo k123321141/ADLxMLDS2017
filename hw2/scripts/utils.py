@@ -25,9 +25,9 @@ def loss_with_mask(y_true, y_pred):
     cross_entropy = -tf.reduce_sum(cross_entropy,axis=-1)
    
     cross_entropy = cross_entropy * mask
+    return tf.reduce_sum(cross_entropy) 
     return tf.reduce_mean(cross_entropy) 
     
-    return (correct) / tf.reduce_sum(mask)
 def acc_with_mask(y_true, y_pred):
     #(batch,50,6528)
     #assert <pad> in t_true are all zeros.
