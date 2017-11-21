@@ -77,7 +77,7 @@ class AttentionDecoder(Recurrent):
             And bias for attention cell
 
         """
-        self.kernel = self.add_weight(shape=(self.encoded_dim+self.input_dim+88, self.units * 3),
+        self.kernel = self.add_weight(shape=(self.encoded_dim+self.input_dim, self.units * 3),
                                       name='kernel',
                                       initializer=self.kernel_initializer,
                                       regularizer=self.kernel_regularizer,
@@ -121,7 +121,7 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units, self.vocab_dim),
+        self.W_o = self.add_weight(shape=(self.units+88, self.vocab_dim),
                                    name='W_o',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
