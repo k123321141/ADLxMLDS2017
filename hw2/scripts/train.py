@@ -60,7 +60,12 @@ if __name__ == '__main__':
     opt = Adam(lr = config.LR)
     model.compile(loss=utils.loss_with_mask,
                   optimizer=opt,
-                  metrics=[utils.acc_with_mask,utils.mask_lengh,utils.mask_lengh2],sample_weight_mode = 'temporal')
+                  metrics=[utils.acc_with_mask],sample_weight_mode = 'temporal')
+    '''
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=opt,
+                  metrics=['accuracy'],sample_weight_mode = 'temporal')
+    '''
     for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
@@ -70,9 +75,14 @@ if __name__ == '__main__':
         for caption_idx in range(HW2_config.caption_list_mean):
             y = y_generator.next()
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
+            #sample weight
+            s_mat = utils.weighted_by_frequency(y,config.DIVIDE_BY_FREQUENCY,config.INVERSE_RATE) #* utils.valid_sample_weight(y)
+            #
+            y = np.zeros(y.shape)
+            y[:,:,0] = 1
             his = model.fit(x=[x,train_cheat], y=y,
                       batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
-                      epochs=1,sample_weight = utils.weighted_by_frequency(y,config.DIVIDE_BY_FREQUENCY,config.INVERSE_RATE))
+                      epochs=1,sample_weight = s_mat) 
             print('caption iteration : (%3d/%3d)' % (caption_idx+1,HW2_config.caption_list_mean))
             #record the loss and acc
             for metric,val in his.history.items():

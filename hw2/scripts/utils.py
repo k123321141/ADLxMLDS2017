@@ -24,39 +24,38 @@ def loss_with_mask(y_true, y_pred):
     cross_entropy = -tf.reduce_sum(cross_entropy,axis=-1)
    
     cross_entropy = cross_entropy * mask
-    #return tf.reduce_sum(cross_entropy) 
+    #(batch,50)
+    cross_entropy =  tf.reduce_sum(cross_entropy,axis = -1) 
     return tf.reduce_mean(cross_entropy) 
 def mask_lengh(y_true, y_pred):
-    mask = tf.sign(tf.reduce_sum(y_true, axis = -1)) #(batch,50) -> 0,1 matrix
-    return tf.reduce_sum(mask)
-def mask_lengh2(y_true, y_pred):
-    mask = tf.sign(tf.reduce_sum(y_pred, axis = -1)) #(batch,50) -> 0,1 matrix
-    return tf.reduce_sum(mask)
+    mask = tf.sign(tf.reduce_sum(y_true, axis = 2)) #(batch,50) -> 0,1 matrix
+    mask = tf.reduce_sum(mask,axis = -1)
+    mask = tf.reduce_mean(mask)
+    return mask
 def acc_with_mask(y_true, y_pred):
     #(batch,50,6528)
     #assert <pad> in t_true are all zeros.
     
     mask = tf.sign(tf.reduce_sum(y_true, axis = -1))  #(batch,50) -> 0,1 matrix
 
-
     correct = tf.equal(tf.argmax(y_true,axis=-1),tf.argmax(y_pred,axis=-1)) #(batch,50) 
 
     
     mask = tf.cast(mask,tf.float32)
     correct = tf.cast(correct,tf.float32)
+     
+    correct = tf.reduce_sum(mask * correct,axis = -1)
+    mask_len = tf.reduce_sum(mask,axis = -1)
+    #(batch)
     
-    correct = tf.reduce_sum(mask * correct)
-
-    
-    return (correct) / tf.reduce_sum(mask)
-
+    return tf.reduce_mean(correct / mask_len) 
 def mask_zeros(x,src):
     #not zero
     mask = tf.sign(tf.abs(src)) 
     x = tf.multiply(mask,x)
     return x
 def none_zeros_length(x):
-    #(50,6528)
+    #(1450,50,6528)
     for i in range(len(x)):
         if (x[i,:] == 0).all():
             break
