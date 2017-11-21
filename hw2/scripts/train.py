@@ -78,8 +78,6 @@ if __name__ == '__main__':
             #sample weight
             s_mat = utils.weighted_by_frequency(y,config.DIVIDE_BY_FREQUENCY,config.INVERSE_RATE) #* utils.valid_sample_weight(y)
             #
-            y = np.zeros(y.shape)
-            y[:,:,0] = 1
             his = model.fit(x=[x,train_cheat], y=y,
                       batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
                       epochs=1,sample_weight = s_mat) 
