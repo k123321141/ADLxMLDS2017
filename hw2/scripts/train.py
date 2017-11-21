@@ -72,7 +72,7 @@ if __name__ == '__main__':
             np.copyto(train_cheat[:,1:,:],y[:,:-1,:])
             his = model.fit(x=[x,train_cheat], y=y,
                       batch_size=config.BATCH_SIZE,verbose=config.VERBOSE,
-                      epochs=1,sample_weight = utils.weighted_by_frequency(y,config.INVERSE_RATE))
+                      epochs=1,sample_weight = utils.weighted_by_frequency(y,config.DIVIDE_BY_FREQUENConfig.INVERSE_RATE))
             print('caption iteration : (%3d/%3d)' % (caption_idx+1,HW2_config.caption_list_mean))
             #record the loss and acc
             for metric,val in his.history.items():
