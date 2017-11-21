@@ -210,9 +210,9 @@ class AttentionDecoder(Recurrent):
         #(80,1)
         et = activations.sigmoid(et)
         
-        at = K.exp(et)
+        #at = K.exp(et)
         #no softmax
-        #at = et
+        at = et
         at_sum = K.sum(at, axis=1)
         at_sum_repeated = K.repeat(at_sum, self.timesteps)
         at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
@@ -221,7 +221,7 @@ class AttentionDecoder(Recurrent):
         #(encoded_dim)
         #concatenate with label
         context = K.concatenate([ytm,context],axis = -1)
-
+        #(encoded_dim + input_dim)
 
         # ~~~> calculate new hidden state
         """
