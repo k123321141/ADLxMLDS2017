@@ -6,6 +6,151 @@ from keras.engine import InputSpec
 
 tfPrint = lambda d, T: tf.Print(input_=T, data=[T, tf.shape(T)], message=d)
 
+class AttentionLayer(Recurrent):
+
+    def __init__(self, 
+                 activation='tanh',
+                 use_bias = True,
+                 return_probabilities=False,
+                 name='AttentionLayer',
+                 kernel_initializer='glorot_uniform',
+                 bias_initializer='zeros',
+                 kernel_regularizer=None,
+                 bias_regularizer=None,
+                 activity_regularizer=None,
+                 kernel_constraint=None,
+                 bias_constraint=None,
+                 **kwargs):
+        """
+        Implements an AttentionDecoder that takes in a sequence encoded by an
+        encoder and outputs the decoded states 
+        :param units: dimension of the hidden state and the attention matrices
+        :param output_dim: the number of labels in the output space
+
+        references:
+            Bahdanau, Dzmitry, Kyunghyun Cho, and Yoshua Bengio. 
+            "Neural machine translation by jointly learning to align and translate." 
+            arXiv preprint arXiv:1409.0473 (2014).
+        """
+        self.use_bias = use_bias
+        self.return_probabilities = return_probabilities
+        self.activation = activations.get(activation)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.activity_regularizer = regularizers.get(activity_regularizer)
+
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
+
+        super(AttentionLayer, self).__init__(**kwargs)
+        self.name = name
+        self.return_sequences = True  # must return sequences
+
+    def build(self, input_shape):
+        """
+          See Appendix 2 of Bahdanau 2014, arXiv:1409.0473
+          for model details that correspond to the matrices here.
+        """
+
+        self.batch_size, self.timesteps, self.encoded_dim = input_shape[0]
+        self.batch_size, self.input_len, self.input_dim = input_shape[1]
+
+
+        self.states = [None]  # y, s
+        """
+            Setting matrices for creating the context vector
+        """
+        self.W_a = self.add_weight(shape=(self.input_dim + self.encoded_dim, 1),
+                                   name='W_a',
+                                   initializer=self.kernel_initializer,
+                                   regularizer=self.kernel_regularizer,
+                                   constraint=self.kernel_constraint)
+        if self.use_bias:
+            self.b_a = self.add_weight(shape=(1,),
+                                    name='b_a',
+                                    initializer=self.bias_initializer,
+                                    regularizer=self.bias_regularizer,
+                                    constraint=self.bias_constraint)
+
+        self.input_spec = [
+            InputSpec(shape=(self.batch_size, self.timesteps, self.encoded_dim)),
+            InputSpec(shape=(self.batch_size, self.input_len, self.input_dim))]
+        self.built = True
+
+    def call(self, inputs):
+        # store the whole sequence so we can "attend" to it at each timestep
+        self.x_seq = inputs[0]
+        self.y_seq = inputs[1]
+        # apply the a dense layer over the time dimension of the sequence
+        # do it here because it doesn't depend on any previous steps
+        # thefore we can save computation time:
+
+        return super(AttentionLayer, self).call(self.y_seq)
+
+    def get_initial_state(self, inputs):
+        y0 = inputs[:,0]
+        return [y0]
+
+    def step(self, h, states):
+
+        """
+            For similarity.
+        """
+        _stm = K.repeat(h, self.timesteps)
+        #(80,units) 
+
+        # calculate the attention probabilities
+        # this relates how much other timesteps contributed to this one.
+
+        #during a dense 
+        combine = K.concatenate([_stm,self.x_seq],axis = -1)
+        #(80,input_dim + encoded_dim)
+        
+        et = K.dot(combine,self.W_a) 
+        if self.use_bias:
+            et = K.bias_add(et,self.b_a)
+        #(80,1)
+        et = activations.sigmoid(et)
+        
+        #at = K.exp(et)
+        #no softmax
+        at = et
+        at_sum = K.sum(at, axis=1)
+        at_sum_repeated = K.repeat(at_sum, self.timesteps)
+        at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
+        # calculate the context vector
+        context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
+        #(encoded_dim)
+
+
+        if self.return_probabilities:
+            return at, [h]
+        else:
+            return context, [h]
+
+    def compute_output_shape(self, input_shape):
+        """
+            For Keras internal compatability checking
+        """
+        if self.return_probabilities:
+            return (None, self.timesteps, self.timesteps)
+        else:
+            return (None, self.input_len, self.encoded_dim)
+
+    def get_config(self):
+        """
+            For rebuilding models on load time.
+        """
+        config = {
+            'encoded_dim': self.encoded_dim,
+            'input_dim': self.input_dim,
+            'return_probabilities': self.return_probabilities,
+        }
+        base_config = super(AttentionLayer, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 class AttentionDecoder(Recurrent):
 
     def __init__(self, units, vocab_dim,
