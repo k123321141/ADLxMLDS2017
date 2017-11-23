@@ -359,15 +359,13 @@ class AttentionDecoder(Recurrent):
 
         et = K.sum(et * _stm, axis = -1,keepdims = True) 
         #(80,1)
-        et = activations.sigmoid(et)
-        print('et',et.get_shape())
         if self.attention_softmax:
             at = K.exp(et)
             at_sum = K.sum(at, axis=1)
             at_sum_repeated = K.repeat(at_sum, self.timesteps)
             at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
-            print('at',at.get_shape())
         else:
+            et = activations.sigmoid(et)
             at = et
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
