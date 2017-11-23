@@ -292,6 +292,11 @@ class AttentionDecoder(Recurrent):
                                     initializer=self.bias_initializer,
                                     regularizer=self.bias_regularizer,
                                     constraint=self.bias_constraint)
+        self.W_ya = self.add_weight(shape=(self.input_dim, self.units),
+                                   name='W_ya',
+                                   initializer=self.kernel_initializer,
+                                   regularizer=self.kernel_regularizer,
+                                   constraint=self.kernel_constraint)
         # For creating the initial state:
         self.W_s = self.add_weight(shape=(self.input_dim, self.units),
                                    name='W_s',
@@ -346,6 +351,7 @@ class AttentionDecoder(Recurrent):
             For similarity.
         """
         _stm = K.repeat(stm, self.timesteps)
+        _ytm = K.repeat(ytm, self.timesteps)
         #(80,units) 
 
         # calculate the attention probabilities
@@ -353,12 +359,13 @@ class AttentionDecoder(Recurrent):
 
         #during a dense
         #batch,timesteps,encoded_dim) dot (encoded_dim,units) 
-        et = K.dot(self._uxpb,self.W_a) + self.b_a
+        et = K.dot(self._uxpb,self.W_a) + K.dot(_ytm,self.W_ya) + self.b_a
         #(batch,timesteps,units)
         
         #((batch,timesteps,units) (units,1)
 
         et = K.sum(et * _stm, axis = -1,keepdims = True) 
+        et = activations.sigmoid(et)
         #(80,1)
         if self.attention_softmax:
             at = K.exp(et)
@@ -366,7 +373,6 @@ class AttentionDecoder(Recurrent):
             at_sum_repeated = K.repeat(at_sum, self.timesteps)
             at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
         else:
-            et = activations.sigmoid(et)
             at = et
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
