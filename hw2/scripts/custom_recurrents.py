@@ -154,6 +154,7 @@ class AttentionLayer(Recurrent):
 class AttentionDecoder(Recurrent):
 
     def __init__(self, units, vocab_dim,
+                 attention_softmax=True,
                  activation='tanh',
                  recurrent_activation='hard_sigmoid',
                  use_bias = True,
@@ -183,6 +184,7 @@ class AttentionDecoder(Recurrent):
         self.units = units
         self.vocab_dim = vocab_dim 
         self.use_bias = use_bias
+        self.attention_softmax = attention_softmax
         self.return_probabilities = return_probabilities
         self.activation = activations.get(activation)
         self.recurrent_activation = activations.get(recurrent_activation)
@@ -349,21 +351,24 @@ class AttentionDecoder(Recurrent):
         # this relates how much other timesteps contributed to this one.
 
         #during a dense
-        #(decoded_dim,units) (batch,timesteps,encoded_dim)
-        buf = K.dot(self.W_a,self._uxpb) + self.b_a
+        #batch,timesteps,encoded_dim) dot (encoded_dim,units) 
+        et = K.dot(self._uxpb,self.W_a) + self.b_a
         #(batch,timesteps,units)
         
-        #(80,units + encoded_dim)
-        et = K.dot(_stm,buf) 
+        #((batch,timesteps,units) (units,1)
+
+        et = K.sum(et * _stm, axis = -1,keepdims = True) 
         #(80,1)
         et = activations.sigmoid(et)
-        
-        at = K.exp(et)
-        #no softmax
-        #at = et
-        at_sum = K.sum(at, axis=1)
-        at_sum_repeated = K.repeat(at_sum, self.timesteps)
-        at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
+        print('et',et.get_shape())
+        if self.attention_softmax:
+            at = K.exp(et)
+            at_sum = K.sum(at, axis=1)
+            at_sum_repeated = K.repeat(at_sum, self.timesteps)
+            at /= at_sum_repeated  # veglobalctor of size (batchsize, timesteps, 1)
+            print('at',at.get_shape())
+        else:
+            at = et
         # calculate the context vector
         context = K.squeeze(K.batch_dot(at, self.x_seq, axes=1), axis=1)
         #(encoded_dim)
