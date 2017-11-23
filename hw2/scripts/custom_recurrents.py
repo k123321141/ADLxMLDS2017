@@ -279,12 +279,12 @@ class AttentionDecoder(Recurrent):
         """
             Setting matrices for creating the context vector
         """
-        self.W_a = self.add_weight(shape=(self.units+self.encoded_dim, 1),
+        self.W_a = self.add_weight(shape=(self.encoded_dim, self.units),
                                    name='W_a',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
                                    constraint=self.kernel_constraint)
-        self.b_a = self.add_weight(shape=(1,),
+        self.b_a = self.add_weight(shape=(self.units,),
                                     name='b_a',
                                     initializer=self.bias_initializer,
                                     regularizer=self.bias_regularizer,
@@ -348,10 +348,13 @@ class AttentionDecoder(Recurrent):
         # calculate the attention probabilities
         # this relates how much other timesteps contributed to this one.
 
-        #during a dense 
-        combine = K.concatenate([_stm,self._uxpb],axis = -1)
+        #during a dense
+        #(decoded_dim,units) (batch,timesteps,encoded_dim)
+        buf = K.dot(self.W_a,self._uxpb) + self.b_a
+        #(batch,timesteps,units)
+        
         #(80,units + encoded_dim)
-        et = K.dot(combine,self.W_a) + self.b_a
+        et = K.dot(_stm,buf) 
         #(80,1)
         et = activations.sigmoid(et)
         
