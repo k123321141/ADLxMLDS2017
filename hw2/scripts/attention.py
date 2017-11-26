@@ -25,12 +25,16 @@ def model(input_len,input_dim,output_len,vocab_dim):
     #encoder, bidirectional RNN
     for _ in range(config.DEPTH):
         #forward RNN
-        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = False,name='forward_encoder_%d'%_)(x)
+        ret1 = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,
+                go_backwards = False,name='forward_encoder_%d'%_)(x)
         hi_st = ret1[1:] if config.RNN == LSTM else ret1[1]
         #backward RNN
-        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,go_backwards = True,name='backward_encoder_%d'%_)(x,initial_state = hi_st)
+        ret2  = config.RNN(config.HIDDEN_SIZE,activation = 'tanh',return_state = True,return_sequences = True,
+                go_backwards = True,name='backward_encoder_%d'%_)(x,initial_state = hi_st)
+
         #concatenate both side
         x = Concatenate(axis = -1)([ret1[0],ret2[0]])
+
         #prepare hidden state for encoder
         hi_st = ret2[1:] if config.RNN == LSTM else ret2[1]
         if _ != config.DEPTH -1 :
@@ -40,11 +44,11 @@ def model(input_len,input_dim,output_len,vocab_dim):
     y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False,name='word_embedding'))(label)
     #y = label
     #decoder
-    print('build attention')
-    #pred = custom_recurrents.AttentionDecoder(100,vocab_dim = config.EMBEDDING_DIM,train_by_label = True,name = 'decoder')([x,y])
-    pred = custom_recurrents.AttentionDecoder(config.HIDDEN_SIZE,vocab_dim = vocab_dim,attention_softmax = True,train_by_label = True,name = 'decoder')([x,y])
-    print('build attention done')
-    #pred = TimeDistributed(Dense(vocab_dim,activation ='linear',use_bias = False))(pred) 
+    
+    pred = custom_recurrents.AttentionDecoder(config.HIDDEN_SIZE,vocab_dim = vocab_dim,
+            attention_softmax = True,train_by_label = config.TRAIN_BY_LABEL,name = 'decoder')([x,y])
+    
+    pred = TimeDistributed(Dense(vocab_dim,activation ='softmax',use_bias = True))(pred) 
     model = Model(inputs = [data,label],output=pred)  
     model.summary()
     return model

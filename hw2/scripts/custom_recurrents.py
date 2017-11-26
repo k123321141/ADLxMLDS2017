@@ -70,7 +70,7 @@ class AttentionDecoder(Recurrent):
 
         self.batch_size, self.timesteps, self.encoded_dim = input_shape[0]
         self.batch_size, self.input_len, self.input_dim = input_shape[1]
-
+        print('build',input_shape)
         if self.stateful:
             super(AttentionDecoder, self).reset_states()
 
@@ -124,16 +124,18 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units, self.vocab_dim),
+        self.W_o = self.add_weight(shape=(self.units, self.input_dim),
                                    name='W_o',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
                                    constraint=self.kernel_constraint)
+        '''
         self.b_o = self.add_weight(shape=(self.vocab_dim, ),
                                    name='b_o',
                                    initializer=self.bias_initializer,
                                    regularizer=self.bias_regularizer,
                                    constraint=self.bias_constraint)
+        '''
         """
             Setting matrices for creating the context vector
         """
@@ -191,11 +193,13 @@ class AttentionDecoder(Recurrent):
         # output_dim)
         y0 = inputs[:,0]
         #combine = K.concatenate([s0,y0],axis = -1)
-        yt = activations.softmax(
+        '''
+        yt = (
             K.dot(s0, self.W_o)
-
-            + self.b_o)
-        return [yt, s0]
+            
+        #+ self.b_o)
+        '''
+        return [y0, s0]
 
     def step(self, x, states):
 
@@ -207,6 +211,8 @@ class AttentionDecoder(Recurrent):
         """
         _stm = K.repeat(stm, self.timesteps)
         _ytm = K.repeat(ytm, self.timesteps)
+        print('_ytm,W_ya',_ytm.get_shape(),self.W_ya.get_shape())
+        _ytm = K.dot(_ytm,self.W_ya)
         #(80,units) 
 
         # calculate the attention probabilities
@@ -214,7 +220,7 @@ class AttentionDecoder(Recurrent):
 
         #during a dense
         #batch,timesteps,encoded_dim) dot (encoded_dim,units) 
-        et = K.dot(self._uxpb,self.W_a) + K.dot(_ytm,self.W_ya) + self.b_a
+        et = K.dot(self._uxpb,self.W_a) + _ytm +  self.b_a
         #(batch,timesteps,units)
         
         #((batch,timesteps,units) (units,1)
@@ -257,10 +263,8 @@ class AttentionDecoder(Recurrent):
         
         #yt = activations.softmax(
         #output label
-        yt = activations.softmax(
-            K.dot(h, self.W_o)
-
-            + self.b_o)
+        yt = K.dot(h, self.W_o)
+            #+ self.b_o)
         st = h
         if self.return_probabilities:
             return at, [yt, st]
@@ -274,7 +278,7 @@ class AttentionDecoder(Recurrent):
         if self.return_probabilities:
             return (None, self.timesteps, self.timesteps)
         else:
-            return (None, self.input_len, self.vocab_dim)
+            return (None, self.input_len, self.input_dim)
 
     def get_config(self):
         """

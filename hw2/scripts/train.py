@@ -66,7 +66,7 @@ if __name__ == '__main__':
                   optimizer=opt,
                   metrics=['accuracy'],sample_weight_mode = 'temporal')
     '''
-    for epoch_idx in range(2000000):
+    for epoch_idx in range(10):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
         #record the loss and acc
@@ -100,10 +100,11 @@ if __name__ == '__main__':
 
         #after a epoch
         if epoch_idx % config.SAVE_ITERATION == 0:
-            #model.save(join(config.CKS_PATH,'%d.cks'%epoch_idx))
             model.save(config.CKS_PATH)
+
             #test_y just for testing,no need for iter as a whole epoch 
             test_y = test_y_generator.next()
+
             # Select 2 samples from the test set at random so we can visualize errors.
             utils.testing(model,x,y,test_x,test_y,5)
 
