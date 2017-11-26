@@ -16,7 +16,6 @@ import config
 import HW2_config
 import utils
 import bleu_eval
-import custom_recurrents
 from os.path import join
 from keras.models import *
 from keras.optimizers import Adam
