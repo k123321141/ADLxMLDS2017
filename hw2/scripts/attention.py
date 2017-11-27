@@ -41,14 +41,17 @@ def model(input_len,input_dim,output_len,vocab_dim):
             x = Dropout(config.DROPOUT)(x)
 
     #word embedding
-    y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False,name='word_embedding'))(label)
-    #y = label
+    #y = TimeDistributed(Dense(config.EMBEDDING_DIM,activation = 'linear',use_bias = False,name='word_embedding'))(label)
+    y = label
     #decoder
-    
+    ''' 
+    pred = custom_recurrents.AttentionDecoder(config.HIDDEN_SIZE,vocab_dim = vocab_dim,
+            attention_softmax = True,train_by_label = config.TRAIN_BY_LABEL,name = 'decoder')([x,y])
+    '''
     pred = custom_recurrents.AttentionDecoder(config.HIDDEN_SIZE,vocab_dim = vocab_dim,
             attention_softmax = True,train_by_label = config.TRAIN_BY_LABEL,name = 'decoder')([x,y])
     
-    pred = TimeDistributed(Dense(vocab_dim,activation ='softmax',use_bias = True))(pred) 
+    #pred = TimeDistributed(Dense(vocab_dim,activation ='softmax',use_bias = True))(pred) 
     model = Model(inputs = [data,label],output=pred)  
     model.summary()
     return model

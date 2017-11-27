@@ -124,18 +124,21 @@ class AttentionDecoder(Recurrent):
             Output softmax matrics
             Concatenate ytm,stm,context
         """
-        self.W_o = self.add_weight(shape=(self.units, self.input_dim),
-                                   name='W_o',
+        self.W_embedding = self.add_weight(shape=(self.vocab_dim, self.units),
+                                   name='W_embedding',
                                    initializer=self.kernel_initializer,
                                    regularizer=self.kernel_regularizer,
                                    constraint=self.kernel_constraint)
-        '''
-        self.b_o = self.add_weight(shape=(self.vocab_dim, ),
-                                   name='b_o',
+        self.W_softmax = self.add_weight(shape=(self.units, self.vocab_dim),
+                                   name='W_softmax',
+                                   initializer=self.kernel_initializer,
+                                   regularizer=self.kernel_regularizer,
+                                   constraint=self.kernel_constraint)
+        self.b_softmax = self.add_weight(shape=(self.vocab_dim, ),
+                                   name='b_softmax',
                                    initializer=self.bias_initializer,
                                    regularizer=self.bias_regularizer,
                                    constraint=self.bias_constraint)
-        '''
         """
             Setting matrices for creating the context vector
         """
@@ -149,11 +152,6 @@ class AttentionDecoder(Recurrent):
                                     initializer=self.bias_initializer,
                                     regularizer=self.bias_regularizer,
                                     constraint=self.bias_constraint)
-        self.W_ya = self.add_weight(shape=(self.input_dim, self.units),
-                                   name='W_ya',
-                                   initializer=self.kernel_initializer,
-                                   regularizer=self.kernel_regularizer,
-                                   constraint=self.kernel_constraint)
         # For creating the initial state:
         self.W_s = self.add_weight(shape=(self.input_dim, self.units),
                                    name='W_s',
@@ -193,12 +191,12 @@ class AttentionDecoder(Recurrent):
         # output_dim)
         y0 = inputs[:,0]
         #combine = K.concatenate([s0,y0],axis = -1)
+
+        #embedding
         '''
-        yt = (
-            K.dot(s0, self.W_o)
-            
-        #+ self.b_o)
-        '''
+        yt = K.dot(y0, self.embedding_dim)
+        yt = activations.softmax( K.dot(yt,self.W_softmax) + self.b_softmax)
+        ''' 
         return [y0, s0]
 
     def step(self, x, states):
@@ -206,13 +204,16 @@ class AttentionDecoder(Recurrent):
         ytm, stm = states
         if self.train_by_label:
             ytm = x
+        else:
+            ytm = K.argmax(ytm, axis = -1)
+            ytm = tf.one_hot(ytm, depth = self.input_dim)
+        #embedding
+        ytm = K.dot(ytm, self.W_embedding)
         """
             For similarity.
         """
         _stm = K.repeat(stm, self.timesteps)
         _ytm = K.repeat(ytm, self.timesteps)
-        print('_ytm,W_ya',_ytm.get_shape(),self.W_ya.get_shape())
-        _ytm = K.dot(_ytm,self.W_ya)
         #(80,units) 
 
         # calculate the attention probabilities
@@ -261,10 +262,14 @@ class AttentionDecoder(Recurrent):
         if 0 < self.dropout + self.recurrent_dropout:
             h._uses_learning_phase = True
         
-        #yt = activations.softmax(
-        #output label
+        #output labe
+        '''l
         yt = K.dot(h, self.W_o)
             #+ self.b_o)
+        '''
+
+        yt = activations.softmax(K.dot(h, self.W_softmax)+ self.b_softmax)
+        #
         st = h
         if self.return_probabilities:
             return at, [yt, st]
@@ -278,7 +283,7 @@ class AttentionDecoder(Recurrent):
         if self.return_probabilities:
             return (None, self.timesteps, self.timesteps)
         else:
-            return (None, self.input_len, self.input_dim)
+            return (None, self.input_len, self.vocab_dim)
 
     def get_config(self):
         """

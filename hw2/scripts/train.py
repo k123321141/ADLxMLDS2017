@@ -66,7 +66,7 @@ if __name__ == '__main__':
                   optimizer=opt,
                   metrics=['accuracy'],sample_weight_mode = 'temporal')
     '''
-    for epoch_idx in range(10):
+    for epoch_idx in range(2000000):
         #train by labels
         train_cheat = np.repeat(myinput.caption_one_hot('<bos>'),HW2_config.video_num,axis = 0)
         #record the loss and acc
