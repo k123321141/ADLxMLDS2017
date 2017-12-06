@@ -12,3 +12,4 @@
 *.npy
 out.txt
 config.py
+breakout-*

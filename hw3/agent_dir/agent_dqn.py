@@ -6,15 +6,15 @@ from skimage.transform import resize
 from keras.models import Sequential
 from keras.layers import *
 import random
-import os
+import os,sys
 
 
 ENV_NAME = 'breakout'
 NUM_EPISODES = 1200000  # Number of episodes the agent plays
 FRAME_WIDTH, FRAME_HEIGHT, STATE_LENGTH = 84,84,4
 GAMMA = 0.99  # Discount factor
-EXPLORATION_STEPS = 300000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
-INITIAL_EPSILON = 0.80  # Initial value of epsilon in epsilon-greedy
+EXPLORATION_STEPS = 1000000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
+INITIAL_EPSILON = 0.99  # Initial value of epsilon in epsilon-greedy
 FINAL_EPSILON = 0.1  # Final value of epsilon in epsilon-greedy
 INITIAL_REPLAY_SIZE = 2000  # Number of steps to populate the replay memory before training starts
 NUM_REPLAY_MEMORY = 40000  # Number of replay memory the agent uses for training
@@ -278,11 +278,12 @@ class Agent_DQN(Agent):
             else:
                 mode = 'exploit'
             #print('total loss = ' , (self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL)) ))
-            print('EPISODE: {0:6d} / TIMESTEP: {1:8d} / DURATION: {2:5d} / EPSILON: {3:.5f} / TOTAL_REWARD: {4:3.0f} / AVG_MAX_Q: {5:2.4f} / AVG_LOSS: {6:.5f} / MODE: {7}'.format(
+            if self.episode % 100 == 0:
+                print('EPISODE: {0:6d} / TIMESTEP: {1:8d} / DURATION: {2:5d} / EPSILON: {3:.5f} / TOTAL_REWARD: {4:3.0f} / AVG_MAX_Q: {5:2.4f} / AVG_LOSS: {6:.5f} / MODE: {7}'.format(
                 self.episode + 1, self.t, self.duration, self.epsilon,
                 self.total_reward, self.total_q_max / float(self.duration),
                 self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL)) , mode))
-
+                sys.stdout.flush()
             self.total_reward = 0
             self.total_q_max = 0
             self.total_loss = 0.
