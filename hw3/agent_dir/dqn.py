@@ -71,10 +71,8 @@ class Agent():
 
         self.sess = tf.InteractiveSession()
         self.saver = tf.train.Saver(q_network_weights)
-        '''
         self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
         self.summary_writer = tf.train.SummaryWriter(SAVE_SUMMARY_PATH, self.sess.graph)
-        '''
         
         '''
         if not os.path.exists(SAVE_NETWORK_PATH):
@@ -251,13 +249,13 @@ class Agent():
 
     def setup_summary(self):
         episode_total_reward = tf.Variable(0.)
-        tf.scalar_summary(ENV_NAME + '/Total Reward/Episode', episode_total_reward)
+        tf.summary.scalar(ENV_NAME + '/Total Reward/Episode', episode_total_reward)
         episode_avg_max_q = tf.Variable(0.)
-        tf.scalar_summary(ENV_NAME + '/Average Max Q/Episode', episode_avg_max_q)
+        tf.summary_scalar(ENV_NAME + '/Average Max Q/Episode', episode_avg_max_q)
         episode_duration = tf.Variable(0.)
-        tf.scalar_summary(ENV_NAME + '/Duration/Episode', episode_duration)
+        tf.summary_scalar(ENV_NAME + '/Duration/Episode', episode_duration)
         episode_avg_loss = tf.Variable(0.)
-        tf.scalar_summary(ENV_NAME + '/Average Loss/Episode', episode_avg_loss)
+        tf.summary_scalar(ENV_NAME + '/Average Loss/Episode', episode_avg_loss)
         summary_vars = [episode_total_reward, episode_avg_max_q, episode_duration, episode_avg_loss]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
         update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
