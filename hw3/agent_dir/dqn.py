@@ -37,7 +37,7 @@ TRAIN = True
 SAVE_NETWORK_PATH = './saved_networks/' + ENV_NAME
 SAVE_SUMMARY_PATH = './summary/' + ENV_NAME
 NUM_EPISODES_AT_TEST = 30  # Number of episodes the agent plays at test time
-
+DO_RENDER = False
 
 class Agent():
     def __init__(self, num_actions):
@@ -293,7 +293,8 @@ def preprocess(observation, last_observation):
 def main():
     env = gym.make(ENV_NAME)
     agent = Agent(num_actions=env.action_space.n)
-    viewer = rendering.SimpleImageViewer()
+    if DO_RENDER:
+        viewer = rendering.SimpleImageViewer()
 
     if TRAIN:  # Train mode
         for _ in range(NUM_EPISODES):
@@ -307,10 +308,11 @@ def main():
                 last_observation = observation
                 action = agent.get_action(state)
                 observation, reward, terminal, _ = env.step(action)
-                rgb = env.render('rgb_array')
-                #rgb render
-                upscaled=repeat_upsample(rgb,3, 3)
-                viewer.imshow(upscaled)
+                if DO_RENDER:
+                    rgb = env.render('rgb_array')
+                    #rgb render
+                    upscaled=repeat_upsample(rgb,3, 3)
+                    viewer.imshow(upscaled)
                 #
                 processed_observation = preprocess(observation, last_observation)
                 state = agent.run(state, action, reward, terminal, processed_observation)
@@ -346,4 +348,7 @@ def repeat_upsample(rgb_array, k=1, l=1, err=[]):
     return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
 
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) == 2 and sys.argv[-1] == '-r':
+        DO_RENDER = True
     main()
