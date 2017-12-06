@@ -47,7 +47,7 @@ class Agent_DQN(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        print(dir(env.get_action_space()))
+        print(dir(env))
         print(env.get_action_space().n)
 
         self.env = env   
@@ -91,7 +91,7 @@ class Agent_DQN(Agent):
                     action = self.get_action(observation)
                     observation, reward, terminal, _ = env.step(action)
                     if DO_RENDER:
-                        rgb = env.render('rgb_array')
+                        rgb = env.env.render('rgb_array')
                         #rgb render
                         upscaled=repeat_upsample(rgb,3, 3)
                         viewer.imshow(upscaled)
