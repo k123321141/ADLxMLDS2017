@@ -72,7 +72,7 @@ class Agent():
         self.sess = tf.InteractiveSession()
         self.saver = tf.train.Saver(q_network_weights)
         self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
-        self.summary_writer = tf.train.FileWriter(SAVE_SUMMARY_PATH, self.sess.graph)
+        self.summary_writer = tf.summary.FileWriter(SAVE_SUMMARY_PATH, self.sess.graph)
         
         '''
         if not os.path.exists(SAVE_NETWORK_PATH):
