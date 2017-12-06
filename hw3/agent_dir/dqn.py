@@ -18,18 +18,18 @@ STATE_LENGTH = 4  # Number of most recent frames to produce the input to the net
 FRAME_WIDTH = 210
 FRAME_HEIGHT = 160
 GAMMA = 0.99  # Discount factor
-EXPLORATION_STEPS = 30000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
-INITIAL_EPSILON = 1.0  # Initial value of epsilon in epsilon-greedy
+EXPLORATION_STEPS = 300000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
+INITIAL_EPSILON = 0.80  # Initial value of epsilon in epsilon-greedy
 FINAL_EPSILON = 0.1  # Final value of epsilon in epsilon-greedy
 INITIAL_REPLAY_SIZE = 2000  # Number of steps to populate the replay memory before training starts
 NUM_REPLAY_MEMORY = 40000  # Number of replay memory the agent uses for training
 BATCH_SIZE = 32  # Mini batch size
 TARGET_UPDATE_INTERVAL = 1000  # The frequency with which the target network is updated
 TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
-LEARNING_RATE = 0.025  # Learning rate used by RMSProp
+LEARNING_RATE = 0.01  # Learning rate used by RMSProp
 MOMENTUM = 0.95  # Momentum used by RMSProp
 MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
-SAVE_INTERVAL = 3000  # The frequency with which the network is saved
+SAVE_INTERVAL = 30000  # The frequency with which the network is saved
 NO_OP_STEPS = 30  # Maximum number of "do nothing" actions to be performed by the agent at the start of an episode
 LOAD_NETWORK = True 
 TRAIN = True
@@ -87,12 +87,10 @@ class Agent():
 
     def build_network(self):
         model = Sequential()
-        model.add(Conv2D(32, kernel_size = (8,8), activation='relu', input_shape=(STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT), data_format = 'channels_first'))
-        model.add(MaxPooling2D((2,2) ))
-        model.add(Conv2D(64, kernel_size = (4,4), activation='relu'))
-        model.add(MaxPooling2D((2,2) ))
+        model.add(Conv2D(32, kernel_size = (8,8), strides = (4,4), activation='relu', input_shape=(STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT), data_format = 'channels_first'))
+        model.add(Conv2D(64, kernel_size = (4,4), strides = (2,2), activation='relu', data_format = 'channels_first'))
+        model.add(Conv2D(64, kernel_size = (3,3), strides = (1,1), activation='relu', data_format = 'channels_first'))
         '''
-        model.add(Conv2D(64, kernel_size = (3,2), activation='relu'))
         model.add(MaxPooling2D((2,2) ))
         model.add(Conv2D(32, kernel_size = (8,8), activation='relu'))
         ''' 
@@ -109,7 +107,7 @@ class Agent():
         '''
         s = tf.placeholder(tf.float32, [None,STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT])
         q_values = model(s)
-
+        print(model.summary())
         return s, q_values, model
 
     def build_training_op(self, q_network_weights):
@@ -136,7 +134,7 @@ class Agent():
 
     def get_initial_state(self, observation, last_observation):
         processed_observation = np.maximum(observation, last_observation)
-        processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) * 255)
+        processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) )
         state = [processed_observation for _ in range(STATE_LENGTH)]
         return np.stack(state, axis=0)
 
@@ -145,7 +143,7 @@ class Agent():
             action = random.randrange(self.num_actions)
         else:
             #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
-            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]})
+            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state)]})
             action = sgd_action(probs)
             #print softmax(probs[0]),action
         # Anneal epsilon linearly over time
@@ -180,7 +178,7 @@ class Agent():
                 print('Successfully saved: ' + save_path)
 
         self.total_reward += reward
-        self.total_q_max += np.max(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
+        self.total_q_max += np.max(self.q_values.eval(feed_dict={self.s: [np.float32(state)]}))
         self.duration += 1
 
         if terminal:
@@ -240,11 +238,11 @@ class Agent():
         # Convert True to 1, False to 0
         terminal_batch = np.array(terminal_batch) + 0
 
-        target_q_values_batch = self.target_q_values.eval(feed_dict={self.st: np.float32(np.array(next_state_batch) / 255.0)})
+        target_q_values_batch = self.target_q_values.eval(feed_dict={self.st: np.float32(np.array(next_state_batch) )})
         y_batch = reward_batch + (1 - terminal_batch) * GAMMA * np.max(target_q_values_batch, axis=1)
 
         loss, _ = self.sess.run([self.loss, self.grads_update], feed_dict={
-            self.s: np.float32(np.array(state_batch) / 255.0),
+            self.s: np.float32(np.array(state_batch)),
             self.a: action_batch,
             self.y: y_batch
         })
@@ -282,7 +280,7 @@ class Agent():
             action = random.randrange(self.num_actions)
         else:
             #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
-            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]})
+            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state)]})
             action = sgd_action(probs)
             
         self.t += 1
@@ -292,7 +290,7 @@ class Agent():
 
 def preprocess(observation, last_observation):
     processed_observation = np.maximum(observation, last_observation)
-    processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) * 255)
+    processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) )
     return np.reshape(processed_observation, (1, FRAME_WIDTH, FRAME_HEIGHT))
     #return observation 
 def sgd_action(probs):
