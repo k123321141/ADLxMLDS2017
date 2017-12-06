@@ -18,20 +18,20 @@ STATE_LENGTH = 4  # Number of most recent frames to produce the input to the net
 FRAME_WIDTH = 210
 FRAME_HEIGHT = 160
 GAMMA = 0.99  # Discount factor
-EXPLORATION_STEPS = 1000000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
+EXPLORATION_STEPS = 30000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
 INITIAL_EPSILON = 1.0  # Initial value of epsilon in epsilon-greedy
 FINAL_EPSILON = 0.1  # Final value of epsilon in epsilon-greedy
 INITIAL_REPLAY_SIZE = 2000  # Number of steps to populate the replay memory before training starts
 NUM_REPLAY_MEMORY = 40000  # Number of replay memory the agent uses for training
 BATCH_SIZE = 32  # Mini batch size
-TARGET_UPDATE_INTERVAL = 10000  # The frequency with which the target network is updated
+TARGET_UPDATE_INTERVAL = 1000  # The frequency with which the target network is updated
 TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
-LEARNING_RATE = 0.00025  # Learning rate used by RMSProp
+LEARNING_RATE = 0.025  # Learning rate used by RMSProp
 MOMENTUM = 0.95  # Momentum used by RMSProp
 MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
 SAVE_INTERVAL = 3000  # The frequency with which the network is saved
 NO_OP_STEPS = 30  # Maximum number of "do nothing" actions to be performed by the agent at the start of an episode
-LOAD_NETWORK = False
+LOAD_NETWORK = True 
 TRAIN = True
 SAVE_NETWORK_PATH = './saved_networks/' 
 SAVE_SUMMARY_PATH = './summary/' + ENV_NAME
@@ -79,11 +79,9 @@ class Agent():
             os.makedirs(SAVE_NETWORK_PATH)
         '''
         self.sess.run(tf.initialize_all_variables())
-        '''
         # Load network
         if LOAD_NETWORK:
             self.load_network()
-        '''
         # Initialize target network
         self.sess.run(self.update_target_network)
 
@@ -146,7 +144,10 @@ class Agent():
         if self.epsilon >= random.random() or self.t < INITIAL_REPLAY_SIZE:
             action = random.randrange(self.num_actions)
         else:
-            action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
+            #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
+            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]})
+            action = sgd_action(probs)
+            #print softmax(probs[0]),action
         # Anneal epsilon linearly over time
         if self.epsilon > FINAL_EPSILON and self.t >= INITIAL_REPLAY_SIZE:
             self.epsilon -= self.epsilon_step
@@ -280,8 +281,10 @@ class Agent():
         if random.random() <= 0.05:
             action = random.randrange(self.num_actions)
         else:
-            action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
-
+            #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
+            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]})
+            action = sgd_action(probs)
+            
         self.t += 1
 
         return action
@@ -292,6 +295,22 @@ def preprocess(observation, last_observation):
     processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) * 255)
     return np.reshape(processed_observation, (1, FRAME_WIDTH, FRAME_HEIGHT))
     #return observation 
+def sgd_action(probs):
+    probs = probs[0]
+    probs = softmax(probs)
+    temp = 0
+    idx = 0
+    r = random.random()
+    assert len(probs.shape) == 1
+    for i in range(len(probs)):
+        temp += probs[i]
+        if temp > r :
+            idx = i
+            break
+    return idx
+
+def softmax(x):
+    return np.exp(x) / np.sum(np.exp(x), axis = 0)
 
 def main():
     env = gym.make(ENV_NAME)
@@ -342,7 +361,7 @@ def repeat_upsample(rgb_array, k=1, l=1, err=[]):
     # repeat kinda crashes if k/l are zero
     if k <= 0 or l <= 0: 
         if not err: 
-            print "Number of repeats must be larger than 0, k: {}, l: {}, returning default array!".format(k, l)
+            print("Number of repeats must be larger than 0, k: {}, l: {}, returning default array!".format(k, l))
             err.append('logged')
         return rgb_array
 
