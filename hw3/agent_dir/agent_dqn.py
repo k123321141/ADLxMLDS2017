@@ -17,6 +17,31 @@ class Agent_DQN(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
+        print(env.observation_spec)
+        NUM_EPISODES = 12000  # Number of episodes the agent plays
+        STATE_LENGTH = 4  # Number of most recent frames to produce the input to the network
+        FRAME_WIDTH = 210
+        FRAME_HEIGHT = 160
+        GAMMA = 0.99  # Discount factor
+        EXPLORATION_STEPS = 300000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
+        INITIAL_EPSILON = 0.80  # Initial value of epsilon in epsilon-greedy
+        FINAL_EPSILON = 0.1  # Final value of epsilon in epsilon-greedy
+        INITIAL_REPLAY_SIZE = 2000  # Number of steps to populate the replay memory before training starts
+        NUM_REPLAY_MEMORY = 40000  # Number of replay memory the agent uses for training
+        BATCH_SIZE = 32  # Mini batch size
+        TARGET_UPDATE_INTERVAL = 1000  # The frequency with which the target network is updated
+        TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
+        LEARNING_RATE = 0.01  # Learning rate used by RMSProp
+        MOMENTUM = 0.95  # Momentum used by RMSProp
+        MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
+        SAVE_INTERVAL = 30000  # The frequency with which the network is saved
+        NO_OP_STEPS = 30  # Maximum number of "do nothing" actions to be performed by the agent at the start of an episode
+        LOAD_NETWORK = True 
+        TRAIN = True
+        SAVE_NETWORK_PATH = './saved_networks/' 
+        SAVE_SUMMARY_PATH = './summary/' + ENV_NAME
+        NUM_EPISODES_AT_TEST = 30  # Number of episodes the agent plays at test time
+        DO_RENDER = False
 
 
     def init_game_setting(self):
