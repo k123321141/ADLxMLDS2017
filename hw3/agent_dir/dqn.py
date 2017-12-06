@@ -11,7 +11,6 @@ from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import Sequential
 from keras.layers import *
-from gym.envs.classic_control import rendering
 
 ENV_NAME = 'BreakoutNoFrameskip-v4'# Environment name
 NUM_EPISODES = 12000  # Number of episodes the agent plays
@@ -294,6 +293,7 @@ def main():
     env = gym.make(ENV_NAME)
     agent = Agent(num_actions=env.action_space.n)
     if DO_RENDER:
+        from gym.envs.classic_control import rendering
         viewer = rendering.SimpleImageViewer()
 
     if TRAIN:  # Train mode
