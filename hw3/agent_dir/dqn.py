@@ -259,7 +259,7 @@ class Agent():
         summary_vars = [episode_total_reward, episode_avg_max_q, episode_duration, episode_avg_loss]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
         update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
-        summary_op = tf.merge_all_summaries()
+        summary_op = tf.summary.merge_all()
         return summary_placeholders, update_ops, summary_op
 
     def load_network(self):
