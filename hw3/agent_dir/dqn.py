@@ -189,7 +189,7 @@ class Agent():
                         self.duration, self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL))]
                 for i in range(len(stats)):
                     self.sess.run(self.update_target_network[i], feed_dict={
-                        self.summary_placeholders[i]: float(stats[i])
+                        self.summary_placeholders[i]: np.float(stats[i])
                     })
                 summary_str = self.sess.run(self.summary_op)
                 self.summary_writer.add_summary(summary_str, self.episode + 1)
