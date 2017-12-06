@@ -6,6 +6,8 @@ from skimage.transform import resize
 from keras.models import Sequential
 from keras.layers import *
 import random
+import os
+
 
 ENV_NAME = 'breakout'
 NUM_EPISODES = 12000  # Number of episodes the agent plays
@@ -23,7 +25,7 @@ TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
 LEARNING_RATE = 0.01  # Learning rate used by RMSProp
 MOMENTUM = 0.95  # Momentum used by RMSProp
 MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
-SAVE_INTERVAL = 30000  # The frequency with which the network is saved
+SAVE_INTERVAL = 1000  # The frequency with which the network is saved
 NO_OP_STEPS = 30  # Maximum number of "do nothing" actions to be performed by the agent at the start of an episode
 LOAD_NETWORK = True 
 TRAIN = True
@@ -74,7 +76,7 @@ class Agent_DQN(Agent):
         # YOUR CODE HERE #
         ##################
         env = self.env
-        DO_RENDER = True
+        DO_RENDER = False
         if DO_RENDER:
             from gym.envs.classic_control import rendering
             viewer = rendering.SimpleImageViewer()
@@ -247,6 +249,7 @@ class Agent_DQN(Agent):
 
             # Save network
             if self.t % SAVE_INTERVAL == 0:
+                os.system('rm ' + SAVE_NETWORK_PATH + '*') 
                 save_path = self.saver.save(self.sess, SAVE_NETWORK_PATH + '/' + ENV_NAME, global_step=self.t)
                 print('Successfully saved: ' + save_path)
 
