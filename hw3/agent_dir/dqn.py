@@ -251,11 +251,11 @@ class Agent():
         episode_total_reward = tf.Variable(0.)
         tf.summary.scalar(ENV_NAME + '/Total Reward/Episode', episode_total_reward)
         episode_avg_max_q = tf.Variable(0.)
-        tf.summary_scalar(ENV_NAME + '/Average Max Q/Episode', episode_avg_max_q)
+        tf.summary.scalar(ENV_NAME + '/Average Max Q/Episode', episode_avg_max_q)
         episode_duration = tf.Variable(0.)
-        tf.summary_scalar(ENV_NAME + '/Duration/Episode', episode_duration)
+        tf.summary.scalar(ENV_NAME + '/Duration/Episode', episode_duration)
         episode_avg_loss = tf.Variable(0.)
-        tf.summary_scalar(ENV_NAME + '/Average Loss/Episode', episode_avg_loss)
+        tf.summary.scalar(ENV_NAME + '/Average Loss/Episode', episode_avg_loss)
         summary_vars = [episode_total_reward, episode_avg_max_q, episode_duration, episode_avg_loss]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
         update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
