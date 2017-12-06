@@ -29,7 +29,7 @@ TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
 LEARNING_RATE = 0.00025  # Learning rate used by RMSProp
 MOMENTUM = 0.95  # Momentum used by RMSProp
 MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
-SAVE_INTERVAL = 300000  # The frequency with which the network is saved
+SAVE_INTERVAL = 3000  # The frequency with which the network is saved
 NO_OP_STEPS = 30  # Maximum number of "do nothing" actions to be performed by the agent at the start of an episode
 LOAD_NETWORK = False
 TRAIN = True
@@ -129,7 +129,7 @@ class Agent():
         linear_part = error - quadratic_part
         loss = tf.reduce_mean(0.5 * tf.square(quadratic_part) + linear_part)
         '''
-        loss = error
+        loss = tf.reduce_mean(error)
 
         optimizer = tf.train.RMSPropOptimizer(LEARNING_RATE, momentum=MOMENTUM, epsilon=MIN_GRAD)
         grads_update = optimizer.minimize(loss, var_list=q_network_weights)
@@ -187,10 +187,12 @@ class Agent():
             if self.t >= INITIAL_REPLAY_SIZE:
                 stats = [self.total_reward, self.total_q_max / float(self.duration),
                         self.duration, self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL))]
+                '''
                 for i in range(len(stats)):
                     self.sess.run(self.update_ops[i], feed_dict={
-                        self.summary_placeholders[i]: float(stats[i])
+                        self.summary_placeholders[i]: tf.cast(stats[i],tf.float32)
                     })
+                '''
                 summary_str = self.sess.run(self.summary_op)
                 self.summary_writer.add_summary(summary_str, self.episode + 1)
 
@@ -201,14 +203,15 @@ class Agent():
                 mode = 'explore'
             else:
                 mode = 'exploit'
+            #print('total loss = ' , (self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL)) ))
             print('EPISODE: {0:6d} / TIMESTEP: {1:8d} / DURATION: {2:5d} / EPSILON: {3:.5f} / TOTAL_REWARD: {4:3.0f} / AVG_MAX_Q: {5:2.4f} / AVG_LOSS: {6:.5f} / MODE: {7}'.format(
                 self.episode + 1, self.t, self.duration, self.epsilon,
                 self.total_reward, self.total_q_max / float(self.duration),
-                self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL)), mode))
+                self.total_loss / (float(self.duration) / float(TRAIN_INTERVAL)) , mode))
 
             self.total_reward = 0
             self.total_q_max = 0
-            self.total_loss = 0
+            self.total_loss = 0.
             self.duration = 0
             self.episode += 1
 
@@ -258,9 +261,12 @@ class Agent():
         tf.summary.scalar(ENV_NAME + '/Average Loss/Episode', episode_avg_loss)
         summary_vars = [episode_total_reward, episode_avg_max_q, episode_duration, episode_avg_loss]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
-        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
+        
+        #update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
+        
         summary_op = tf.summary.merge_all()
-        return summary_placeholders, update_ops, summary_op
+        #return summary_placeholders, update_ops, summary_op
+        return summary_placeholders, None, summary_op
 
     def load_network(self):
         checkpoint = tf.train.get_checkpoint_state(SAVE_NETWORK_PATH)
