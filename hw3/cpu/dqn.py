@@ -1,19 +1,25 @@
-from agent_dir.agent import Agent
+# coding:utf-8
+
+import os
+import gym
+import random
+import numpy as np
 import tensorflow as tf
 from collections import deque
+
 from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import Sequential
 from keras.layers import *
-import random
 
-ENV_NAME = 'breakout'
+ENV_NAME = 'BreakoutNoFrameskip-v4'# Environment name
 NUM_EPISODES = 12000  # Number of episodes the agent plays
 STATE_LENGTH = 4  # Number of most recent frames to produce the input to the network
-FRAME_WIDTH, FRAME_HEIGHT, STATE_LENGTH = 84,84,4
+FRAME_WIDTH = 210
+FRAME_HEIGHT = 160
 GAMMA = 0.99  # Discount factor
 EXPLORATION_STEPS = 300000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
-INITIAL_EPSILON = 0.80  # Initial value of epsilon in epsilon-greedy
+INITIAL_EPSILON = 0.70  # Initial value of epsilon in epsilon-greedy
 FINAL_EPSILON = 0.1  # Final value of epsilon in epsilon-greedy
 INITIAL_REPLAY_SIZE = 2000  # Number of steps to populate the replay memory before training starts
 NUM_REPLAY_MEMORY = 40000  # Number of replay memory the agent uses for training
@@ -23,7 +29,7 @@ TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
 LEARNING_RATE = 0.01  # Learning rate used by RMSProp
 MOMENTUM = 0.95  # Momentum used by RMSProp
 MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
-SAVE_INTERVAL = 30000  # The frequency with which the network is saved
+SAVE_INTERVAL = 3000  # The frequency with which the network is saved
 NO_OP_STEPS = 30  # Maximum number of "do nothing" actions to be performed by the agent at the start of an episode
 LOAD_NETWORK = True 
 TRAIN = True
@@ -32,105 +38,8 @@ SAVE_SUMMARY_PATH = './summary/' + ENV_NAME
 NUM_EPISODES_AT_TEST = 30  # Number of episodes the agent plays at test time
 DO_RENDER = False
 
-class Agent_DQN(Agent):
-    def __init__(self, env, args):
-        """
-        Initialize every things you need here.
-        For example: building your model
-        """
-
-        super(Agent_DQN,self).__init__(env)
-
-        if args.test_dqn:
-            #you can load your model here
-            print('loading trained model')
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        print(dir(env.get_action_space()))
-        print(env.get_action_space().n)
-
-        self.env = env   
-        self.network_init(env.get_action_space().n)
-
-    def init_game_setting(self):
-        """
-
-        Testing function will call this function at the begining of new game
-        Put anything you want to initialize if necessary
-
-        """
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        pass
-
-
-    def train(self):
-        """
-        Implement your training algorithm here
-        """
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        env = self.env
-        DO_RENDER = True
-        if DO_RENDER:
-            from gym.envs.classic_control import rendering
-            viewer = rendering.SimpleImageViewer()
-
-        if TRAIN:  # Train mode
-            for _ in range(NUM_EPISODES):
-                terminal = False
-                observation = env.reset()
-                for _ in range(random.randint(1, NO_OP_STEPS)):
-                    last_observation = observation
-                    observation, _, _, _ = env.step(0)  # Do nothing
-                while not terminal:
-                    last_observation = observation
-                    action = self.get_action(observation)
-                    observation, reward, terminal, _ = env.step(action)
-                    if DO_RENDER:
-                        rgb = env.render('rgb_array')
-                        #rgb render
-                        upscaled=repeat_upsample(rgb,3, 3)
-                        viewer.imshow(upscaled)
-                    #
-                    self.run(last_observation, action, reward, terminal, observation)
-        else:  # Test mode
-            # env.monitor.start(ENV_NAME + '-test')
-            for _ in range(NUM_EPISODES_AT_TEST):
-                terminal = False
-                observation = env.reset()
-                for _ in range(random.randint(1, NO_OP_STEPS)):
-                    last_observation = observation
-                    observation, _, _, _ = env.step(0)  # Do nothing
-                while not terminal:
-                    last_observation = observation
-                    action = agent.get_action_at_test(observation)
-                    observation, _, terminal, _ = env.step(action)
-                    env.render()
-                    self.run(last_observation, action, reward, terminal, observation)
-
-
-    def make_action(self, observation, test=True):
-        """
-        Return predicted action of your agent
-
-        Input:
-            observation: np.array
-                stack 4 last preprocessed frames, shape: (84, 84, 4)
-
-        Return:
-            action: int
-                the predicted action from trained model
-        """
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        print('make action')
-        return self.env.get_random_action()
-    def network_init(self, num_actions):
+class Agent():
+    def __init__(self, num_actions):
         self.num_actions = num_actions
         self.epsilon = INITIAL_EPSILON
         self.epsilon_step = (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS
@@ -175,20 +84,34 @@ class Agent_DQN(Agent):
             self.load_network()
         # Initialize target network
         self.sess.run(self.update_target_network)
-    
-    
+
     def build_network(self):
         model = Sequential()
-        model.add(Conv2D(32, kernel_size = (4,4), strides = (2,2), activation='relu', input_shape=(FRAME_WIDTH, FRAME_HEIGHT,STATE_LENGTH), data_format = 'channels_last'))
-        #model.add(Conv2D(64, kernel_size = (4,4), strides = (2,2), activation='relu', data_format = 'channels_last'))
-        model.add(Conv2D(64, kernel_size = (3,3), strides = (1,1), activation='relu', data_format = 'channels_last'))
+
+        model.add(Conv2D(32, kernel_size = (8,8), strides = (4,4), activation='relu', input_shape=(STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT), data_format = 'channels_first'))
+        model.add(MaxPooling2D((2,2), data_format = 'channels_first'))
+        model.add(Conv2D(64, kernel_size = (4,4), strides = (2,2), activation='relu', data_format = 'channels_first'))
+        model.add(MaxPooling2D((2,2), data_format = 'channels_first'))
+        '''
+        model.add(MaxPooling2D((2,2) ))
+        model.add(Conv2D(32, kernel_size = (8,8), activation='relu'))
+        ''' 
         model.add(Flatten())
         model.add(Dense(512, activation='relu'))
         model.add(Dense(4, activation='linear'))
-        s = tf.placeholder(tf.float32, [None, FRAME_WIDTH, FRAME_HEIGHT, STATE_LENGTH])
+        '''
+        model.add(Convolution2D(32, 8, 8, subsample=(4, 4), activation='relu', input_shape=(STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT)))
+        model.add(Convolution2D(64, 4, 4, subsample=(2, 2), activation='relu'))
+        model.add(Convolution2D(64, 3, 3, subsample=(1, 1), activation='relu'))
+        model.add(Flatten())
+        model.add(Dense(512, activation='relu'))
+        model.add(Dense(self.num_actions))
+        '''
+        s = tf.placeholder(tf.float32, [None,STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT])
         q_values = model(s)
         print(model.summary())
         return s, q_values, model
+
     def build_training_op(self, q_network_weights):
         a = tf.placeholder(tf.int64, [None])
         y = tf.placeholder(tf.float32, [None])
@@ -211,13 +134,18 @@ class Agent_DQN(Agent):
 
         return a, y, loss, grads_update
 
+    def get_initial_state(self, observation, last_observation):
+        processed_observation = np.maximum(observation, last_observation)
+        processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) )
+        state = [processed_observation for _ in range(STATE_LENGTH)]
+        return np.stack(state, axis=0)
 
-    def get_action(self, observation):
+    def get_action(self, state):
         if self.epsilon >= random.random() or self.t < INITIAL_REPLAY_SIZE:
             action = random.randrange(self.num_actions)
         else:
             #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
-            probs = self.q_values.eval(feed_dict={self.s: [np.float32(observation)]})
+            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state)]})
             action = sgd_action(probs)
             #print softmax(probs[0]),action
         # Anneal epsilon linearly over time
@@ -225,14 +153,15 @@ class Agent_DQN(Agent):
             self.epsilon -= self.epsilon_step
         return action
 
-    def run(self,last_observation, action, reward, terminal, observation):
+    def run(self, state, action, reward, terminal, observation):
+        next_state = np.append(state[1:, :, :], observation.reshape(1,210,160), axis=0)
         '''
         # Clip all positive rewards at 1 and all negative rewards at -1, leaving 0 rewards unchanged
         reward = np.clip(reward, -1, 1)
         '''
 
         # Store transition in replay memory
-        self.replay_memory.append((last_observation, action, reward, observation, terminal))
+        self.replay_memory.append((state, action, reward, next_state, terminal))
         if len(self.replay_memory) > NUM_REPLAY_MEMORY:
             self.replay_memory.popleft()
 
@@ -251,7 +180,7 @@ class Agent_DQN(Agent):
                 print('Successfully saved: ' + save_path)
 
         self.total_reward += reward
-        self.total_q_max += np.max(self.q_values.eval(feed_dict={self.s: [np.float32(last_observation)]}))
+        self.total_q_max += np.max(self.q_values.eval(feed_dict={self.s: [np.float32(state)]}))
         self.duration += 1
 
         if terminal:
@@ -289,31 +218,33 @@ class Agent_DQN(Agent):
 
         self.t += 1
 
+        return next_state
+
     def train_network(self):
-        last_observation_batch = []
+        state_batch = []
         action_batch = []
         reward_batch = []
-        observation_batch = []
+        next_state_batch = []
         terminal_batch = []
         y_batch = []
 
         # Sample random minibatch of transition from replay memory
         minibatch = random.sample(self.replay_memory, BATCH_SIZE)
         for data in minibatch:
-            last_observation_batch.append(data[0])
+            state_batch.append(data[0])
             action_batch.append(data[1])
             reward_batch.append(data[2])
-            observation_batch.append(data[3])
+            next_state_batch.append(data[3])
             terminal_batch.append(data[4])
 
         # Convert True to 1, False to 0
         terminal_batch = np.array(terminal_batch) + 0
 
-        target_q_values_batch = self.target_q_values.eval(feed_dict={self.st: np.float32(np.array(observation_batch) )})
+        target_q_values_batch = self.target_q_values.eval(feed_dict={self.st: np.float32(np.array(next_state_batch) )})
         y_batch = reward_batch + (1 - terminal_batch) * GAMMA * np.max(target_q_values_batch, axis=1)
 
         loss, _ = self.sess.run([self.loss, self.grads_update], feed_dict={
-            self.s: np.float32(np.array(last_observation_batch)),
+            self.s: np.float32(np.array(state_batch)),
             self.a: action_batch,
             self.y: y_batch
         })
@@ -346,12 +277,12 @@ class Agent_DQN(Agent):
         else:
             print('Training new network...')
 
-    def get_action_at_test(self, observation):
+    def get_action_at_test(self, state):
         if random.random() <= 0.05:
             action = random.randrange(self.num_actions)
         else:
             #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
-            probs = self.q_values.eval(feed_dict={self.s: [np.float32(observation)]})
+            probs = self.q_values.eval(feed_dict={self.s: [np.float32(state)]})
             action = sgd_action(probs)
             
         self.t += 1
@@ -359,6 +290,11 @@ class Agent_DQN(Agent):
         return action
 
 
+def preprocess(observation, last_observation):
+    processed_observation = np.maximum(observation, last_observation)
+    processed_observation = np.uint8(resize(rgb2gray(processed_observation), (FRAME_WIDTH, FRAME_HEIGHT)) )
+    return np.reshape(processed_observation, (1, FRAME_WIDTH, FRAME_HEIGHT))
+    #return observation 
 def sgd_action(probs):
     probs = probs[0]
     probs = softmax(probs)
@@ -375,6 +311,52 @@ def sgd_action(probs):
 
 def softmax(x):
     return np.exp(x) / np.sum(np.exp(x), axis = 0)
+
+def main():
+    env = gym.make(ENV_NAME)
+    agent = Agent(num_actions=env.action_space.n)
+    if DO_RENDER:
+        from gym.envs.classic_control import rendering
+        viewer = rendering.SimpleImageViewer()
+
+    if TRAIN:  # Train mode
+        for _ in range(NUM_EPISODES):
+            terminal = False
+            observation = env.reset()
+            for _ in range(random.randint(1, NO_OP_STEPS)):
+                last_observation = observation
+                observation, _, _, _ = env.step(0)  # Do nothing
+            state = agent.get_initial_state(observation, last_observation)
+            while not terminal:
+                last_observation = observation
+                action = agent.get_action(state)
+                observation, reward, terminal, _ = env.step(action)
+                if DO_RENDER:
+                    rgb = env.render('rgb_array')
+                    #rgb render
+                    upscaled=repeat_upsample(rgb,3, 3)
+                    viewer.imshow(upscaled)
+                #
+                processed_observation = preprocess(observation, last_observation)
+                state = agent.run(state, action, reward, terminal, processed_observation)
+    else:  # Test mode
+        # env.monitor.start(ENV_NAME + '-test')
+        for _ in range(NUM_EPISODES_AT_TEST):
+            terminal = False
+            observation = env.reset()
+            for _ in range(random.randint(1, NO_OP_STEPS)):
+                last_observation = observation
+                observation, _, _, _ = env.step(0)  # Do nothing
+            state = agent.get_initial_state(observation, last_observation)
+            while not terminal:
+                last_observation = observation
+                action = agent.get_action_at_test(state)
+                observation, _, terminal, _ = env.step(action)
+                env.render()
+                processed_observation = preprocess(observation, last_observation)
+                state = np.append(state[1:, :, :], processed_observation, axis=0)
+        # env.monitor.close()
+
 def repeat_upsample(rgb_array, k=1, l=1, err=[]):
     # repeat kinda crashes if k/l are zero
     if k <= 0 or l <= 0: 
@@ -388,3 +370,8 @@ def repeat_upsample(rgb_array, k=1, l=1, err=[]):
 
     return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
 
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) == 2 and sys.argv[-1] == '-r':
+        DO_RENDER = True
+    main()

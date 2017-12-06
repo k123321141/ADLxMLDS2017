@@ -39,7 +39,7 @@ NUM_EPISODES_AT_TEST = 30  # Number of episodes the agent plays at test time
 DO_RENDER = False
 
 class Agent():
-    def __init__(self, num_actions):
+    def network_init(self, num_actions):
         self.num_actions = num_actions
         self.epsilon = INITIAL_EPSILON
         self.epsilon_step = (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS
@@ -87,9 +87,9 @@ class Agent():
 
     def build_network(self):
         model = Sequential()
-        model.add(Conv2D(32, kernel_size = (8,8), strides = (4,4), activation='relu', input_shape=(STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT), data_format = 'channels_first'))
-        model.add(Conv2D(64, kernel_size = (4,4), strides = (2,2), activation='relu', data_format = 'channels_first'))
-        model.add(Conv2D(64, kernel_size = (3,3), strides = (1,1), activation='relu', data_format = 'channels_first'))
+        model.add(Conv2D(32, kernel_size = (4,4), strides = (2,2), activation='relu', input_shape=(FRAME_WIDTH, FRAME_HEIGHT,STATE_LENGTH), data_format = 'channels_last'))
+        #model.add(Conv2D(64, kernel_size = (4,4), strides = (2,2), activation='relu', data_format = 'channels_last'))
+        model.add(Conv2D(64, kernel_size = (3,3), strides = (1,1), activation='relu', data_format = 'channels_last'))
         '''
         model.add(MaxPooling2D((2,2) ))
         model.add(Conv2D(32, kernel_size = (8,8), activation='relu'))
@@ -105,7 +105,7 @@ class Agent():
         model.add(Dense(512, activation='relu'))
         model.add(Dense(self.num_actions))
         '''
-        s = tf.placeholder(tf.float32, [None,STATE_LENGTH, FRAME_WIDTH, FRAME_HEIGHT])
+        s = tf.placeholder(tf.float32, [None, FRAME_WIDTH, FRAME_HEIGHT, STATE_LENGTH])
         q_values = model(s)
         print(model.summary())
         return s, q_values, model
