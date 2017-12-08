@@ -1,6 +1,0 @@
-model_checkpoint_path: "BreakoutNoFrameskip-v4-96000"
-all_model_checkpoint_paths: "BreakoutNoFrameskip-v4-84000"
-all_model_checkpoint_paths: "BreakoutNoFrameskip-v4-87000"
-all_model_checkpoint_paths: "BreakoutNoFrameskip-v4-90000"
-all_model_checkpoint_paths: "BreakoutNoFrameskip-v4-93000"
-all_model_checkpoint_paths: "BreakoutNoFrameskip-v4-96000"

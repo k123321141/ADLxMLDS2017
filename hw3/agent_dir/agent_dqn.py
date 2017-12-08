@@ -13,15 +13,15 @@ ENV_NAME = 'breakout'
 NUM_EPISODES = 1200000  # Number of episodes the agent plays
 FRAME_WIDTH, FRAME_HEIGHT, STATE_LENGTH = 84,84,4
 GAMMA = 0.99  # Discount factor
-EXPLORATION_STEPS = 10000000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
-INITIAL_EPSILON = 0.99  # Initial value of epsilon in epsilon-greedy
+EXPLORATION_STEPS = 1000000  # Number of steps over which the initial value of epsilon is linearly annealed to its final value
+INITIAL_EPSILON = 1.0  # Initial value of epsilon in epsilon-greedy
 FINAL_EPSILON = 0.1  # Final value of epsilon in epsilon-greedy
-INITIAL_REPLAY_SIZE = 2000  # Number of steps to populate the replay memory before training starts
-NUM_REPLAY_MEMORY = 40000  # Number of replay memory the agent uses for training
-BATCH_SIZE = 64  # Mini batch size
-TARGET_UPDATE_INTERVAL = 10000  # The frequency with which the target network is updated
+INITIAL_REPLAY_SIZE = 20000  # Number of steps to populate the replay memory before training starts
+NUM_REPLAY_MEMORY = 400000  # Number of replay memory the agent uses for training
+BATCH_SIZE = 32  # Mini batch size
+TARGET_UPDATE_INTERVAL = 1000  # The frequency with which the target network is updated
 TRAIN_INTERVAL = 4  # The agent selects 4 actions between successive updates
-LEARNING_RATE = 0.0025  # Learning rate used by RMSProp
+LEARNING_RATE = 0.00025  # Learning rate used by RMSProp
 MOMENTUM = 0.95  # Momentum used by RMSProp
 MIN_GRAD = 0.01  # Constant added to the squared gradient in the denominator of the RMSProp update
 SAVE_INTERVAL = 1000  # The frequency with which the network is saved
@@ -217,9 +217,11 @@ class Agent_DQN(Agent):
         if self.epsilon >= random.random() or self.t < INITIAL_REPLAY_SIZE:
             action = random.randrange(self.num_actions)
         else:
-            #action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(state / 255.0)]}))
+            action = np.argmax(self.q_values.eval(feed_dict={self.s: [np.float32(observation)]}))
+            '''
             probs = self.q_values.eval(feed_dict={self.s: [np.float32(observation)]})
             action = sgd_action(probs)
+            '''
             #print softmax(probs[0]),action
         # Anneal epsilon linearly over time
         if self.epsilon > FINAL_EPSILON and self.t >= INITIAL_REPLAY_SIZE:
