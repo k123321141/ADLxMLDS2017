@@ -18,8 +18,8 @@ class PGAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
-        self.gamma = 1
-        self.learning_rate = 0.001
+        self.gamma = 0.99
+        self.learning_rate = 0.0001
         self.states = []
         self.gradients = []
         self.rewards = []
