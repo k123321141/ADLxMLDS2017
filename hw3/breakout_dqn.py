@@ -32,19 +32,21 @@ class DQNAgent:
         self.state_size = (STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH)
         self.action_size = action_size
         # parameters about epsilon
-        self.epsilon = 1.
-        self.epsilon_start, self.epsilon_end = 1.0, 0.1
+        #self.epsilon = 1.
+        self.epsilon = 0.2
+        self.epsilon_end = 0.1
         self.exploration_steps = 1000000.
-        self.epsilon_decay_step = (self.epsilon_start - self.epsilon_end) \
+        self.epsilon_decay_step = (self.epsilon - self.epsilon_end) \
                                   / self.exploration_steps
         # parameters about training
         self.batch_size = 32
         #self.train_start = 50000
-        self.train_start = 10000
+        #self.train_start = 10000
+        self.train_start = 3000
         self.update_target_rate = 10000
         self.discount_factor = 0.99
         #self.memory = deque(maxlen=400000)
-        self.memory = deque(maxlen=80000)
+        self.memory = deque(maxlen=120000)
         self.no_op_steps = 30
         # build model
         self.model = self.build_model()
@@ -64,7 +66,7 @@ class DQNAgent:
         self.sess.run(tf.global_variables_initializer())
 
         if self.load_model and os.path.isfile(MODEL_PATH):
-            print('load model to %s.' % MODEL_PATH)
+            print('load model from %s.' % MODEL_PATH)
             self.model.load_weights(MODEL_PATH)
         else:
             print('train a new model.')

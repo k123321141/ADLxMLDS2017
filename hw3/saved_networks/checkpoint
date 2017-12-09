@@ -1,6 +1,0 @@
-model_checkpoint_path: "breakout-290000"
-all_model_checkpoint_paths: "breakout-286000"
-all_model_checkpoint_paths: "breakout-287000"
-all_model_checkpoint_paths: "breakout-288000"
-all_model_checkpoint_paths: "breakout-289000"
-all_model_checkpoint_paths: "breakout-290000"
