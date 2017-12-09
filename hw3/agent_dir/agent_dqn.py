@@ -392,4 +392,8 @@ def repeat_upsample(rgb_array, k=1, l=1, err=[]):
     # if the input image is of shape (m,n,3), the output image will be of shape (k*m, l*n, 3)
 
     return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
+def rescale_render(rgb):
+    #rgb render
+    upscaled=repeat_upsample(rgb,3, 3)
+    viewer.imshow(upscaled)
 
