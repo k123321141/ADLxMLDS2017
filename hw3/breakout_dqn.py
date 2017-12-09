@@ -23,7 +23,7 @@ SAVE_INTERVAL   =   100
 STATE_WIDTH     =   84
 STATE_HEIGHT    =   84
 STATE_LENGTH    =   4
-
+TEST            =   True
 class DQNAgent:
     def __init__(self, action_size):
         self.render = False
@@ -184,41 +184,23 @@ class DQNAgent:
         return summary_placeholders, update_ops, summary_op
 
 
+    def test(self,env):
+        DO_RENDER = True
+        if DO_RENDER:
+            from gym.envs.classic_control import rendering
+            viewer = rendering.SimpleImageViewer()
+        done = True
+        while True:
+            if done:
+                observe = env.reset()
+            state = np.reshape(observe, (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
+            if DO_RENDER:
+                rgb = env.env.render('rgb_array')
+                #rgb render
+                upscaled=repeat_upsample(rgb,3, 3)
+                viewer.imshow(upscaled)
 
-
-if __name__ == "__main__":
-    #env = gym.make('BreakoutDeterministic-v4')
-    env = Environment('BreakoutNoFrameskip-v4', parse(), atari_wrapper = True)
-    agent = DQNAgent(action_size=3)
-
-    scores, episodes, global_step = [], [], 0
-
-    for e in range(EPISODES):
-        done = False
-        dead = False
-        # 1 episode = 5 lives
-        step, score, start_life = 0, 0, 5
-        observe = env.reset()
-
-        # this is one of DeepMind's idea.
-        # just do nothing at the start of episode to avoid sub-optimal
-        for _ in range(random.randint(1, agent.no_op_steps)):
-            observe, _, _, _ = env.step(1)
-
-        # At start of episode, there is no preceding frame
-        # So just copy initial states to make history
-        state = observe
-        state = np.reshape(state, (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
-        history = state
-
-        while not done:
-            if agent.render:
-                env.render()
-            global_step += 1
-            step += 1
-
-            # get action for the current history and go one step in environment
-            action = agent.get_action(history)
+            action = agent.get_action(state)
             # change action to real_action
             if action == 0:
                 real_action = 1
@@ -228,61 +210,121 @@ if __name__ == "__main__":
                 real_action = 3
 
             observe, reward, done, info = env.step(real_action)
-            # pre-process the observation --> history
-            next_state = observe
-            next_state = np.reshape([next_state], (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
-            next_history = next_state 
-
-            agent.avg_q_max += np.amax(
-                agent.model.predict(np.float32(history))[0])
-
-            # if the agent missed ball, agent is dead --> episode is not over
-            if start_life > info['ale.lives']:
-                dead = True
-                start_life = info['ale.lives']
-
-            reward = np.clip(reward, -1., 1.)
-
-            # save the sample <s, a, r, s'> to the replay memory
-            agent.replay_memory(history, action, reward, next_history, dead)
-            # every some time interval, train model
-            agent.train_replay()
-            # update the target model with model
-            if global_step % agent.update_target_rate == 0:
-                agent.update_target_model()
-
-            score += reward
-
             # if agent is dead, then reset the history
-            if dead:
-                dead = False
-            else:
-                history = next_history
 
-            # if done, plot the score over episodes
-            if done:
-                mode = 'random'
-                if global_step > agent.train_start:
-                    stats = [score, agent.avg_q_max / float(step), step,
-                             agent.avg_loss / float(step)]
-                    for i in range(len(stats)):
-                        agent.sess.run(agent.update_ops[i], feed_dict={
-                            agent.summary_placeholders[i]: float(stats[i])
-                        })
-                    summary_str = agent.sess.run(agent.summary_op)
-                    agent.summary_writer.add_summary(summary_str, e + 1)
-                    mode = 'train'
-                if e % 100 == 0: 
-                    print("episode:", e, "  score:", score, "  memory length:",
-                      len(agent.memory), "  epsilon:", agent.epsilon,
-                      "  global_step:", global_step, "  average_q:",
-                      agent.avg_q_max / float(step), "  average loss:",
-                      agent.avg_loss / float(step), "   mode:",mode
-                      )
-                    sys.stdout.flush()
 
-                agent.avg_q_max, agent.avg_loss = 0, 0
+def repeat_upsample(rgb_array, k=1, l=1, err=[]):
+    # repeat kinda crashes if k/l are zero
+    if k <= 0 or l <= 0: 
+        if not err: 
+            print("Number of repeats must be larger than 0, k: {}, l: {}, returning default array!".format(k, l))
+            err.append('logged')
+        return rgb_array
 
-        if e % SAVE_INTERVAL == 0 and e > SAVE_INTERVAL:
-            print('save model to %s.' % MODEL_PATH)
-            agent.model.save_weights(MODEL_PATH)
+    # repeat the pixels k times along the y axis and l times along the x axis
+    # if the input image is of shape (m,n,3), the output image will be of shape (k*m, l*n, 3)
+
+    return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
+if __name__ == "__main__":
+    #env = gym.make('BreakoutDeterministic-v4')
+    env = Environment('BreakoutNoFrameskip-v4', parse(), atari_wrapper = True)
+    agent = DQNAgent(action_size=3)
+
+    scores, episodes, global_step = [], [], 0
+    if TEST:
+        agent.test(env)
+    else:
+
+        for e in range(EPISODES):
+            done = False
+            dead = False
+            # 1 episode = 5 lives
+            step, score, start_life = 0, 0, 5
+            observe = env.reset()
+
+            # this is one of DeepMind's idea.
+            # just do nothing at the start of episode to avoid sub-optimal
+            for _ in range(random.randint(1, agent.no_op_steps)):
+                observe, _, _, _ = env.step(1)
+
+            # At start of episode, there is no preceding frame
+            # So just copy initial states to make history
+            state = observe
+            state = np.reshape(state, (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
+            history = state
+
+            while not done:
+                if agent.render:
+                    env.render()
+                global_step += 1
+                step += 1
+
+                # get action for the current history and go one step in environment
+                action = agent.get_action(history)
+                # change action to real_action
+                if action == 0:
+                    real_action = 1
+                elif action == 1:
+                    real_action = 2
+                else:
+                    real_action = 3
+
+                observe, reward, done, info = env.step(real_action)
+                # pre-process the observation --> history
+                next_state = observe
+                next_state = np.reshape([next_state], (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
+                next_history = next_state 
+
+                agent.avg_q_max += np.amax(
+                    agent.model.predict(np.float32(history))[0])
+
+                # if the agent missed ball, agent is dead --> episode is not over
+                if start_life > info['ale.lives']:
+                    dead = True
+                    start_life = info['ale.lives']
+
+                reward = np.clip(reward, -1., 1.)
+
+                # save the sample <s, a, r, s'> to the replay memory
+                agent.replay_memory(history, action, reward, next_history, dead)
+                # every some time interval, train model
+                agent.train_replay()
+                # update the target model with model
+                if global_step % agent.update_target_rate == 0:
+                    agent.update_target_model()
+
+                score += reward
+
+                # if agent is dead, then reset the history
+                if dead:
+                    dead = False
+                else:
+                    history = next_history
+
+                # if done, plot the score over episodes
+                if done:
+                    mode = 'random'
+                    if global_step > agent.train_start:
+                        stats = [score, agent.avg_q_max / float(step), step,
+                                 agent.avg_loss / float(step)]
+                        for i in range(len(stats)):
+                            agent.sess.run(agent.update_ops[i], feed_dict={
+                                agent.summary_placeholders[i]: float(stats[i])
+                            })
+                        summary_str = agent.sess.run(agent.summary_op)
+                        agent.summary_writer.add_summary(summary_str, e + 1)
+                        mode = 'train'
+                    if e % 100 == 0: 
+                        print("episode:", e, "  score:", score, "  memory length:",
+                          len(agent.memory), "  epsilon:", agent.epsilon,
+                          "  global_step:", global_step, "  average_q:",
+                          agent.avg_q_max / float(step), "  average loss:",
+                          agent.avg_loss / float(step), "   mode:",mode
+                          )
+                        sys.stdout.flush()
+
+                    agent.avg_q_max, agent.avg_loss = 0, 0
+
+            if e % SAVE_INTERVAL == 0 and e > SAVE_INTERVAL:
+                print('save model to %s.' % MODEL_PATH)
+                agent.model.save_weights(MODEL_PATH)
