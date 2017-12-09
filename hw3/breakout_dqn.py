@@ -23,7 +23,7 @@ SAVE_INTERVAL   =   100
 STATE_WIDTH     =   84
 STATE_HEIGHT    =   84
 STATE_LENGTH    =   4
-TEST            =   True
+TEST            =   False
 class DQNAgent:
     def __init__(self, action_size):
         self.render = False
