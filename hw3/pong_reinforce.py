@@ -5,15 +5,15 @@ from keras.layers import Dense, Reshape, Flatten, Conv2D
 from keras.optimizers import Adam
 import sys,os
 
-MODEL_PATH      =   '/tmp/rl/pong_pg.h5'
-SUMMARY_PATH    =   '/tmp/rl/summary/pong_pg.h5'
+MODEL_PATH      =   '/tmp/rl/pong_pg_reward.h5'
+SUMMARY_PATH    =   '/tmp/rl/summary/pong_pg_reward.h5'
 SAVE_INTERVAL   =   10
 STATE_WIDTH     =   210
 STATE_HEIGHT    =   160
 STATE_LENGTH    =   3
 DO_RENDER       =   False
-BASE_LINE       =   30
-
+BASE_LINE       =   10
+REWARD_GAMMA    =   0.2
 class PGAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
@@ -26,6 +26,7 @@ class PGAgent:
         self.probs = []
         self.model = self._build_model()
         self.model.summary()
+        self.base_line = BASE_LINE
         if os.path.isfile(MODEL_PATH):
             print('load model from %s.' % MODEL_PATH)
             self.load(MODEL_PATH)
@@ -34,10 +35,10 @@ class PGAgent:
         model = Sequential()
         model.add(Reshape((80, 80, 1), input_shape=(self.state_size,)))
         model.add(Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
-                                activation='relu', init='he_uniform', data_format = 'channels_last'))
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last'))
         model.add(Flatten())
-        model.add(Dense(64, activation='relu', init='he_uniform'))
-        model.add(Dense(32, activation='relu', init='he_uniform'))
+        model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
+        model.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(self.action_size, activation='softmax'))
         opt = Adam(lr=self.learning_rate)
         # See note regarding crossentropy in cartpole_reinforce.py
@@ -73,7 +74,12 @@ class PGAgent:
         gradients = np.vstack(self.gradients)
         rewards = np.vstack(self.rewards)
         rewards = self.discount_rewards(rewards)
-        rewards = rewards / np.std(rewards - np.mean(rewards))
+        #print np.mean(rewards)[0]
+        #print('rewards : %d, mean np.mean(rewards)')
+        #rewards = rewards / np.std(rewards - np.mean(rewards))
+        self.base_line = (1 - REWARD_GAMMA) * self.base_line + REWARD_GAMMA * np.mean(rewards)
+        print('base line : %.2f' % float(self.base_line))
+        rewards = rewards - (self.base_line / rewards.shape[0])
         gradients *= rewards
         X = np.squeeze(np.vstack([self.states]))
         Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))

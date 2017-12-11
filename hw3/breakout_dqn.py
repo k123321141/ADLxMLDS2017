@@ -33,20 +33,20 @@ class DQNAgent:
         self.action_size = action_size
         # parameters about epsilon
         #self.epsilon = 1.
-        self.epsilon = 0.2
-        self.epsilon_end = 0.1
-        self.exploration_steps = 1000000.
+        self.epsilon = 0.1
+        self.epsilon_end = 0.01
+        self.exploration_steps = 500000.
         self.epsilon_decay_step = (self.epsilon - self.epsilon_end) \
                                   / self.exploration_steps
         # parameters about training
         self.batch_size = 32
         #self.train_start = 50000
-        #self.train_start = 10000
-        self.train_start = 3000
+        self.train_start = 10000
+        #self.train_start = 3000
         self.update_target_rate = 10000
         self.discount_factor = 0.99
         #self.memory = deque(maxlen=400000)
-        self.memory = deque(maxlen=120000)
+        self.memory = deque(maxlen=100000)
         self.no_op_steps = 30
         # build model
         self.model = self.build_model()
