@@ -16,16 +16,17 @@ EPISODES = 5000000
 from main import parse
 from environment import Environment
 import sys,os
+from os.path import expanduser,join
+home = expanduser("~")
 
-MODEL_PATH      =   '/tmp/rl/breakout_dqn.h5'
-SUMMARY_PATH    =   '/tmp/rl/summary/breakout_dqn_summmary'
+MODEL_PATH      =   join(home,'rl','/breakout_dqn.h5')
+SUMMARY_PATH    =   join(home,'rl','summary','/breakout_dqn.h5')
 SAVE_INTERVAL   =   100
 STATE_WIDTH     =   84
 STATE_HEIGHT    =   84
 STATE_LENGTH    =   4
 class DQNAgent:
     def __init__(self, action_size):
-        self.render = False
         self.load_model = True 
         # environment settings
         self.state_size = (STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH)
@@ -80,12 +81,15 @@ class DQNAgent:
 
         a_one_hot = K.one_hot(a, self.action_size)
         q_value = K.sum(py_x * a_one_hot, axis=1)
+        error = K.square(y - q_value)
+        """
         error = K.abs(y - q_value)
-
         quadratic_part = K.clip(error, 0.0, 1.0)
         linear_part = error - quadratic_part
         loss = K.mean(0.5 * K.square(quadratic_part) + linear_part)
-
+        """
+        error = K.clip(error, 0.0, 3.0)
+        loss = K.mean(error)
         optimizer = RMSprop(lr=0.00025, epsilon=0.01)
         updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
         train = K.function([self.model.input, a, y], [loss], updates=updates)
@@ -211,10 +215,10 @@ class DQNAgent:
                 real_action = 3
 
             observe, reward, done, info = env.step(real_action)
+            """
             if reward != 0:
                 print(reward)
-            # if agent is dead, then reset the history
-
+            """
 
 def repeat_upsample(rgb_array, k=1, l=1, err=[]):
     # repeat kinda crashes if k/l are zero
@@ -235,7 +239,6 @@ if __name__ == "__main__":
     agent = DQNAgent(action_size=3)
 
     scores, episodes, global_step = [], [], 0
-    print('args test', args.test)
 
     if args.test:
         DO_RENDER = True
@@ -261,8 +264,6 @@ if __name__ == "__main__":
             history = state
 
             while not done:
-                if agent.render:
-                    env.render()
                 global_step += 1
                 step += 1
 
