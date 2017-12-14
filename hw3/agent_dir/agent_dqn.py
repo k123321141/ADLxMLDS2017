@@ -19,7 +19,7 @@ class Agent_DQN(Agent):
         """
 
         super(Agent_DQN,self).__init__(env)
-        
+        print(args) 
         self.env = env
         self.args = args
         self.state_size = (84, 84, 4)
