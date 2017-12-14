@@ -28,7 +28,11 @@ class Agent_DQN(Agent):
         if args.test_dqn:
             #you can load your model here
             print('loading trained model')
-            if os.path.isfile(args.dqn_model):
+            if os.dqn_dueling and os.path.isfile(args.dqn_duel_model):
+                print('load duel network model from %s.' % args.dqn_duel_model)
+                self.model = self.build_dueling_model()
+                self.model.load_weights(args.dqn_duel_model)
+            elif os.path.isfile(args.dqn_model):
                 print('load model from %s.' % args.dqn_model)
                 self.model = self.build_model()
                 self.model.load_weights(args.dqn_model)
@@ -89,10 +93,12 @@ class Agent_DQN(Agent):
         self.optimizer = opt['naive']
         if args.dqn_dueling:
             self.duel_optimizer = opt['duel']
+            self.duel_avg_loss = 0
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
 
         self.avg_q_max, self.avg_loss = 0, 0
+
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
@@ -169,16 +175,16 @@ class Agent_DQN(Agent):
                 # if agent is dead, then reset the history
                 if not dead:
                     history = next_history
+                '''
                 else:
                     print('dead',info['ale.lives'])
                 if global_step %100 == 0:
-                    print(global_step)
                     from time import time
                     print('%.1f' % (time()-t))
                     t = time()
+                '''
                 # if done, plot the score over episodes
                 if done:
-                    e += 1
                     mode = 'train' if global_step > self.train_start else 'random'
                     if global_step > self.train_start:
                         stats = [score, self.avg_q_max / float(step), step,
@@ -199,10 +205,15 @@ class Agent_DQN(Agent):
                         sys.stdout.flush()
 
                     self.avg_q_max, self.avg_loss = 0, 0
-
+                    e += 1
+                    score = 0
             if e % args.dqn_save_interval == 0 and e > args.dqn_save_interval:
-                print('save model to %s.' % args.dqn_model)
+                print('save model to %s.with double dqn : %b' % (args.dqn_model, self.args.dqn_double_dqn) )
                 self.model.save_weights(args.dqn_model)
+                if self.args.dqn_dueling:
+                    print('save model to %s.' % args.dqn_duel_model)
+                    self.duel_model.save_weights(args.dqn_duel_model)
+
 
     def make_action(self, observation, test=True):
         """
@@ -253,6 +264,12 @@ class Agent_DQN(Agent):
         ret = {'naive':train}
         #bonus
         if self.args.dqn_dueling:
+            py_x = self.duel_model.output
+
+            q_value = K.sum(py_x * a_one_hot, axis=1)
+            error = K.square(y - q_value)
+            error = K.clip(error, 0.0, 3.0)
+            loss = K.mean(error)
             updates = optimizer.get_updates(self.duel_model.trainable_weights, [], loss)
             duel_train = K.function([self.duel_model.input, a, y], [loss], updates=updates)
             ret['duel'] = duel_train
@@ -269,26 +286,25 @@ class Agent_DQN(Agent):
         model.add(Flatten())
         model.add(Dense(512, activation='relu'))
         model.add(Dense(self.action_size))
-        model.summary()
+        #model.summary()
         return model
     def build_dueling_model(self):
         state = Input(shape=(self.state_size))
 
-        x = Conv2D(32, (8, 8), strides=(4, 4), activation='relu')(state)
-        x = Conv2D(64, (4, 4), strides=(2, 2), activation='relu')(x)
-        x = Conv2D(64, (3, 3), strides=(1, 1), activation='relu')(x)
-        x = Flatten()(x)
-        #value
-        v = Dense(512, activation='relu')(x)
-        v = Dense(1)(v)
+        buf = Conv2D(32, (8, 8), strides=(4, 4), activation='relu')(state)
+        buf = Conv2D(64, (4, 4), strides=(2, 2), activation='relu')(buf)
+        buf = Conv2D(64, (3, 3), strides=(1, 1), activation='relu')(buf)
+        buf = Flatten()(buf)
         #action
-        a = Dense(512, activation='relu')(x)
+        a = Dense(512, activation='relu')(buf)
         a = Dense(self.action_size)(a)
-        #sum
+        #value
+        v = Dense(512, activation='relu')(buf)
+        v = Dense(1)(v)
         v = RepeatVector(self.action_size)(v)
-        v = Reshape([1,self.action_size])(v)
+        v = Reshape([self.action_size])(v)
+        #sum
         q = Add()([v,a])
-        
         model = Model(inputs=state, outputs=q)
         model.summary()
         return model

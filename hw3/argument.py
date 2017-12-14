@@ -11,6 +11,7 @@ def add_arguments(parser):
     home = expanduser("~")
 
     MODEL_PATH      =   join(home,'rl','breakout_dqn.h5')
+    DUEL_MODEL_PATH =   join(home,'rl','breakout_duel_dqn.h5')
     SUMMARY_PATH    =   join(home,'rl','summary','breakout_dqn_')
 
     parser.add_argument('--test', action='store_true', help='test dqn')
@@ -18,6 +19,7 @@ def add_arguments(parser):
     #
     #dqn setting 
     parser.add_argument('--dqn_model', default=MODEL_PATH, help='path to save model for trainging')
+    parser.add_argument('--dqn_duel_model', default=DUEL_MODEL_PATH, help='path to save duel network model for trainging')
     parser.add_argument('--dqn_summary', default=SUMMARY_PATH, help='path to save summary for training')
     parser.add_argument('--dqn_summary_name', default='default', help='summary version')
     parser.add_argument('--dqn_epsilon', type=float, default=0.2, help='start epsilon')
@@ -29,7 +31,7 @@ def add_arguments(parser):
     parser.add_argument('--dqn_discount_factor', type=float, default=0.99, help='discount factor')
     parser.add_argument('--dqn_memory', type=int, default=40000, help='memory size for reply experience')
     parser.add_argument('--dqn_no_ops', type=int, default=10, help='do not action for init env')
-    parser.add_argument('--dqn_save_interval', type=int, default=100, help='do not action for init env')
+    parser.add_argument('--dqn_save_interval', type=int, default=30, help='do not action for init env')
     #bonus
     parser.add_argument('--dqn_dueling', action='store_true',default=False, help='dqn dueling network bonus')
     parser.add_argument('--dqn_double_dqn', action='store_true',default=False, help='double dqn bonus')
