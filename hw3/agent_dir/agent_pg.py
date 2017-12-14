@@ -13,7 +13,7 @@ STATE_WIDTH     =   210
 STATE_HEIGHT    =   160
 STATE_LENGTH    =   3
 DO_RENDER       =   False
-BASE_LINE       =   -10
+BASE_LINE       =   0
 REWARD_GAMMA    =   0.2
 
 class Agent_PG(Agent):
@@ -99,6 +99,7 @@ class Agent_PG(Agent):
         rewards = np.vstack(self.rewards)
         #rewards = self.discount_rewards(rewards)
         #rewards = rewards / np.std(rewards - np.mean(rewards))
+        print(BASE_LINE)
         rewards -= BASE_LINE
         gradients *= rewards
         X = np.squeeze(np.vstack([self.states]))
@@ -154,7 +155,7 @@ class Agent_PG(Agent):
             if done:
                 self.episode += 1
                 self.update()
-                #print('Episode: %d - Score: %f.' % (self.episode, self.score))
+                print('Episode: %d - Score: %f.' % (self.episode, self.score))
                 sys.stdout.flush()
                 self.score = 0
                 state = env.reset()
