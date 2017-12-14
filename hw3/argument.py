@@ -27,9 +27,9 @@ def add_arguments(parser):
     parser.add_argument('--dqn_train_start', type=int, default=3000, help='random action before start training')
     parser.add_argument('--dqn_update_target', type=int, default=10000, help='frequency of updating target network')
     parser.add_argument('--dqn_discount_factor', type=float, default=0.99, help='discount factor')
-    parser.add_argument('--dqn_memory', type=int, default=100000, help='memory size for reply experience')
+    parser.add_argument('--dqn_memory', type=int, default=40000, help='memory size for reply experience')
     parser.add_argument('--dqn_no_ops', type=int, default=10, help='do not action for init env')
-    parser.add_argument('--dqn_save_interval', type=int, default=1000, help='do not action for init env')
+    parser.add_argument('--dqn_save_interval', type=int, default=100, help='do not action for init env')
     #bonus
     parser.add_argument('--dqn_dueling', action='store_true',default=False, help='dqn dueling network bonus')
     parser.add_argument('--dqn_double_dqn', action='store_true',default=False, help='double dqn bonus')

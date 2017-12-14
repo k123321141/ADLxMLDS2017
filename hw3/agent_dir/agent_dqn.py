@@ -113,7 +113,6 @@ class Agent_DQN(Agent):
         step, score = 0, 0
         t = 0.
         while True:
-            e += 1
             done = False
             dead = False
             # 1 episode = 5 lives
@@ -179,6 +178,7 @@ class Agent_DQN(Agent):
                     t = time()
                 # if done, plot the score over episodes
                 if done:
+                    e += 1
                     mode = 'train' if global_step > self.train_start else 'random'
                     if global_step > self.train_start:
                         stats = [score, self.avg_q_max / float(step), step,
