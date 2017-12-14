@@ -13,7 +13,7 @@ STATE_WIDTH     =   210
 STATE_HEIGHT    =   160
 STATE_LENGTH    =   3
 DO_RENDER       =   False
-BASE_LINE       =   10
+BASE_LINE       =   -10
 REWARD_GAMMA    =   0.2
 
 class Agent_PG(Agent):
@@ -97,8 +97,9 @@ class Agent_PG(Agent):
     def update(self):
         gradients = np.vstack(self.gradients)
         rewards = np.vstack(self.rewards)
-        rewards = self.discount_rewards(rewards)
-        rewards = rewards / np.std(rewards - np.mean(rewards))
+        #rewards = self.discount_rewards(rewards)
+        #rewards = rewards / np.std(rewards - np.mean(rewards))
+        rewards -= BASE_LINE
         gradients *= rewards
         X = np.squeeze(np.vstack([self.states]))
         Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))

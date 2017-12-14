@@ -23,7 +23,6 @@ SAVE_INTERVAL   =   100
 STATE_WIDTH     =   84
 STATE_HEIGHT    =   84
 STATE_LENGTH    =   4
-TEST            =   False
 class DQNAgent:
     def __init__(self, action_size):
         self.render = False
@@ -33,8 +32,8 @@ class DQNAgent:
         self.action_size = action_size
         # parameters about epsilon
         #self.epsilon = 1.
-        self.epsilon = 0.1
-        self.epsilon_end = 0.01
+        self.epsilon = 0.2
+        self.epsilon_end = 0.001
         self.exploration_steps = 500000.
         self.epsilon_decay_step = (self.epsilon - self.epsilon_end) \
                                   / self.exploration_steps
@@ -212,6 +211,8 @@ class DQNAgent:
                 real_action = 3
 
             observe, reward, done, info = env.step(real_action)
+            if reward != 0:
+                print(reward)
             # if agent is dead, then reset the history
 
 
@@ -229,11 +230,15 @@ def repeat_upsample(rgb_array, k=1, l=1, err=[]):
     return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
 if __name__ == "__main__":
     #env = gym.make('BreakoutDeterministic-v4')
-    env = Environment('BreakoutNoFrameskip-v4', parse(), atari_wrapper = True)
+    args = parse()
+    env = Environment('BreakoutNoFrameskip-v4', args, atari_wrapper = True)
     agent = DQNAgent(action_size=3)
 
     scores, episodes, global_step = [], [], 0
-    if TEST:
+    print('args test', args.test)
+
+    if args.test:
+        DO_RENDER = True
         agent.test(env)
     else:
 
