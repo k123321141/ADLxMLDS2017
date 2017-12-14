@@ -37,6 +37,7 @@ class Agent_DQN(Agent):
                 self.model = self.build_model()
                 self.model.load_weights(args.dqn_model)
 
+
             
 
     def init_game_setting(self):
@@ -77,23 +78,20 @@ class Agent_DQN(Agent):
         self.memory = deque(maxlen=args.dqn_memory)
         self.no_op_steps = args.dqn_no_ops
         # build model
-        self.model = self.build_model()
-        self.model.name = 'evaluate_network'
-        self.target_model = self.build_model()
-        self.target_model.name ='target_network'
+        if args.dqn_dueling:
+            self.model = self.build_dueling_model()
+            self.model.name = 'dueling_network'        
+            self.target_model = self.build_dueling_model()
+            self.target_model.name = 'dueling_target_network'
+        else:
+            self.model = self.build_model()
+            self.model.name = 'evaluate_network'
+            self.target_model = self.build_model()
+            self.target_model.name ='target_network'
         self.update_target_model()
-        if args.dqn_dueling:
-            self.duel_model = self.build_dueling_model()
-            self.duel_model.name = 'dueling_network'        
-            self.duel_target_model = self.build_dueling_model()
-            self.duel_target_model.name = 'dueling_target_network'
-        
 
-        opt = self.optimizer()
-        self.optimizer = opt['naive']
-        if args.dqn_dueling:
-            self.duel_optimizer = opt['duel']
-            self.duel_avg_loss = 0
+
+        self.optimizer = self.optimizer()
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
 
@@ -102,14 +100,20 @@ class Agent_DQN(Agent):
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
-            args.dqn_summary + args.dqn_summary_name , self.sess.graph)
+            args.dqn_summary  , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-
-        if self.args.keep_train and os.path.isfile(self.args.dqn_model):
-            print('load model from %s.' % args.dqn_model)
-            self.model.load_weights(args.dqn_model)
-        else:
-            print('train a new model.')
+        
+        if self.args.keep_train:
+            if args.dqn_dueling: 
+                if os.path.isfile(args.dqn_duel_model):
+                    print('load duel network model from %s.' % args.dqn_duel_model)
+                    self.model.load_weights(args.dqn_duel_model)
+            elif os.path.isfile(self.args.dqn_model):
+                print('load model from %s.' % args.dqn_model)
+                self.model.load_weights(args.dqn_model)
+            else:
+                print('train a new model.')
+        print('Training Mode : double DQN:[%s]  duel network:[%s]' % (args.dqn_double_dqn, args.dqn_dueling) )
         
         #training iteration
         scores, episodes, global_step = [], [], 0
@@ -118,7 +122,7 @@ class Agent_DQN(Agent):
         e = 0
         step, score = 0, 0
         t = 0.
-        while True:
+        while e <= args.dqn_max_spisode:
             done = False
             dead = False
             # 1 episode = 5 lives
@@ -195,7 +199,7 @@ class Agent_DQN(Agent):
                             })
                         summary_str = self.sess.run(self.summary_op)
                         self.summary_writer.add_summary(summary_str, e + 1)
-                    if e % 1 == 0: 
+                    if e % 10 == 0: 
                         print("episode:", e, "  score:", score, "  memory length:",
                           len(self.memory), "  epsilon:", self.epsilon,
                           "  global_step:", global_step, "  average_q:",
@@ -205,14 +209,15 @@ class Agent_DQN(Agent):
                         sys.stdout.flush()
 
                     self.avg_q_max, self.avg_loss = 0, 0
+                    if e % args.dqn_save_interval == 0 and e >= args.dqn_save_interval:
+                        if self.args.dqn_dueling:
+                            print('save duel network model to %s.' % args.dqn_duel_model)
+                            self.model.save_weights(args.dqn_duel_model)
+                        else:
+                            print('save model to %s    with double dqn : %s' % (args.dqn_model, self.args.dqn_double_dqn) )
+                            self.model.save_weights(args.dqn_model)
                     e += 1
                     score = 0
-            if e % args.dqn_save_interval == 0 and e > args.dqn_save_interval:
-                print('save model to %s.with double dqn : %b' % (args.dqn_model, self.args.dqn_double_dqn) )
-                self.model.save_weights(args.dqn_model)
-                if self.args.dqn_dueling:
-                    print('save model to %s.' % args.dqn_duel_model)
-                    self.duel_model.save_weights(args.dqn_duel_model)
 
 
     def make_action(self, observation, test=True):
@@ -261,19 +266,7 @@ class Agent_DQN(Agent):
         updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
 
         train = K.function([self.model.input, a, y], [loss], updates=updates)
-        ret = {'naive':train}
-        #bonus
-        if self.args.dqn_dueling:
-            py_x = self.duel_model.output
-
-            q_value = K.sum(py_x * a_one_hot, axis=1)
-            error = K.square(y - q_value)
-            error = K.clip(error, 0.0, 3.0)
-            loss = K.mean(error)
-            updates = optimizer.get_updates(self.duel_model.trainable_weights, [], loss)
-            duel_train = K.function([self.duel_model.input, a, y], [loss], updates=updates)
-            ret['duel'] = duel_train
-        return ret
+        return train 
 
     # approximate Q function using Convolution Neural Network
     # state is input and Q Value of each action is output of network
@@ -349,7 +342,7 @@ class Agent_DQN(Agent):
         target_value = self.target_model.predict(next_history)
         if self.args.dqn_double_dqn:
             eval_act = np.argmax(self.model.predict(next_history), axis = -1)
-            assert eval_act.shape == (self.batch_size,)
+            #assert eval_act.shape == (self.batch_size,)
 
         # like Q Learning, get maximum Q value at s'
         # But from target model
@@ -365,18 +358,6 @@ class Agent_DQN(Agent):
                                             np.amax(target_value[i])
         loss = self.optimizer([history, action, target])
         self.avg_loss += loss[0]
-        #bonus
-        if self.args.dqn_dueling:
-            duel_target = np.zeros((self.batch_size,))
-            duel_target_value = self.duel_target_model.predict(next_history)
-            for i in range(self.batch_size):
-                if dead[i]:
-                    duel_target[i] = reward[i]
-                else:
-                    duel_target[i] = reward[i] + self.discount_factor * \
-                                            np.amax(duel_target_value[i])
-            duel_loss = self.duel_optimizer([history, action, target])
-            self.duel_avg_loss += duel_loss[0]
 
 
     # make summary operators for tensorboard
