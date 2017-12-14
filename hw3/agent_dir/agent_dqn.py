@@ -87,7 +87,7 @@ class Agent_DQN(Agent):
 
         opt = self.optimizer()
         self.optimizer = opt['naive']
-        if args.dueling:
+        if args.dqn_dueling:
             self.duel_optimizer = opt['duel']
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -110,12 +110,13 @@ class Agent_DQN(Agent):
         env = self.env
         STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH = (84, 84, 4)
         e = 0
+        step, score = 0, 0
+        t = 0.
         while True:
             e += 1
             done = False
             dead = False
             # 1 episode = 5 lives
-            step, score, start_life = 0, 0, 5
             observe = env.reset()
 
             # this is one of DeepMind's idea.
@@ -128,7 +129,7 @@ class Agent_DQN(Agent):
             state = np.reshape(observe, (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
             history = state
 
-            while not done:
+            while not dead:
                 global_step += 1
                 step += 1
 
@@ -142,7 +143,7 @@ class Agent_DQN(Agent):
                 else:
                     real_action = 3
 
-                observe, reward, done, info = env.step(real_action)
+                observe, reward, dead, info = env.step(real_action)
                 # pre-process the observation --> history
                 next_state = np.reshape(observe, (1, STATE_WIDTH, STATE_HEIGHT, STATE_LENGTH))
                 next_history = next_state 
@@ -151,9 +152,8 @@ class Agent_DQN(Agent):
                     self.model.predict(np.float32(history))[0])
 
                 # if the agent missed ball, agent is dead --> episode is not over
-                if start_life > info['ale.lives']:
-                    dead = True
-                    start_life = info['ale.lives']
+                if info['ale.lives'] == 0:
+                    done = True
 
                 #reward = np.clip(reward, -1., 1.)
 
@@ -168,11 +168,15 @@ class Agent_DQN(Agent):
                 score += reward
                 #print('dead done reward score',dead,done,reward,score)
                 # if agent is dead, then reset the history
-                if dead:
-                    dead = False
-                else:
+                if not dead:
                     history = next_history
-
+                else:
+                    print('dead',info['ale.lives'])
+                if global_step %100 == 0:
+                    print(global_step)
+                    from time import time
+                    print('%.1f' % (time()-t))
+                    t = time()
                 # if done, plot the score over episodes
                 if done:
                     mode = 'train' if global_step > self.train_start else 'random'
@@ -185,7 +189,7 @@ class Agent_DQN(Agent):
                             })
                         summary_str = self.sess.run(self.summary_op)
                         self.summary_writer.add_summary(summary_str, e + 1)
-                    if e % 100 == 0: 
+                    if e % 1 == 0: 
                         print("episode:", e, "  score:", score, "  memory length:",
                           len(self.memory), "  epsilon:", self.epsilon,
                           "  global_step:", global_step, "  average_q:",
@@ -346,7 +350,7 @@ class Agent_DQN(Agent):
         loss = self.optimizer([history, action, target])
         self.avg_loss += loss[0]
         #bonus
-        if self.args.dueling:
+        if self.args.dqn_dueling:
             duel_target = np.zeros((self.batch_size,))
             duel_target_value = self.duel_target_model.predict(next_history)
             for i in range(self.batch_size):

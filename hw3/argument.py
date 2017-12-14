@@ -31,6 +31,6 @@ def add_arguments(parser):
     parser.add_argument('--dqn_no_ops', type=int, default=10, help='do not action for init env')
     parser.add_argument('--dqn_save_interval', type=int, default=1000, help='do not action for init env')
     #bonus
-    parser.add_argument('--dqn_dueling', action='store_true', help='dqn dueling network bonus')
-    parser.add_argument('--dqn_double_dqn', action='store_true', help='double dqn bonus')
+    parser.add_argument('--dqn_dueling', action='store_true',default=False, help='dqn dueling network bonus')
+    parser.add_argument('--dqn_double_dqn', action='store_true',default=False, help='double dqn bonus')
     return parser
