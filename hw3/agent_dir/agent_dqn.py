@@ -3,9 +3,9 @@ from agent_dir.agent import Agent
 from collections import deque
 from skimage.color import rgb2gray
 from skimage.transform import resize
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
-from keras.layers import Dense, Flatten
+from keras.layers import Dense, Flatten, Input, Add, RepeatVector, Reshape
 from keras.layers.convolutional import Conv2D
 from keras import backend as K
 import os,random,sys
@@ -74,11 +74,21 @@ class Agent_DQN(Agent):
         self.no_op_steps = args.dqn_no_ops
         # build model
         self.model = self.build_model()
+        self.model.name = 'evaluate_network'
         self.target_model = self.build_model()
+        self.target_model.name ='target_network'
         self.update_target_model()
+        if args.dqn_dueling:
+            self.duel_model = self.build_dueling_model()
+            self.duel_model.name = 'dueling_network'        
+            self.duel_target_model = self.build_dueling_model()
+            self.duel_target_model.name = 'dueling_target_network'
+        
 
-        self.optimizer = self.optimizer()
-
+        opt = self.optimizer()
+        self.optimizer = opt['naive']
+        if args.dueling:
+            self.duel_optimizer = opt['duel']
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
 
@@ -86,7 +96,7 @@ class Agent_DQN(Agent):
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
-            args.dqn_summary, self.sess.graph)
+            args.dqn_summary + args.dqn_summary_name , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
         if self.args.keep_train and os.path.isfile(self.args.dqn_model):
@@ -156,7 +166,7 @@ class Agent_DQN(Agent):
                     self.update_target_model()
 
                 score += reward
-
+                #print('dead done reward score',dead,done,reward,score)
                 # if agent is dead, then reset the history
                 if dead:
                     dead = False
@@ -234,9 +244,15 @@ class Agent_DQN(Agent):
         loss = K.mean(error)
         optimizer = RMSprop(lr=0.00025, epsilon=0.01)
         updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
-        train = K.function([self.model.input, a, y], [loss], updates=updates)
 
-        return train
+        train = K.function([self.model.input, a, y], [loss], updates=updates)
+        ret = {'naive':train}
+        #bonus
+        if self.args.dqn_dueling:
+            updates = optimizer.get_updates(self.duel_model.trainable_weights, [], loss)
+            duel_train = K.function([self.duel_model.input, a, y], [loss], updates=updates)
+            ret['duel'] = duel_train
+        return ret
 
     # approximate Q function using Convolution Neural Network
     # state is input and Q Value of each action is output of network
@@ -249,6 +265,27 @@ class Agent_DQN(Agent):
         model.add(Flatten())
         model.add(Dense(512, activation='relu'))
         model.add(Dense(self.action_size))
+        model.summary()
+        return model
+    def build_dueling_model(self):
+        state = Input(shape=(self.state_size))
+
+        x = Conv2D(32, (8, 8), strides=(4, 4), activation='relu')(state)
+        x = Conv2D(64, (4, 4), strides=(2, 2), activation='relu')(x)
+        x = Conv2D(64, (3, 3), strides=(1, 1), activation='relu')(x)
+        x = Flatten()(x)
+        #value
+        v = Dense(512, activation='relu')(x)
+        v = Dense(1)(v)
+        #action
+        a = Dense(512, activation='relu')(x)
+        a = Dense(self.action_size)(a)
+        #sum
+        v = RepeatVector(self.action_size)(v)
+        v = Reshape([1,self.action_size])(v)
+        q = Add()([v,a])
+        
+        model = Model(inputs=state, outputs=q)
         model.summary()
         return model
 
@@ -290,6 +327,9 @@ class Agent_DQN(Agent):
             dead.append(mini_batch[i][4])
 
         target_value = self.target_model.predict(next_history)
+        if self.args.dqn_double_dqn:
+            eval_act = np.argmax(self.model.predict(next_history), axis = -1)
+            assert eval_act.shape == (self.batch_size,)
 
         # like Q Learning, get maximum Q value at s'
         # But from target model
@@ -297,11 +337,26 @@ class Agent_DQN(Agent):
             if dead[i]:
                 target[i] = reward[i]
             else:
-                target[i] = reward[i] + self.discount_factor * \
-                                        np.amax(target_value[i])
-
+                if self.args.dqn_double_dqn:
+                    target[i] = reward[i] + self.discount_factor * \
+                                            target_value[i,eval_act[i]]
+                else:
+                    target[i] = reward[i] + self.discount_factor * \
+                                            np.amax(target_value[i])
         loss = self.optimizer([history, action, target])
         self.avg_loss += loss[0]
+        #bonus
+        if self.args.dueling:
+            duel_target = np.zeros((self.batch_size,))
+            duel_target_value = self.duel_target_model.predict(next_history)
+            for i in range(self.batch_size):
+                if dead[i]:
+                    duel_target[i] = reward[i]
+                else:
+                    duel_target[i] = reward[i] + self.discount_factor * \
+                                            np.amax(duel_target_value[i])
+            duel_loss = self.duel_optimizer([history, action, target])
+            self.duel_avg_loss += duel_loss[0]
 
 
     # make summary operators for tensorboard

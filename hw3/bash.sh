@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 ./main.py  --train_dqn
+CUDA_VISIBLE_DEVICES="" python3 ./main.py --train_dqn --dqn_dueling
