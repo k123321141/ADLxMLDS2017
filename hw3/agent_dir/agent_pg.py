@@ -4,7 +4,9 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense, Reshape, Flatten, Conv2D
 from keras.optimizers import Adam
-import scipy
+import scipy,keras
+import keras.backend as K
+import tensorflow as tf
 import sys,os
 
 def prepro(o,image_size=[80,80]):
@@ -34,6 +36,13 @@ class Agent_PG(Agent):
 
         super(Agent_PG,self).__init__(env)
 
+
+
+        self.state_size = 80 * 80 
+        self.env = env
+        self.args = args
+        
+        self.action_size = 3
         if args.test_pg:
             #you can load your model here
             if os.path.isfile(args.pg_model):
@@ -43,27 +52,6 @@ class Agent_PG(Agent):
                 print('no model for testing!\nerror path %s' % args.pg_model)
                 sys.exit(1)
 
-        ##################
-        # YOUR CODE HERE #
-        ##################
-
-        self.state_size = 80 * 80 
-        self.env = env
-        self.args = args
-        
-        self.action_size = 2
-
-        self.gamma = args.pg_discount_factor
-        self.learning_rate = 0.0001
-        self.model = self._build_model()
-        self.base_line = args.pg_baseline 
-        self.states = []
-        self.gradients = []
-        self.rewards = []
-        self.probs = []
-        if os.path.isfile(args.pg_model):
-            print('load model from %s.' % args.pg_model)
-            self.load(args.pg_model)
 
 
     def init_game_setting(self):
@@ -89,14 +77,14 @@ class Agent_PG(Agent):
         env = self.env
         args = self.args
 
-        self.action_size = 2
 
         self.gamma = args.pg_discount_factor
         self.learning_rate = 0.0001
-        self.model = self._build_model()
-        self.base_line = args.pg_baseline 
+        self.model = self.build_model()
+        self.baseline = args.pg_baseline 
+
         self.states = []
-        self.gradients = []
+        self.actions = []
         self.rewards = []
         self.probs = []
         if os.path.isfile(args.pg_model) and args.keep_train:
@@ -104,35 +92,41 @@ class Agent_PG(Agent):
             self.load(args.pg_model)
 
 
-        state = env.reset()
         self.prev_x = None
-        self.score = 0
-        self.episode = 0
+        score = 0
+        episode = 0
+        self.optimizer = self.gradient_optimizer()
 
+        terminal = False 
+        done = False
+        state = env.reset()
         while True:
             if args.do_render:
-                env.render()
-
+                env.env.render()
+            if terminal:    #game over
+                state = env.reset()
+                episode += 1
+                print('Episode: %d - Score: %f.' % (episode,score))
+                sys.stdout.flush()
+                score = 0
+                if episode > 1 and episode % args.pg_save_interval == 0:
+                    print('save model to %s.' % args.pg_model)
+                    self.save(args.pg_model)
+                    
             cur_x = prepro(state).ravel()
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
 
             action, prob = self.act(x)
-            state, reward, done, info = env.step(action)
-            self.score += reward
+            real_action = self.real_act(action)
+            state, reward, terminal, info = env.step(real_action)
+            score += reward
             self.remember(x, action, prob, reward)
 
+            done = reward != 0  #someone get the point
             if done:
-                self.episode += 1
-                self.update()
-                print('Episode: %d - Score: %f.' % (self.episode, self.score))
-                sys.stdout.flush()
-                self.score = 0
-                state = env.reset()
+                self.update_policy()
                 self.prev_x = None
-                if self.episode > 1 and self.episode % SAVE_INTERVAL == 0:
-                    print('save model to %s.' % MODEL_PATH)
-                    #self.save(MODEL_PATH)
     
 
 
@@ -156,9 +150,9 @@ class Agent_PG(Agent):
         self.prev_x = cur_x
 
         action, prob = self.act(x)
-        return action
+        return self.real_act(action)
         #return self.env.get_random_action()
-    def _build_model(self):
+    def build_model(self):
         model = Sequential()
         model.add(Reshape((80, 80, 1), input_shape=(self.state_size,)))
         model.add(Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
@@ -176,53 +170,84 @@ class Agent_PG(Agent):
         state = state.reshape([1, state.shape[0]])
         prob = self.model.predict(state, batch_size=1).flatten()
         self.probs.append(prob)
-        prob = aprob / np.sum(aprob)
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         return action, prob
 
     #train funcfion
     def remember(self, state, action, prob, reward):
-        y = np.zeros([self.action_size])
-        y[action] = 1
-        self.gradients.append(np.array(y).astype('float32') - prob)
+        self.actions.append(action)
         self.states.append(state)
         self.rewards.append(reward)
+    def gradient_optimizer(self):
+        a = K.placeholder(shape=(None,self.action_size), dtype='float32')
+        r = K.placeholder(shape=(None,), dtype='float32')
+
+        py_x = self.model.output
+        loss = tf.nn.softmax_cross_entropy_with_logits(logits=py_x, labels=a)
+        #loss = -a * K.log(py_x)
+        loss = K.mean(r*loss)
+        
+        opt = Adam(lr=self.learning_rate)
+        updates = opt.get_updates(self.model.trainable_weights, [], loss)
+
+        train = K.function([self.model.input, a, r], [loss], updates=updates)
+        return train 
 
     #train funcfion
     def discount_rewards(self, rewards):
         discounted_rewards = np.zeros_like(rewards)
         running_add = 0
         for t in reversed(range(0, rewards.size)):
-            if rewards[t] != 0:
-                running_add = 0
             running_add = running_add * self.gamma + rewards[t]
             discounted_rewards[t] = running_add
         return discounted_rewards
 
     #train funcfion
-    def update(self):
-        gradients = np.vstack(self.gradients)
+    def update_policy(self):
         rewards = np.vstack(self.rewards)
-        #rewards = self.discount_rewards(rewards)
-        #rewards = rewards / np.std(rewards - np.mean(rewards))
-        print(BASE_LINE)
-        rewards -= BASE_LINE
-        gradients *= rewards
-        X = np.squeeze(np.vstack([self.states]))
-        Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
-        self.model.train_on_batch(X, Y)
-        self.states, self.probs, self.gradients, self.rewards = [], [], [], []
+        actions = np.vstack(self.actions)
+        x = np.squeeze(np.vstack([self.states]))#trajectory len,6400
+        probs = np.vstack(self.probs)
+        rewards = self.discount_rewards(rewards)
+        rewards = rewards / np.std(rewards - np.mean(rewards))
+        '''
+        reward = np.sum(rewards) - self.baseline
+        reward = reward * (self.gamma ** (len(self.rewards)-1))
+        '''
+        #reward is the direction of gradient
+        #y tell model how to improve, to get the expected distribution of action
+        reward = np.sum(self.rewards)
+
+        a = keras.utils.to_categorical(actions, self.action_size)
+        #print(x.shape,a.shape,r.shape)
+        loss = self.optimizer([x, a, rewards.ravel()])
+        '''
+        y = keras.utils.to_categorical(actions, self.action_size)
+        #gradients = -reward * self.learning_rate * (y - probs)
+        #y = probs + gradients
+        print('reward ',reward)
+        print('prob ',probs[17:20,:])
+        print('y ',y[17:20,:])
+        '''
+        #self.model.train_on_batch(x, y)
+        self.states, self.probs, self.actions, self.rewards = [], [], [], []
+        tt = self.model.predict(x)
+
+        #print('after prob ',tt[17:20,:])
+        #print('')
 
     def load(self, name):
         self.model.load_weights(name)
 
     def save(self, name):
         self.model.save_weights(name)
-    def real_act(n):
+    def real_act(self, n):
         if n == 0:
-            return 3 #up
+            return 0 #nop
         elif n == 1:
-            return 5 #down
+            return 2 #up
+        elif n == 2:
+            return 3 #down
         else:
             print('error action number')
             sys.exit(1)

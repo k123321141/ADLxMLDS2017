@@ -37,8 +37,9 @@ def add_arguments(parser):
     parser.add_argument('--pg_model', default=join('rl','pong_pg.h5'), help='path to save model for trainging')
     parser.add_argument('--pg_summary', default=join('rl','summary','pong_pg'), help='path to save summary for training')
     parser.add_argument('--pg_batch', type=int, default=32, help='batch size')
-    parser.add_argument('--pg_discount_factor', type=float, default=1., help='discount factor')
+    parser.add_argument('--pg_discount_factor', type=float, default=0.99, help='discount factor')
     parser.add_argument('--pg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--pg_max_spisode', type=int, default=100000, help='maximum iteration')
+    parser.add_argument('--pg_save_interval', type=int, default=10, help='how many episodes per saving')
     #bonus
     return parser
