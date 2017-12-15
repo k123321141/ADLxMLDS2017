@@ -8,6 +8,7 @@ import scipy,keras
 import keras.backend as K
 import tensorflow as tf
 import sys,os
+from collections import deque
 
 def prepro(o,image_size=[80,80]):
     """
@@ -90,10 +91,22 @@ class Agent_PG(Agent):
         if os.path.isfile(args.pg_model) and args.keep_train:
             print('load model from %s.' % args.pg_model)
             self.load(args.pg_model)
+        else:
+            print('train a new model')
+        #summary
+        self.sess = tf.InteractiveSession()
+        K.set_session(self.sess)
 
+        self.avg_q_max, self.avg_loss = 0, 0
+
+        self.summary_placeholders, self.update_ops, self.summary_op = \
+            self.setup_summary()
+        self.summary_writer = tf.summary.FileWriter(
+            args.pg_summary  , self.sess.graph)
+        self.sess.run(tf.global_variables_initializer())
 
         self.prev_x = None
-        score = 0
+        score, win, lose, step,que = 0,0,0,0,deque()
         episode = 0
         self.optimizer = self.gradient_optimizer()
 
@@ -106,12 +119,25 @@ class Agent_PG(Agent):
             if terminal:    #game over
                 state = env.reset()
                 episode += 1
+                que.append(score)
                 print('Episode: %d - Score: %f.' % (episode,score))
                 sys.stdout.flush()
-                score = 0
                 if episode > 1 and episode % args.pg_save_interval == 0:
                     print('save model to %s.' % args.pg_model)
                     self.save(args.pg_model)
+                #summary
+                stats = [score, win, step, lose, np.mean(que) ]
+
+                for i in range(len(stats)):
+                    self.sess.run(self.update_ops[i], feed_dict={
+                        self.summary_placeholders[i]: float(stats[i])
+                    })
+                summary_str = self.sess.run(self.summary_op)
+                self.summary_writer.add_summary(summary_str, episode + 1)
+                
+                score, win, lose, step = 0,0,0,0
+                if len(que) > 30:
+                    que.popleft()
                     
             cur_x = prepro(state).ravel()
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
@@ -122,8 +148,12 @@ class Agent_PG(Agent):
             state, reward, terminal, info = env.step(real_action)
             score += reward
             self.remember(x, action, prob, reward)
-
             done = reward != 0  #someone get the point
+            if reward == 1:
+                win += 1
+            else:
+                lose += 1
+            step += 1
             if done:
                 self.update_policy()
                 self.prev_x = None
@@ -251,5 +281,26 @@ class Agent_PG(Agent):
         else:
             print('error action number')
             sys.exit(1)
+    def setup_summary(self):
+        episode_total_reward = tf.Variable(0.)
+        episode_win = tf.Variable(0.)
+        episode_duration = tf.Variable(0.)
+        episode_lose = tf.Variable(0.)
+        episode_avg_score = tf.Variable(0.)
+
+        tf.summary.scalar('Total Reward/Episode', episode_total_reward)
+        tf.summary.scalar('Win/Episode', episode_win)
+        tf.summary.scalar('Duration/Episode', episode_duration)
+        tf.summary.scalar('Lose/Episode', episode_lose)
+        tf.summary.scalar('Average Score/Episode', episode_avg_score)
+
+        summary_vars = [episode_total_reward, episode_win,
+                        episode_duration, episode_lose, episode_avg_score]
+        summary_placeholders = [tf.placeholder(tf.float32) for _ in
+                                range(len(summary_vars))]
+        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
+                      range(len(summary_vars))]
+        summary_op = tf.summary.merge_all()
+        return summary_placeholders, update_ops, summary_op
 
 
