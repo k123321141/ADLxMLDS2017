@@ -36,7 +36,12 @@ class Agent_PG(Agent):
 
         if args.test_pg:
             #you can load your model here
-            print('loading trained model')
+            if os.path.isfile(args.pg_model):
+                print('load model from %s.' % args.pg_model)
+                self.load(args.pg_model)
+            else:
+                print('no model for testing!\nerror path %s' % args.pg_model)
+                sys.exit(1)
 
         ##################
         # YOUR CODE HERE #
@@ -45,12 +50,13 @@ class Agent_PG(Agent):
         self.state_size = 80 * 80 
         self.env = env
         self.args = args
-        self.action_size = env.env.action_space.n #
+        
+        self.action_size = 2
+
         self.gamma = args.pg_discount_factor
         self.learning_rate = 0.0001
         self.model = self._build_model()
-        self.base_line = BASE_LINE
-        self.prev_x = None
+        self.base_line = args.pg_baseline 
         self.states = []
         self.gradients = []
         self.rewards = []
@@ -82,6 +88,22 @@ class Agent_PG(Agent):
         ##################
         env = self.env
         args = self.args
+
+        self.action_size = 2
+
+        self.gamma = args.pg_discount_factor
+        self.learning_rate = 0.0001
+        self.model = self._build_model()
+        self.base_line = args.pg_baseline 
+        self.states = []
+        self.gradients = []
+        self.rewards = []
+        self.probs = []
+        if os.path.isfile(args.pg_model) and args.keep_train:
+            print('load model from %s.' % args.pg_model)
+            self.load(args.pg_model)
+
+
         state = env.reset()
         self.prev_x = None
         self.score = 0
@@ -91,8 +113,8 @@ class Agent_PG(Agent):
             if args.do_render:
                 env.render()
 
-            cur_x = self.preprocess(state)
-            x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
+            cur_x = prepro(state).ravel()
+            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
 
             action, prob = self.act(x)
@@ -152,8 +174,8 @@ class Agent_PG(Agent):
 
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
-        aprob = self.model.predict(state, batch_size=1).flatten()
-        self.probs.append(aprob)
+        prob = self.model.predict(state, batch_size=1).flatten()
+        self.probs.append(prob)
         prob = aprob / np.sum(aprob)
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         return action, prob
@@ -196,5 +218,13 @@ class Agent_PG(Agent):
 
     def save(self, name):
         self.model.save_weights(name)
+    def real_act(n):
+        if n == 0:
+            return 3 #up
+        elif n == 1:
+            return 5 #down
+        else:
+            print('error action number')
+            sys.exit(1)
 
 
