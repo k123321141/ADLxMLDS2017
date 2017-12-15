@@ -1,8 +1,6 @@
 from agent_dir.agent import Agent
 
 from collections import deque
-from skimage.color import rgb2gray
-from skimage.transform import resize
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
 from keras.layers import Dense, Flatten, Input, Add, RepeatVector, Reshape
@@ -380,6 +378,4 @@ class Agent_DQN(Agent):
                       range(len(summary_vars))]
         summary_op = tf.summary.merge_all()
         return summary_placeholders, update_ops, summary_op
-
-
 
