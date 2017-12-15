@@ -10,23 +10,13 @@ import tensorflow as tf
 import sys,os
 from collections import deque
 
-def prepro(o,image_size=[80,80]):
-    """
-    Call this function to preprocess RGB image to grayscale image if necessary
-    This preprocessing code is from
-        https://github.com/hiwonjoon/tf-a3c-gpu/blob/master/async_agent.py
-    
-    Input: 
-    RGB image: np.array
-        RGB screen of game, shape: (210, 160, 3)
-    Default return: np.array 
-        Grayscale image, shape: (80, 80, 1)
-    
-    """
-    y = 0.2126 * o[:, :, 0] + 0.7152 * o[:, :, 1] + 0.0722 * o[:, :, 2]
-    y = y.astype(np.uint8)
-    resized = scipy.misc.imresize(y, image_size)
-    return np.expand_dims(resized.astype(np.float32),axis=2)
+def prepro(I):
+    I = I[35:195]
+    I = I[::2, ::2, 0]
+    I[I == 144] = 0
+    I[I == 109] = 0
+    I[I != 0] = 1
+    return I.astype(np.float).ravel()
 
 class Agent_PG(Agent):
     def __init__(self, env, args):
@@ -97,7 +87,6 @@ class Agent_PG(Agent):
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
 
-        self.avg_q_max, self.avg_loss = 0, 0
 
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
@@ -139,7 +128,7 @@ class Agent_PG(Agent):
                 if len(que) > 30:
                     que.popleft()
                     
-            cur_x = prepro(state).ravel()
+            cur_x = prepro(state)
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
 
@@ -151,7 +140,7 @@ class Agent_PG(Agent):
             done = reward != 0  #someone get the point
             if reward == 1:
                 win += 1
-            else:
+            elif reward == -1:
                 lose += 1
             step += 1
             if done:
@@ -175,7 +164,7 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        cur_x = self.prepro(observation).ravel()
+        cur_x = self.prepro(observation)
         x = cur_x - self.prev_x if self.prev_x is not None else cur_x 
         self.prev_x = cur_x
 
