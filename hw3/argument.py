@@ -10,17 +10,15 @@ def add_arguments(parser):
     from os.path import expanduser,join
     home = expanduser("~")
 
-    MODEL_PATH      =   join(home,'rl','breakout_dqn.h5')
-    DUEL_MODEL_PATH =   join(home,'rl','breakout_duel_dqn.h5')
-    SUMMARY_PATH    =   join(home,'rl','summary','breakout_dqn_')
 
     parser.add_argument('--test', action='store_true', help='test dqn')
     parser.add_argument('--keep_train', action='store_true', default=True, help='load trained model')
     #
     #dqn setting 
-    parser.add_argument('--dqn_model', default=MODEL_PATH, help='path to save model for trainging')
-    parser.add_argument('--dqn_duel_model', default=DUEL_MODEL_PATH, help='path to save duel network model for trainging')
-    parser.add_argument('--dqn_summary', default=SUMMARY_PATH, help='path to save summary for training')
+    parser.add_argument('--dqn_model', default=join(home,'rl','breakout_dqn.h5'), help='path to save model for trainging')
+    parser.add_argument('--dqn_duel_model', default=join(home,'rl','breakout_duel_dqn.h5'), 
+            help='path to save duel network model for trainging')
+    parser.add_argument('--dqn_summary', default=join(home,'rl','summary','breakout_dqn'), help='path to save summary for training')
     parser.add_argument('--dqn_epsilon', type=float, default=0.99, help='start epsilon')
     parser.add_argument('--dqn_epsilon_end', type=float, default=0.1, help='end epsilon')
     parser.add_argument('--dqn_exploration_steps', type=float, default=600000, help='how many step in env per epsilon decay')
@@ -35,4 +33,12 @@ def add_arguments(parser):
     #bonus
     parser.add_argument('--dqn_dueling', action='store_true',default=False, help='dqn dueling network bonus')
     parser.add_argument('--dqn_double_dqn', action='store_true',default=False, help='double dqn bonus')
+    #pg setting 
+    parser.add_argument('--pg_model', default=join('rl','pong_pg.h5'), help='path to save model for trainging')
+    parser.add_argument('--pg_summary', default=join('rl','summary','pong_pg'), help='path to save summary for training')
+    parser.add_argument('--pg_batch', type=int, default=32, help='batch size')
+    parser.add_argument('--pg_discount_factor', type=float, default=1., help='discount factor')
+    parser.add_argument('--pg_baseline', type=int, default=0, help='baseline info')
+    parser.add_argument('--pg_max_spisode', type=int, default=100000, help='maximum iteration')
+    #bonus
     return parser

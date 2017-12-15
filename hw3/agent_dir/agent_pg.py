@@ -4,17 +4,26 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense, Reshape, Flatten, Conv2D
 from keras.optimizers import Adam
+import scipy
 import sys,os
 
-MODEL_PATH      =   '/tmp/rl/pong_pg_main.h5'
-SUMMARY_PATH    =   '/tmp/rl/summary/pong_pg_main.h5'
-SAVE_INTERVAL   =   10
-STATE_WIDTH     =   210
-STATE_HEIGHT    =   160
-STATE_LENGTH    =   3
-DO_RENDER       =   False
-BASE_LINE       =   0
-REWARD_GAMMA    =   0.2
+def prepro(o,image_size=[80,80]):
+    """
+    Call this function to preprocess RGB image to grayscale image if necessary
+    This preprocessing code is from
+        https://github.com/hiwonjoon/tf-a3c-gpu/blob/master/async_agent.py
+    
+    Input: 
+    RGB image: np.array
+        RGB screen of game, shape: (210, 160, 3)
+    Default return: np.array 
+        Grayscale image, shape: (80, 80, 1)
+    
+    """
+    y = 0.2126 * o[:, :, 0] + 0.7152 * o[:, :, 1] + 0.0722 * o[:, :, 2]
+    y = y.astype(np.uint8)
+    resized = scipy.misc.imresize(y, image_size)
+    return np.expand_dims(resized.astype(np.float32),axis=2)
 
 class Agent_PG(Agent):
     def __init__(self, env, args):
@@ -32,26 +41,101 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-    def __init__(self, env, args):
 
         self.state_size = 80 * 80 
         self.env = env
+        self.args = args
         self.action_size = env.env.action_space.n
-        self.gamma = 0.99
+        self.gamma = args.pg_discount_factor
         self.learning_rate = 0.0001
         self.model = self._build_model()
-        self.model.summary()
         self.base_line = BASE_LINE
         self.prev_x = None
         self.states = []
         self.gradients = []
         self.rewards = []
         self.probs = []
-        if os.path.isfile(MODEL_PATH):
-            print('load model from %s.' % MODEL_PATH)
-            self.load(MODEL_PATH)
+        if os.path.isfile(args.pg_model):
+            print('load model from %s.' % args.pg_model)
+            self.load(args.pg_model)
 
 
+    def init_game_setting(self):
+        """
+
+        Testing function will call this function at the begining of new game
+        Put anything you want to initialize if necessary
+
+        """
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        pass
+
+
+    def train(self):
+        """
+        Implement your training algorithm here
+        """
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        env = self.env
+        args = self.args
+        state = env.reset()
+        self.prev_x = None
+        self.score = 0
+        self.episode = 0
+
+        while True:
+            if args.do_render:
+                env.render()
+
+            cur_x = self.preprocess(state)
+            x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
+            self.prev_x = cur_x
+
+            action, prob = self.act(x)
+            state, reward, done, info = env.step(action)
+            self.score += reward
+            self.remember(x, action, prob, reward)
+
+            if done:
+                self.episode += 1
+                self.update()
+                print('Episode: %d - Score: %f.' % (self.episode, self.score))
+                sys.stdout.flush()
+                self.score = 0
+                state = env.reset()
+                self.prev_x = None
+                if self.episode > 1 and self.episode % SAVE_INTERVAL == 0:
+                    print('save model to %s.' % MODEL_PATH)
+                    #self.save(MODEL_PATH)
+    
+
+
+    def make_action(self, observation, test=True):
+        """
+        Return predicted action of your agent
+
+        Input:
+            observation: np.array
+                current RGB screen of game, shape: (210, 160, 3)
+
+        Return:
+            action: int
+                the predicted action from trained model
+        """
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        cur_x = self.prepro(observation).ravel()
+        x = cur_x - self.prev_x if self.prev_x is not None else cur_x 
+        self.prev_x = cur_x
+
+        action, prob = self.act(x)
+        return action
+        #return self.env.get_random_action()
     def _build_model(self):
         model = Sequential()
         model.add(Reshape((80, 80, 1), input_shape=(self.state_size,)))
@@ -113,86 +197,4 @@ class Agent_PG(Agent):
     def save(self, name):
         self.model.save_weights(name)
 
-    def init_game_setting(self):
-        """
-
-        Testing function will call this function at the begining of new game
-        Put anything you want to initialize if necessary
-
-        """
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        pass
-
-
-    def train(self):
-        """
-        Implement your training algorithm here
-        """
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        env = self.env
-        state = env.reset()
-        self.prev_x = None
-        self.score = 0
-        self.episode = 0
-
-        while True:
-            if DO_RENDER:
-                env.render()
-
-            cur_x = self.preprocess(state)
-            x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
-            self.prev_x = cur_x
-
-            action, prob = self.act(x)
-            state, reward, done, info = env.step(action)
-            self.score += reward
-            self.remember(x, action, prob, reward)
-
-            if done:
-                self.episode += 1
-                self.update()
-                print('Episode: %d - Score: %f.' % (self.episode, self.score))
-                sys.stdout.flush()
-                self.score = 0
-                state = env.reset()
-                self.prev_x = None
-                if self.episode > 1 and self.episode % SAVE_INTERVAL == 0:
-                    print('save model to %s.' % MODEL_PATH)
-                    #self.save(MODEL_PATH)
-    
-    def preprocess(self, I):
-        I = I[35:195]
-        I = I[::2, ::2, 0]
-        I[I == 144] = 0
-        I[I == 109] = 0
-        I[I != 0] = 1
-        return I.astype(np.float).ravel()
-
-
-    def make_action(self, observation, test=True):
-        """
-        Return predicted action of your agent
-
-        Input:
-            observation: np.array
-                current RGB screen of game, shape: (210, 160, 3)
-
-        Return:
-            action: int
-                the predicted action from trained model
-        """
-        ##################
-        # YOUR CODE HERE #
-        ##################
-        cur_x = self.preprocess(observation)
-        x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
-        self.prev_x = cur_x
-
-        action, prob = self.act(x)
-        return action
-        #return self.env.get_random_action()
 
