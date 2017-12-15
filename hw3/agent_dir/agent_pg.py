@@ -45,7 +45,7 @@ class Agent_PG(Agent):
         self.state_size = 80 * 80 
         self.env = env
         self.args = args
-        self.action_size = env.env.action_space.n
+        self.action_size = env.env.action_space.n #
         self.gamma = args.pg_discount_factor
         self.learning_rate = 0.0001
         self.model = self._build_model()
