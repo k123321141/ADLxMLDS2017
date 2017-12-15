@@ -9,7 +9,7 @@ python3 ./main.py --train_dqn \
 python3 ./main.py --train_dqn \
     --dqn_model=./rl/duel_DQN.h5 \
     --dqn_summary=./rl/duel_DQN_summary \
-    --dqn_max_spisode=5000
+    --dqn_max_spisode=5000 \
     --dqn_dueling
 python3 ./main.py --train_dqn \
     --dqn_model=./rl/DQN.h5 \
