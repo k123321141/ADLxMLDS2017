@@ -106,6 +106,7 @@ class Agent_PG(Agent):
             if args.do_render:
                 env.env.render()
             if terminal:    #game over
+                self.update_src()
                 state = env.reset()
                 episode += 1
                 que.append(score)
@@ -144,7 +145,6 @@ class Agent_PG(Agent):
                 lose += 1
             step += 1
             if done:
-                self.update_policy()
                 self.prev_x = None
     
 
@@ -217,6 +217,8 @@ class Agent_PG(Agent):
         discounted_rewards = np.zeros_like(rewards)
         running_add = 0
         for t in reversed(range(0, rewards.size)):
+            if rewards[t] != 0:
+                running_add = 0
             running_add = running_add * self.gamma + rewards[t]
             discounted_rewards[t] = running_add
         return discounted_rewards
@@ -232,28 +234,33 @@ class Agent_PG(Agent):
         '''
         reward = np.sum(rewards) - self.baseline
         reward = reward * (self.gamma ** (len(self.rewards)-1))
-        '''
-        #reward is the direction of gradient
-        #y tell model how to improve, to get the expected distribution of action
         reward = np.sum(self.rewards)
-
+        
         a = keras.utils.to_categorical(actions, self.action_size)
-        #print(x.shape,a.shape,r.shape)
         loss = self.optimizer([x, a, rewards.ravel()])
-        '''
         y = keras.utils.to_categorical(actions, self.action_size)
         #gradients = -reward * self.learning_rate * (y - probs)
-        #y = probs + gradients
-        print('reward ',reward)
-        print('prob ',probs[17:20,:])
-        print('y ',y[17:20,:])
         '''
-        #self.model.train_on_batch(x, y)
+        self.model.train_on_batch(x, y)
         self.states, self.probs, self.actions, self.rewards = [], [], [], []
         tt = self.model.predict(x)
 
         #print('after prob ',tt[17:20,:])
         #print('')
+    def update_src(self):
+        actions = np.vstack(self.actions)
+        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
+        probs = np.vstack(self.probs)
+        gradients = actions - probs
+        rewards = np.vstack(self.rewards)
+        rewards = self.discount_rewards(rewards)
+        rewards = rewards / np.std(rewards - np.mean(rewards))
+        gradients *= rewards
+        
+        X = np.squeeze(np.vstack([self.states]))
+        Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
+        self.model.train_on_batch(X, Y)
+        self.states, self.probs, self.gradients, self.rewards = [], [], [], []
 
     def load(self, name):
         self.model.load_weights(name)
