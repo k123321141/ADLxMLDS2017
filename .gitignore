@@ -13,5 +13,4 @@
 out.txt
 config.py
 breakout-*
-*.server
 *.h5
