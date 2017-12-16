@@ -26,10 +26,10 @@ class Agent_DQN(Agent):
         if args.test_dqn:
             #you can load your model here
             print('loading trained model')
-            if os.dqn_dueling and os.path.isfile(args.dqn_duel_model):
-                print('load duel network model from %s.' % args.dqn_duel_model)
+            if os.dqn_dueling and os.path.isfile(args.dqn_model):
+                print('load duel network model from %s.' % args.dqn_model)
                 self.model = self.build_dueling_model()
-                self.model.load_weights(args.dqn_duel_model)
+                self.model.load_weights(args.dqn_model)
             elif os.path.isfile(args.dqn_model):
                 print('load model from %s.' % args.dqn_model)
                 self.model = self.build_model()
@@ -103,9 +103,9 @@ class Agent_DQN(Agent):
         
         if self.args.keep_train:
             if args.dqn_dueling: 
-                if os.path.isfile(args.dqn_duel_model):
-                    print('load duel network model from %s.' % args.dqn_duel_model)
-                    self.model.load_weights(args.dqn_duel_model)
+                if os.path.isfile(args.dqn_model):
+                    print('load duel network model from %s.' % args.dqn_model)
+                    self.model.load_weights(args.dqn_model)
             elif os.path.isfile(self.args.dqn_model):
                 print('load model from %s.' % args.dqn_model)
                 self.model.load_weights(args.dqn_model)
@@ -209,8 +209,8 @@ class Agent_DQN(Agent):
                     self.avg_q_max, self.avg_loss = 0, 0
                     if e % args.dqn_save_interval == 0 and e >= args.dqn_save_interval:
                         if self.args.dqn_dueling:
-                            print('save duel network model to %s.' % args.dqn_duel_model)
-                            self.model.save_weights(args.dqn_duel_model)
+                            print('save duel network model to %s.' % args.dqn_model)
+                            self.model.save_weights(args.dqn_model)
                         else:
                             print('save model to %s    with double dqn : %s' % (args.dqn_model, self.args.dqn_double_dqn) )
                             self.model.save_weights(args.dqn_model)

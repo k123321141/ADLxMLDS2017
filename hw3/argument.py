@@ -16,8 +16,6 @@ def add_arguments(parser):
     #
     #dqn setting 
     parser.add_argument('--dqn_model', default=join(home,'rl','breakout_dqn.h5'), help='path to save model for trainging')
-    parser.add_argument('--dqn_duel_model', default=join(home,'rl','breakout_duel_dqn.h5'), 
-            help='path to save duel network model for trainging')
     parser.add_argument('--dqn_summary', default=join(home,'rl','summary','breakout_dqn'), help='path to save summary for training')
     parser.add_argument('--dqn_epsilon', type=float, default=0.99, help='start epsilon')
     parser.add_argument('--dqn_epsilon_end', type=float, default=0.1, help='end epsilon')
