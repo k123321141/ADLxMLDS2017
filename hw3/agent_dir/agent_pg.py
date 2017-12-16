@@ -83,6 +83,7 @@ class Agent_PG(Agent):
         return I.astype(np.float).ravel()
 
 
+
     def make_action(self, observation, test=True):
         """
         Return predicted action of your agent
@@ -104,5 +105,3 @@ class Agent_PG(Agent):
 
         action, prob = self.act(x)
         return action
-        #return self.env.get_random_action()
-
