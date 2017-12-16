@@ -59,7 +59,7 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        #self.prev_x = None
+        self.prev_x = None
         pass
 
 
