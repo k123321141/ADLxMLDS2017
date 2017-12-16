@@ -9,7 +9,7 @@ import keras.backend as K
 from collections import deque
 
 MODEL_PATH      =   './rl/pong_pg_src.h5'
-SUMMARY_PATH    =   './rl/summary/pong_pg_src'
+SUMMARY_PATH    =   './rl/summary/pong_pg_src2'
 SAVE_INTERVAL   =   10
 STATE_WIDTH     =   210
 STATE_HEIGHT    =   160
