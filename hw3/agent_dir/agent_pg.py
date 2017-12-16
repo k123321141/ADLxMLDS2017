@@ -59,7 +59,7 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        #self.prev_x = None
+        self.prev_x = None
         pass
 
 
@@ -101,7 +101,7 @@ class Agent_PG(Agent):
 
         self.prev_x = None
         score, win, lose, step,que = 0,0,0,0,deque()
-        episode = 0
+        episode = 1643
         self.optimizer = self.gradient_optimizer()
 
         terminal = False 
@@ -111,6 +111,7 @@ class Agent_PG(Agent):
             if args.do_render:
                 env.env.render()
             if terminal:    #game over
+                self.update_src()
                 state = env.reset()
                 episode += 1
                 que.append(score)
@@ -149,7 +150,6 @@ class Agent_PG(Agent):
                 lose += 1
             step += 1
             if done:
-                self.update_src()
                 self.prev_x = None
     
 
@@ -258,7 +258,6 @@ class Agent_PG(Agent):
         '''
         self.model.train_on_batch(x, y)
         self.states, self.probs, self.actions, self.rewards = [], [], [], []
-        tt = self.model.predict(x)
 
         #print('after prob ',tt[17:20,:])
         #print('')
