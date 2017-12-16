@@ -15,7 +15,8 @@ def add_arguments(parser):
     parser.add_argument('--keep_train', action='store_true', default=True, help='load trained model')
     #
     #dqn setting 
-    parser.add_argument('--dqn_model', default=join(home,'rl','breakout_dqn.h5'), help='path to save model for trainging')
+    #parser.add_argument('--dqn_model', default=join(home,'rl','breakout_dqn.h5'), help='path to save model for trainging')
+    parser.add_argument('--dqn_model', default=join('.','saved_breakout_dqn.h5'), help='path to save model for trainging')
     parser.add_argument('--dqn_summary', default=join(home,'rl','summary','breakout_dqn'), help='path to save summary for training')
     parser.add_argument('--dqn_epsilon', type=float, default=0.99, help='start epsilon')
     parser.add_argument('--dqn_epsilon_end', type=float, default=0.1, help='end epsilon')
@@ -32,13 +33,15 @@ def add_arguments(parser):
     parser.add_argument('--dqn_dueling', action='store_true',default=False, help='dqn dueling network bonus')
     parser.add_argument('--dqn_double_dqn', action='store_true',default=False, help='double dqn bonus')
     #pg setting 
-    parser.add_argument('--pg_model', default=join('rl','pong_pg.h5'), help='path to save model for trainging')
+    #parser.add_argument('--pg_model', default=join('rl','pong_pg.h5'), help='path to save model for trainging')
+    parser.add_argument('--pg_model', default=join('.','saved_pong_pg.h5'), help='path to save model for trainging')
     parser.add_argument('--pg_summary', default=join('rl','summary','pong_pg'), help='path to save summary for training')
     parser.add_argument('--pg_batch', type=int, default=32, help='batch size')
     parser.add_argument('--pg_discount_factor', type=float, default=0.99, help='discount factor')
     parser.add_argument('--pg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--pg_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--pg_save_interval', type=int, default=10, help='how many episodes per saving')
-    parser.add_argument('--pg_old_model', action='store_true', default=False, help='load old model with 6 action')
+    #parser.add_argument('--pg_old_model', action='store_true', default=False, help='load old model with 6 action')
+    parser.add_argument('--pg_old_model', action='store_true', default=True, help='load old model with 6 action')
     #bonus
     return parser
