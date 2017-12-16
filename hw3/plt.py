@@ -20,8 +20,8 @@ def plt_file(path,color):
     plt.plot(episodes,scores,color)
     plt.ylabel('episodes')
     plt.ylabel('scores')
-#plt_file('/Users/payo_mac/Downloads/run_DQN_duel_summary-tag-Total_Reward_Episode.json','r-')
+plt_file('/Users/payo_mac/Downloads/run_DQN_duel_summary-tag-Total_Reward_Episode.json','r-')
 plt_file('/Users/payo_mac/Downloads/run_DQN_summary-tag-Total_Reward_Episode.json','b-')
-#plt_file('/Users/payo_mac/Downloads/run_double_DQN_summary-tag-Total_Reward_Episode.json','g-')
+plt_file('/Users/payo_mac/Downloads/run_double_DQN_summary-tag-Total_Reward_Episode.json','g-')
 
 plt.show()
