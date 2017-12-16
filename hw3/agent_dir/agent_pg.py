@@ -106,7 +106,6 @@ class Agent_PG(Agent):
             if args.do_render:
                 env.env.render()
             if terminal:    #game over
-                self.update_src()
                 state = env.reset()
                 episode += 1
                 que.append(score)
@@ -145,6 +144,7 @@ class Agent_PG(Agent):
                 lose += 1
             step += 1
             if done:
+                self.update_src()
                 self.prev_x = None
     
 
@@ -260,7 +260,7 @@ class Agent_PG(Agent):
         X = np.squeeze(np.vstack([self.states]))
         Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
         self.model.train_on_batch(X, Y)
-        self.states, self.probs, self.gradients, self.rewards = [], [], [], []
+        self.states, self.probs, self.actions, self.rewards = [], [], [], []
 
     def load(self, name):
         self.model.load_weights(name)
