@@ -38,6 +38,9 @@ class Agent_PG(Agent):
             #you can load your model here
             if os.path.isfile(args.pg_model):
                 print('load model from %s.' % args.pg_model)
+                self.learning_rate = 0.
+                self.action_size = 6 if args.pg_old_model else 3
+                self.model = self.build_model()
                 self.load(args.pg_model)
             else:
                 print('no model for testing!\nerror path %s' % args.pg_model)
@@ -55,6 +58,7 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
+        self.prev_x = None
         pass
 
 
@@ -164,11 +168,16 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        cur_x = self.prepro(observation)
-        x = cur_x - self.prev_x if self.prev_x is not None else cur_x 
+        cur_x = prepro(observation)
+        x = cur_x - self.prev_x if self.prev_x is not None else cur_x
+        #src 
+        #x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
         self.prev_x = cur_x
-
-        action, prob = self.act(x)
+        
+        cur_x = cur_x.reshape([1,-1])
+        prob = self.model.predict(cur_x, batch_size=1).flatten()
+        action = np.random.choice(self.action_size, 1, p=prob)[0]
+        #action = np.argmax(prob)
         return self.real_act(action)
         #return self.env.get_random_action()
     def build_model(self):
@@ -268,6 +277,8 @@ class Agent_PG(Agent):
     def save(self, name):
         self.model.save_weights(name)
     def real_act(self, n):
+        if self.args.pg_old_model:
+            return n
         if n == 0:
             return 0 #nop
         elif n == 1:

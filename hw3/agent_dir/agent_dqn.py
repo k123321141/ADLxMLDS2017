@@ -26,7 +26,7 @@ class Agent_DQN(Agent):
         if args.test_dqn:
             #you can load your model here
             print('loading trained model')
-            if os.dqn_dueling and os.path.isfile(args.dqn_model):
+            if args.dqn_dueling and os.path.isfile(args.dqn_model):
                 print('load duel network model from %s.' % args.dqn_model)
                 self.model = self.build_dueling_model()
                 self.model.load_weights(args.dqn_model)

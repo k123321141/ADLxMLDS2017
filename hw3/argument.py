@@ -39,5 +39,6 @@ def add_arguments(parser):
     parser.add_argument('--pg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--pg_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--pg_save_interval', type=int, default=10, help='how many episodes per saving')
+    parser.add_argument('--pg_old_model', action='store_true', default=False, help='load old model with 6 action')
     #bonus
     return parser
