@@ -145,48 +145,13 @@ try:
         scoret = model.evaluate(X_test, y_test, verbose=1)
         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
         
-        if e % 1 == 0:
-            Xresult = F([X_batch[:9]])
-            plt.clf()
-            for i in range(9):
-                plt.subplot(3, 3, i+1)
-                image = np.squeeze(Xresult[0][i])
-                plt.imshow(image, cmap='gray')
-                plt.axis('off')
-            fig.canvas.draw()
-            plt.show()
         
 except KeyboardInterrupt:
     pass
 
 
-# ### Visualizing what the Spatial Transformer learned
-
-# In[ ]:
-
-Xaug = X_train[:9]
-Xresult = F([Xaug.astype('float32')])
 
 
-# In[ ]:
-
-# input
-for i in range(9):
-    plt.subplot(3, 3, i+1)
-    plt.imshow(np.squeeze(Xaug[i]), cmap='gray')
-    plt.axis('off')
-
-
-# In[ ]:
-
-# output
-for i in range(9):
-    plt.subplot(3, 3, i+1)
-    plt.imshow(np.squeeze(Xresult[0][i]), cmap='gray')
-    plt.axis('off')
-
-
-# In[ ]:
 
 
 
