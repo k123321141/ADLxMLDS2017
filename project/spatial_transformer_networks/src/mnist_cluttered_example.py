@@ -14,7 +14,6 @@
 
 import numpy as np
 np.random.seed(1337)  # for reproducibility
-import matplotlib.pyplot as plt
 from scipy.misc import imresize
 from keras.datasets import mnist
 from keras.models import Sequential
@@ -127,7 +126,6 @@ print(X_train.shape[0]/batch_size)
 
 nb_epochs = 10 # you probably want to go longer than this
 batch_size = 256
-fig = plt.figure()
 try:
     for e in range(nb_epochs):
         print('-'*40)
@@ -139,7 +137,7 @@ try:
             X_batch = X_train[f:l].astype('float32')
             y_batch = y_train[f:l].astype('float32')
             loss = model.train_on_batch(X_batch, y_batch)
-            print(loss)
+            #print(loss)
             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
         scorev = model.evaluate(X_valid, y_valid, verbose=1)
         scoret = model.evaluate(X_test, y_test, verbose=1)
