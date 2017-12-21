@@ -124,7 +124,7 @@ print(X_train.shape[0]/batch_size)
 
 # In[ ]:
 
-nb_epochs = 10 # you probably want to go longer than this
+nb_epochs = 100 # you probably want to go longer than this
 batch_size = 256
 try:
     for e in range(nb_epochs):

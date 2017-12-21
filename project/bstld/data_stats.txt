@@ -1,0 +1,29 @@
+('Number of images:', 5093)
+('Number of traffic lights:', 10756, '\n')
+('Minimum width:', 1.1224768885000458)
+('Average width:', 11.175106667325696)
+('median width:', 8.55396570789992)
+('maximum width:', 98.0, '\n')
+('Minimum height:', 0.24943930860001728)
+('Average height:', 24.323216404050356)
+('median height:', 18.925365134599986)
+('maximum height:', 207.0, '\n')
+('Minimum size:', 0.2799898589869501)
+('Average size:', 404.5161008940251)
+('median size:', 158.80036482309796)
+('maximum size:', 20286.0, '\n')
+Labels:
+	GreenStraightRight: 3
+	off: 726
+	GreenStraightLeft: 1
+	GreenStraight: 20
+	occluded: 170
+	GreenRight: 13
+	Yellow: 444
+	RedStraightLeft: 1
+	RedStraight: 9
+	Green: 5207
+	GreenLeft: 178
+	RedRight: 5
+	RedLeft: 1092
+	Red: 3057
