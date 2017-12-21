@@ -16,3 +16,5 @@ breakout-*
 *.h5
 *.gz
 *.tar
+*.png
+*.jpg
