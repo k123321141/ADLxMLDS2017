@@ -9,8 +9,15 @@ import sys
 import os
 import cv2
 import numpy as np
+import argparse
 from read_label_file import get_all_labels
 
+def parse():
+    parser = argparse.ArgumentParser(description='crop utils')
+    parser.add_argument('input_dir', help='png image files directory')
+    parser.add_argument('-o','--output', default='./crop_data', help='path to save cropped png files.')
+    args = parser.parse_args()
+    return args
 
 labels = ['GreenStraightRight', 'off', 'GreenStraightLeft', 'GreenStraight', 'RedStraightLeft', 'GreenRight', 'Yellow', 'RedStraight', 'Green', 'GreenLeft', 'RedRight', 'RedLeft', 'Red']
 
@@ -63,10 +70,10 @@ def crop_label_images(input_yaml, output_folder=None):
                             + os.path.basename(image_dict['path'])), img)
 
 
+def main():
+    args = parse()
+    
+    crop_label_images(args.input_dir, args.output)
+
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print(__doc__)
-        sys.exit(-1)
-    label_file = sys.argv[1]
-    output_folder = None if len(sys.argv) < 3 else sys.argv[2]
-    crop_label_images(label_file, output_folder)
+    main()

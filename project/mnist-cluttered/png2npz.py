@@ -10,8 +10,6 @@ def parse():
     parser.add_argument('train_dir', help='png image files directory')
     parser.add_argument('valid_dir', help='png image files directory')
     parser.add_argument('test_dir', help='png image files directory')
-    parser.add_argument('-p','--preprocess', action='store_true', default=False, help='preprocess the json file')
-    parser.add_argument('-m','--merge', action='store_true', default=False, help='merge multiple json file')
     parser.add_argument('-o','--output', default='./output.npz', help='path to save npz file.')
     parser.add_argument('-q','--quiet', action='store_true', default=True, help='show the log')
     args = parser.parse_args()
@@ -33,7 +31,7 @@ def read_dir(dir_path):
     #data
     data_buf = []
     for f in file_list:
-        img = imread(sample)
+        img = imread(f)
         assert img.shape == (w, h)
         img = img.reshape([1, w, h])
         data_buf.append(img)
