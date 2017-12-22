@@ -19,7 +19,7 @@ def quick_stats(input_yaml):
     """
 
     images = get_all_labels(input_yaml)
-
+    print('total image number : %d'% len(images))
     widths = []
     heights = []
     sizes = []

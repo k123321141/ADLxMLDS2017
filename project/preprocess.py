@@ -19,8 +19,8 @@ label_dict = {label:i for i,label in enumerate(labels)}
 def parse():
     parser = argparse.ArgumentParser(description='utils')
     parser.add_argument('input', help='png image files directory')
-    #parser.add_argument('valid_dir', help='png image files directory')
-    #parser.add_argument('test_dir', help='png image files directory')
+    parser.add_argument('valid_dir', help='png image files directory')
+    parser.add_argument('test_dir', help='png image files directory')
     parser.add_argument('-o','--output', default='./output.npz', help='path to save npz file.')
     parser.add_argument('-q','--quiet', action='store_true', default=True, help='show the log')
     parser.add_argument('--npz', action='store_true', default=False, help='compress data to npz file, include preprocessing.')
@@ -30,7 +30,7 @@ def parse():
 
 def read_dir(dir_path):
     file_list = [join(dir_path, f) for f in os.listdir(dir_path) if f.endswith('.png')] 
-
+    print('read directory %s with %d files.' % (dir_path, len(file_list)) )
     #data
     data_buf = []
     for f in file_list:
@@ -86,6 +86,7 @@ def split_valid(input_dir, output_dir, ratio):
     split = int( len(file_list) * ratio )
     valid, train = file_list[:split], file_list[split:]
 
+    os.mkdir(output_dir)
     os.mkdir(join(output_dir,'train'))
     os.mkdir(join(output_dir,'valid'))
     #data
@@ -102,12 +103,9 @@ def main():
     if args.npz:
 
         x_train, y_train = read_dir(args.input)
-        '''
         x_valid, y_valid = read_dir(args.valid_dir)
         x_test, y_test  = read_dir(args.test_dir)
-        '''
         print('start writing output file %s' % args.output)
-        '''
         with open(args.output,'wb') as output:
             np.savez(output, x_train=x_train, y_train=y_train,
                     x_valid=x_valid, y_valid=y_valid,
@@ -116,6 +114,7 @@ def main():
         with open(args.output,'wb') as output:
             np.savez(output, x_train=x_train, y_train=y_train)
         print('Done')
+        '''
     elif args.split_valid is not None:
         split_valid(args.input, args.output, args.split_valid)
 
