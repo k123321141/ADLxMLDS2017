@@ -8,8 +8,15 @@ import tensorflow as tf
 import keras.backend as K
 from collections import deque
 
+<<<<<<< HEAD
+#MODEL_PATH      =   './rl/pong_pg_src.h5'
+#SUMMARY_PATH    =   './rl/summary/pong_pg_src'
+MODEL_PATH      =   '/tmp/src.h5'
+SUMMARY_PATH    =   '/tmp/summary'
+=======
 MODEL_PATH      =   './rl/pong_pg_src.h5'
-SUMMARY_PATH    =   './rl/summary/pong_pg_src'
+SUMMARY_PATH    =   './rl/summary/pong_pg_src2'
+>>>>>>> 72d1df03666a0f8d61c66476235b51dae30c5005
 SAVE_INTERVAL   =   10
 STATE_WIDTH     =   210
 STATE_HEIGHT    =   160

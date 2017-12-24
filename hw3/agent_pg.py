@@ -37,7 +37,7 @@ class Agent_PG(Agent):
         if args.test_pg:
             #you can load your model here
             if os.path.isfile(args.pg_model):
-                print('load model from %s.' % args.pg_model)
+                print('testing : load model from %s.' % args.pg_model)
                 self.learning_rate = 0.
                 self.prev_x = None
                 self.action_size = 6 if args.pg_old_model else 3
@@ -59,8 +59,7 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        #self.prev_x = None
-        pass
+        self.prev_x = None
 
 
     def train(self):
@@ -78,16 +77,7 @@ class Agent_PG(Agent):
         self.learning_rate = 0.0001
         self.model = self.build_model()
         self.baseline = args.pg_baseline 
-
-        self.states = []
-        self.actions = []
-        self.rewards = []
-        self.probs = []
-        if os.path.isfile(args.pg_model) and args.keep_train:
-            print('load model from %s.' % args.pg_model)
-            self.load(args.pg_model)
-        else:
-            print('train a new model')
+        
         #summary
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -98,6 +88,16 @@ class Agent_PG(Agent):
         self.summary_writer = tf.summary.FileWriter(
             args.pg_summary  , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
+
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.probs = []
+        if os.path.isfile(args.pg_model) and args.keep_train:
+            print('load model from %s.' % args.pg_model)
+            self.load(args.pg_model)
+        else:
+            print('train a new model')
 
         self.prev_x = None
         score, win, lose, step,que = 0,0,0,0,deque()
@@ -170,8 +170,6 @@ class Agent_PG(Agent):
         # YOUR CODE HERE #
         ##################
         cur_x = prepro(observation)
-        #x = cur_x - self.prev_x if self.prev_x is not None else cur_x
-        #src 
         x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
         self.prev_x = cur_x
         
@@ -185,7 +183,7 @@ class Agent_PG(Agent):
         prob = self.model.predict(cur_x, batch_size=1).flatten()
 
         action = np.random.choice(self.action_size, 1, p=prob)[0]
-        return action
+        return self.real_act(action)
     def build_model(self):
         model = Sequential()
         model.add(Reshape((80, 80, 1), input_shape=(self.state_size,)))
