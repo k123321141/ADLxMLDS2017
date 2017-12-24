@@ -4,8 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import os
-from keras.layers import *
-from keras.models import *
 
 
 mnist = input_data.read_data_sets('../../MNIST_data', one_hot=True)
@@ -21,27 +19,48 @@ def xavier_init(size):
     xavier_stddev = 1. / tf.sqrt(in_dim / 2.)
     return tf.random_normal(shape=size, stddev=xavier_stddev)
 
-def discriminator(x, y):
-    x_in = Input(shape=(784,))
-    y_in = Input(shape=(y_dim,))
 
-    x = Concatenate(axis=-1)(x_in, y_in)
-    x = Dense(h_dim, activation='relu')(x)
-    
-    model = Model(inputs=[x_in, y_in], outputs=x)
-    return model
+""" Discriminator Net model """
+X = tf.placeholder(tf.float32, shape=[None, 784])
+y = tf.placeholder(tf.float32, shape=[None, y_dim])
+
+D_W1 = tf.Variable(xavier_init([X_dim + y_dim, h_dim]))
+D_b1 = tf.Variable(tf.zeros(shape=[h_dim]))
+
+D_W2 = tf.Variable(xavier_init([h_dim, 1]))
+D_b2 = tf.Variable(tf.zeros(shape=[1]))
+
+theta_D = [D_W1, D_W2, D_b1, D_b2]
+
+
+def discriminator(x, y):
+    inputs = tf.concat(axis=1, values=[x, y])
+    D_h1 = tf.nn.relu(tf.matmul(inputs, D_W1) + D_b1)
+    D_logit = tf.matmul(D_h1, D_W2) + D_b2
+    D_prob = tf.nn.sigmoid(D_logit)
+
+    return D_prob, D_logit
+
+
+""" Generator Net model """
+Z = tf.placeholder(tf.float32, shape=[None, Z_dim])
+
+G_W1 = tf.Variable(xavier_init([Z_dim + y_dim, h_dim]))
+G_b1 = tf.Variable(tf.zeros(shape=[h_dim]))
+
+G_W2 = tf.Variable(xavier_init([h_dim, X_dim]))
+G_b2 = tf.Variable(tf.zeros(shape=[X_dim]))
+
+theta_G = [G_W1, G_W2, G_b1, G_b2]
+
 
 def generator(z, y):
-    z_in = Input(shape=(Z_dim,))
-    y_in = Input(shape=(y_dim,))
-    
-    x = Concatenate(axis=-1)(x_in, z_in)
-    x = Dense(h_dim, activation='relu')(x)
-    x = Dense(1, activation='sigmoid')(x)
- 
-    model = Model(inputs=[z_in, y_in], outputs=x)
+    inputs = tf.concat(axis=1, values=[z, y])
+    G_h1 = tf.nn.relu(tf.matmul(inputs, G_W1) + G_b1)
+    G_log_prob = tf.matmul(G_h1, G_W2) + G_b2
+    G_prob = tf.nn.sigmoid(G_log_prob)
 
-    return model 
+    return G_prob
 
 
 def sample_Z(m, n):
@@ -77,6 +96,8 @@ D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list=theta_D)
 G_solver = tf.train.AdamOptimizer().minimize(G_loss, var_list=theta_G)
 
 
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
 
 if not os.path.exists('out/'):
     os.makedirs('out/')
