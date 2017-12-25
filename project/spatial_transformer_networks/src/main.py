@@ -33,21 +33,13 @@ y_valid = npz['y_valid']
 x_test = npz['x_test']
 y_test = npz['y_test']
 
-print x_train.shape,y_train.shape
 
-import sys
-sys.exit()
-y_train = np_utils.to_categorical(y_train, nb_classes)
-y_valid = np_utils.to_categorical(y_valid, nb_classes)
-y_test = np_utils.to_categorical(y_test, nb_classes)
-
-print("Train samples: {}".format(X_train.shape))
-print("Validation samples: {}".format(X_valid.shape))
-print("Test samples: {}".format(X_test.shape))
+print("Train samples: {}".format(x_train.shape))
+print("Validation samples: {}".format(x_valid.shape))
+print("Test samples: {}".format(x_test.shape))
 
 
-input_shape =  np.squeeze(X_train.shape[1:])
-input_shape = (60,60,1)
+input_shape = (50,50,3)
 print("Input shape:",input_shape)
 
 
@@ -69,7 +61,7 @@ locnet = Sequential()
 locnet.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
 locnet.add(Convolution2D(20, (5, 5)))
 locnet.add(MaxPooling2D(pool_size=(2,2)))
-locnet.add(Convolution2D(20, (5, 5)))
+locnet.add(Convolution2D(40, (5, 5)))
 
 locnet.add(Flatten())
 locnet.add(Dense(50))
@@ -99,7 +91,7 @@ model.add(Activation('relu'))
 model.add(Dense(nb_classes))
 model.add(Activation('softmax'))
 
-model.compile(loss='categorical_crossentropy', optimizer='adam')
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 
 # In[7]:
@@ -111,7 +103,7 @@ F = K.function([XX], [YY])
 
 # In[8]:
 
-print(X_train.shape[0]/batch_size)
+print(x_train.shape[0]/batch_size)
 
 
 # In[ ]:
@@ -119,23 +111,26 @@ print(X_train.shape[0]/batch_size)
 nb_epochs = 100 # you probably want to go longer than this
 batch_size = 256
 try:
+    model.fit(x_train, y_train, batch_size = 50, epochs = 2000, callbacks=[], validation_data=(x_valid, y_valid))
+    model.fit()
+    '''
     for e in range(nb_epochs):
         print('-'*40)
-        #progbar = generic_utils.Progbar(X_train.shape[0])
+        #progbar = generic_utils.Progbar(x_train.shape[0])
         for b in range(150):
             #print(b)
             f = b * batch_size
             l = (b+1) * batch_size
-            X_batch = X_train[f:l].astype('float32')
+            X_batch = x_train[f:l].astype('float32')
             y_batch = y_train[f:l].astype('float32')
             loss = model.train_on_batch(X_batch, y_batch)
             #print(loss)
             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
-        scorev = model.evaluate(X_valid, y_valid, verbose=0)
-        scoret = model.evaluate(X_test, y_test, verbose=0)
+        scorev = model.evaluate(x_valid, y_valid, verbose=0)
+        scoret = model.evaluate(x_test, y_test, verbose=0)
         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
         
-        
+    '''
 except KeyboardInterrupt:
     pass
 
