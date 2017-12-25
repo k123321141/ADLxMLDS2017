@@ -139,8 +139,8 @@ try:
             loss = model.train_on_batch(X_batch, y_batch)
             #print(loss)
             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
-        scorev = model.evaluate(X_valid, y_valid, verbose=1)
-        scoret = model.evaluate(X_test, y_test, verbose=1)
+        scorev = model.evaluate(X_valid, y_valid, verbose=0)
+        scoret = model.evaluate(X_test, y_test, verbose=0)
         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
         
         
