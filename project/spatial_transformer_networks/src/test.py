@@ -19,34 +19,54 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
-from keras.utils import np_utils, generic_utils, to_categorical
+from keras.utils import np_utils
+from keras.utils import np_utils, generic_utils
 from keras.optimizers import Adam, SGD
 
 import keras.backend as K
 from spatial_transformer import SpatialTransformer
 
 batch_size = 128
-nb_classes = 13
+nb_classes = 10
 nb_epoch = 12
 
+DIM = 60
 mnist_cluttered = "../datasets/mnist_cluttered_60x60_6distortions.npz"
-npz = np.load('./train.npz')
+
 
 # In[2]:
 
-X_train = npz['x_train']
-y_train = npz['y_train']
-X_valid = npz['x_valid']
-y_valid = npz['y_valid']
-X_test = npz['x_test']
-y_test = npz['y_test']
 
-y_train = to_categorical(y_train, nb_classes)
-y_valid = to_categorical(y_valid, nb_classes)
-y_test = to_categorical(y_test, nb_classes)
+###
+
+data = np.load(mnist_cluttered)
+data = np.load('./train.npz')
 
 
-input_shape = (60,60,3)
+X_train, y_train = data['x_train'], np.argmax(data['y_train'], axis=-1)
+X_valid, y_valid = data['x_valid'], np.argmax(data['y_valid'], axis=-1)
+X_test, y_test = data['x_test'], np.argmax(data['y_test'], axis=-1)
+# reshape for convolutions
+print X_train.shape, y_train.shape
+X_train = X_train[:,:,:,1]
+X_valid = X_valid[:,:,:,1]
+X_test = X_test[:,:,:,1]
+
+X_train = X_train.reshape((X_train.shape[0], DIM, DIM, 1))
+X_valid = X_valid.reshape((X_valid.shape[0], DIM, DIM, 1))
+X_test = X_test.reshape((X_test.shape[0], DIM, DIM, 1))
+
+y_train = np_utils.to_categorical(y_train, nb_classes)
+y_valid = np_utils.to_categorical(y_valid, nb_classes)
+y_test = np_utils.to_categorical(y_test, nb_classes)
+
+print("Train samples: {}".format(X_train.shape))
+print("Validation samples: {}".format(X_valid.shape))
+print("Test samples: {}".format(X_test.shape))
+
+
+input_shape =  np.squeeze(X_train.shape[1:])
+input_shape = (60,60,1)
 print("Input shape:",input_shape)
 
 

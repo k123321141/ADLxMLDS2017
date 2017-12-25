@@ -7,9 +7,9 @@ from scipy.ndimage import imread
 from scipy.misc import imresize, imsave
 from os.path import join
 
-#default_height = 50
-#default_width = 25
-default_size = (50, 50)
+#default_height = 60
+#default_width = 30
+default_size = (60, 60)
 
 
 labels = ['GreenStraightRight', 'off', 'GreenStraightLeft', 'GreenStraight', 'RedStraightLeft', 'GreenRight', 'Yellow', 'RedStraight', 'Green', 'GreenLeft', 'RedRight', 'RedLeft', 'Red']
@@ -71,7 +71,7 @@ def pad2square(rect):
     else:
         pad = ((pad_a, pad_b), (0,0), (0,0))
 
-    square = np.lib.pad(rect, pad, 'constant', constant_values=0)
+    square = np.lib.pad(rect, pad, 'constant', constant_values=255)
     return square
 def normalize_img(img):
     
