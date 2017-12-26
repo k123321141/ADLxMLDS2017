@@ -16,7 +16,7 @@ from spatial_transformer import SpatialTransformer
 
 
 
-
+MODEL_PATH = './model.h5'
 
 def build_model(DIM, DEP, nb_classes):
 
@@ -96,7 +96,6 @@ def main():
     mnist_cluttered = '../datasets/train.npz'
     
     model, F = build_model(DIM, DEP, nb_classes)
-
     
     data = np.load(mnist_cluttered)
     X_train, y_train = data['x_train'], data['y_train']
@@ -146,6 +145,8 @@ def main():
 
 
     except KeyboardInterrupt:
+        print('save weights to %s' % MODEL_PATH)
+        model.save_weights(MODEL_PATH)
         pass
 if __name__ == '__main__':
     main()
