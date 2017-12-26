@@ -50,8 +50,10 @@ def read_dir(dir_path):
         label = label_dict[label]
         label_buf.append( np.array([label]).reshape([1,1]) )
 
+    x = np.vstack(data_buf).astype(np.uint8)
+    x = x/256
 
-    return np.vstack(data_buf), np.vstack(label_buf)
+    return x, np.vstack(label_buf)
 def ceil(x):
     return int(x)+1 if float(x) > int(x) else int(x)
 def floor(x):
@@ -71,7 +73,7 @@ def pad2square(rect):
     else:
         pad = ((pad_a, pad_b), (0,0), (0,0))
 
-    square = np.lib.pad(rect, pad, 'constant', constant_values=255)
+    square = np.lib.pad(rect, pad, 'constant', constant_values=0)
     return square
 def normalize_img(img):
     
