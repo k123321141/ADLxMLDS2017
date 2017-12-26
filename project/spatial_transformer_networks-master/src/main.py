@@ -19,7 +19,7 @@ from spatial_transformer import SpatialTransformer
 
 
 
-def build_model(DIM, nb_classes):
+def build_model(DIM, DEP, nb_classes):
 
 
     # In[29]:
@@ -32,7 +32,8 @@ def build_model(DIM, nb_classes):
 
 
     # In[47]:
-
+    input_shape = (DIM, DIM, DEP)
+    
 
     locnet = Sequential()
     locnet.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
@@ -83,8 +84,7 @@ def build_model(DIM, nb_classes):
     # In[50]:
 
 
-    print(X_train.shape[0]/batch_size)
-
+    return model, F
 
 # In[ ]:
 
@@ -92,23 +92,22 @@ def main():
     
     
     DIM = 60
-    dep = 3
+    DEP = 3
     nb_classes = 13
     mnist_cluttered = '../datasets/train.npz'
+    
+    model, F = build_model(DIM, DEP, nb_classes)
 
-
-    # In[45]:
-
-
+    
     data = np.load(mnist_cluttered)
     X_train, y_train = data['x_train'], data['y_train']
     X_valid, y_valid = data['x_valid'], data['y_valid']
     X_test, y_test = data['x_test'], data['y_test']
 
     # reshape for convolutions
-    X_train = X_train.reshape((X_train.shape[0], DIM, DIM, dep))
-    X_valid = X_valid.reshape((X_valid.shape[0], DIM, DIM, dep))
-    X_test = X_test.reshape((X_test.shape[0], DIM, DIM, dep))
+    X_train = X_train.reshape((X_train.shape[0], DIM, DIM, DEP))
+    X_valid = X_valid.reshape((X_valid.shape[0], DIM, DIM, DEP))
+    X_test = X_test.reshape((X_test.shape[0], DIM, DIM, DEP))
     print y_valid.shape
     y_train = np_utils.to_categorical(y_train, nb_classes)
     y_valid = np_utils.to_categorical(y_valid, nb_classes)
@@ -120,7 +119,7 @@ def main():
 
 
     input_shape =  np.squeeze(X_train.shape[1:])
-    input_shape = (DIM, DIM, dep)
+    input_shape = (DIM, DIM, DEP)
     print("Input shape:",input_shape)
 
 
@@ -128,7 +127,6 @@ def main():
     
     nb_epochs = 10 
     batch_size = 256
-    fig = plt.figure()
     try:
         for e in range(nb_epochs):
             print('-'*40)
