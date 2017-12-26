@@ -204,7 +204,8 @@ def main():
 #         scorev = model.evaluate(X_valid, y_valid, verbose=1)
 #         scoret = model.evaluate(X_test, y_test, verbose=1)
             model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_data=(X_test, y_test),
-                      callbacks=[reset_callback, tb_callback])
+                      callbacks=[reset_callback, tb_callback],
+                      class_weight = equal_class_weight(y_test, nb_classes))
         #         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
         
             
@@ -345,3 +346,14 @@ def setup_summary(labels):
                   range(len(summary_vars))]
     summary_op = tf.summary.merge_all()
     return summary_placeholders, update_ops, summary_op
+
+def equal_class_weight(y_train, nb_classes):
+    num = y_train.shape[0]
+    count = np.zeros([nb_classes,])
+    y_train = np.argmax(y_train, axis=-1).astype(np.uint8)
+
+    for i in range(num):
+        y = int(y_train[i])
+        count[y] += 1
+    w = count / num
+    return w
