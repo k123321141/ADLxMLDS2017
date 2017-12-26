@@ -18,3 +18,4 @@ breakout-*
 *.tar
 *.png
 *.jpg
+events.out*
