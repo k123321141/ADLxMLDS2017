@@ -18,22 +18,12 @@ import keras.backend as K
 from spatial_transformer import SpatialTransformer
 
 def parse():
-    parser = argparse.ArgumentParser(description="MLDS&ADL HW3")
-    parser.add_argument('--env_name', default=None, help='environment name')
-    parser.add_argument('--train_pg', action='store_true', help='whether train policy gradient')
-    parser.add_argument('--train_dqn', action='store_true', help='whether train DQN')
-    parser.add_argument('--test_pg', action='store_true', help='whether test policy gradient')
-    parser.add_argument('--test_dqn', action='store_true', help='whether test DQN')
-    parser.add_argument('--video_dir', default=None, help='output video directory')
-    parser.add_argument('--do_render', action='store_true', help='whether render environment')
-    try:
-        from argument import add_arguments
-        parser = add_arguments(parser)
-    except:
-        pass
+    parser = argparse.ArgumentParser(description="spatial tranformer network")
+    parser.add_argument('-s','--summary', default='./summary/default', help='summary path')
     args = parser.parse_args()
     return args
 def main():
+    args = parse()
 
     batch_size = 128
 
@@ -143,7 +133,7 @@ def main():
 
     summary_placeholders, update_ops, summary_op =             setup_summary(labels)
     summary_writer = tf.summary.FileWriter(
-                './summary'  , sess.graph)
+                args.summary  , sess.graph)
     sess.run(tf.global_variables_initializer())
             
             
@@ -357,3 +347,6 @@ def equal_class_weight(y_train, nb_classes):
         count[y] += 1
     w = count / num
     return w
+
+if __name__ == '__main__':
+    main()
