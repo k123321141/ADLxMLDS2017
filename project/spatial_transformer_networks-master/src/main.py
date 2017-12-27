@@ -8,8 +8,7 @@ from scipy.misc import imresize
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.callbacks import *
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers import *
 from keras.utils import np_utils
 from keras.utils import np_utils, generic_utils
 from keras.optimizers import Adam, SGD
@@ -21,14 +20,16 @@ def parse():
     parser = argparse.ArgumentParser(description="spatial tranformer network")
     parser.add_argument('-s','--summary', default='./summary/default', help='summary path')
     parser.add_argument('-m','--model', default='./model.h5', help='model path')
-    parser.add_argument('-t','--type', default='original', help='model type, for testing.')
+    parser.add_argument('-t','--type', default='stn', help='model type, for testing.')
+    parser.add_argument('-b','--batch', default=256, type=int, help='batch size')
+    parser.add_argument('-w','--class_weight', default=None, help='class weight')
     args = parser.parse_args()
     return args
 def main():
     args = parse()
 
     nb_epochs = 100 # you probably want to go longer than this
-    batch_size = 256
+    batch_size = args.batch 
 
     DIM = 60
     dep = 3
@@ -57,12 +58,16 @@ def main():
     print("Test samples: {}".format(X_test.shape))
 
 
-    if args.type == 'original':
-        model = original_model(DIM, dep, nb_classes)
-    elif args.type == 'complex':
-        model = complex_model(DIM, dep, nb_classes)
-    elif args.type == 'complex':
+    if args.type == 'stn':
+        model = stn_model(DIM, dep, nb_classes)
+    elif args.type == 'multi_stn':
+        model = multi_stn_model(DIM, dep, nb_classes)
+    elif args.type == 'simple':
         model = simple_model(DIM, dep, nb_classes)
+    elif args.type == 'mlp':
+        model = mlp_model(DIM, dep, nb_classes)
+    elif args.type == 'global_pooling':
+        model = global_pooling_model(DIM, dep, nb_classes)
     else:
         import sys
         print('error with wrong type name %s ' % args.type)
@@ -105,8 +110,7 @@ def main():
         
         
         
-    trans_lay = model.layers[0]
-
+    model.summary()
     reset_callback = LambdaCallback(
         on_batch_end=lambda batch, logs: reset_trans(model)
     )
@@ -135,10 +139,17 @@ def main():
 #             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
 #         scorev = model.evaluate(X_valid, y_valid, verbose=1)
 #         scoret = model.evaluate(X_test, y_test, verbose=1)
-        model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
-                      callbacks=[reset_callback, tb_callback],verbose=2,
-                      class_weight = equal_class_weight(y_test, nb_classes))
-        #         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
+        if args.class_weight is None:
+            model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
+                          callbacks=[reset_callback, tb_callback],verbose=2)
+        elif args.class_weight == 'train':
+            model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
+                          callbacks=[reset_callback, tb_callback],verbose=2,
+                          class_weight = equal_class_weight(y_train, nb_classes))
+        elif args.class_weight == 'test':
+            model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
+                          callbacks=[reset_callback, tb_callback],verbose=2,
+                          class_weight = equal_class_weight(y_test, nb_classes))
         
             
     except KeyboardInterrupt:
@@ -168,7 +179,7 @@ def locnet(input_shape):
     #locnet.add(Activation('sigmoid'))
     return locnet
 
-def original_model(DIM, dep, nb_classes):
+def stn_model(DIM, dep, nb_classes):
 # In[6]:
 
     model = Sequential()
@@ -195,7 +206,7 @@ def original_model(DIM, dep, nb_classes):
     model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
 
     return model
-def complex_model(DIM, dep, nb_classes):
+def multi_stn_model(DIM, dep, nb_classes):
     model = Sequential()
     
     input_shape = (DIM, DIM, dep)
@@ -241,6 +252,39 @@ def simple_model(DIM, dep, nb_classes):
     model.add(Dense(256))
     model.add(Activation('relu'))
 
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
+    opt = Adam(lr=0.0001)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
+    
+    return model
+def mlp_model(DIM, dep, nb_classes):
+    model = Sequential()
+    model.add(Flatten(input_shape = (DIM, DIM, dep)))
+    model.add(Dense(1024, activation='sigmoid')) 
+    model.add(Dense(1024, activation='sigmoid')) 
+    model.add(Dense(1024, activation='sigmoid')) 
+    model.add(Dense(512, activation='sigmoid')) 
+    model.add(Dense(256, activation='sigmoid')) 
+
+    model.add(Dense(nb_classes, activation='softmax'))
+    opt = Adam(lr=0.0001)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
+    
+    return model
+def global_pooling_model(DIM, dep, nb_classes):
+    model = Sequential()
+    #input shape = (60,60,3)
+    model.add(Convolution2D(256, (5, 5), padding='same', input_shape = (DIM, DIM, dep)))
+    model.add(LeakyReLU())
+    model.add(Convolution2D(256, (5, 5), padding='same'))
+    model.add(LeakyReLU())
+    model.add(Convolution2D(256, (5, 5), padding='same'))
+    model.add(LeakyReLU())
+    model.add(MaxPooling2D(pool_size=(DIM, DIM)))
+
+
+    model.add(Flatten())
     model.add(Dense(nb_classes))
     model.add(Activation('softmax'))
     opt = Adam(lr=0.0001)
