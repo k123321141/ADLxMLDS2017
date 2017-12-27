@@ -12,7 +12,7 @@ from os.path import join
 default_size = (60, 60)
 
 
-labels = ['GreenStraightRight', 'off', 'GreenStraightLeft', 'GreenStraight', 'RedStraightLeft', 'GreenRight', 'Yellow', 'RedStraight', 'Green', 'GreenLeft', 'RedRight', 'RedLeft', 'Red']
+labels = ['off', 'Red', 'Yellow', 'Green','GreenStraightRight', 'GreenStraightLeft', 'GreenStraight', 'RedStraightLeft', 'GreenRight', 'RedStraight', 'GreenLeft', 'RedRight', 'RedLeft']
 
 label_dict = {label:i for i,label in enumerate(labels)}
 

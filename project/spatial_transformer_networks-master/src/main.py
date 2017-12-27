@@ -21,6 +21,7 @@ def parse():
     parser = argparse.ArgumentParser(description="spatial tranformer network")
     parser.add_argument('-s','--summary', default='./summary/default', help='summary path')
     parser.add_argument('-m','--model', default='./model.h5', help='model path')
+    parser.add_argument('-t','--type', default='original', help='model type, for testing.')
     args = parser.parse_args()
     return args
 def main():
@@ -56,77 +57,24 @@ def main():
     print("Test samples: {}".format(X_test.shape))
 
 
-    input_shape =  np.squeeze(X_train.shape[1:])
-    input_shape = (DIM, DIM, dep)
-    print("Input shape:",input_shape)
+    if args.type == 'original':
+        model = original_model(DIM, dep, nb_classes)
+    elif args.type == 'complex':
+        model = complex_model(DIM, dep, nb_classes)
+    elif args.type == 'complex':
+        model = simple_model(DIM, dep, nb_classes)
+    else:
+        import sys
+        print('error with wrong type name %s ' % args.type)
+        sys.exit()
 
-
-
-
-
-
-# In[4]:
-
-
-# initial weights
-    b = np.zeros((2, 3), dtype='float32')
-    b[0, 0] = 1
-    b[1, 1] = 1
-    W = np.zeros((50, 6), dtype='float32')
-    weights = [W, b.flatten()]
-
-
-# In[5]:
-
-
-    locnet = Sequential()
-    locnet.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
-    locnet.add(Convolution2D(20, (5, 5)))
-    locnet.add(MaxPooling2D(pool_size=(2,2)))
-    locnet.add(Convolution2D(20, (5, 5)))
-
-    locnet.add(Flatten())
-    locnet.add(Dense(50))
-    locnet.add(Activation('relu'))
-    locnet.add(Dense(6, weights=weights ,name='trans_mat'))
-#locnet.add(Activation('sigmoid'))
-
-
-# In[6]:
-
-
-    model = Sequential()
-
-    model.add(SpatialTransformer(localization_net=locnet,
-                                 output_size=(DIM/2,DIM/2), input_shape=input_shape))
-
-    model.add(Convolution2D(32, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Convolution2D(32, (3, 3)))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-
-    model.add(Flatten())
-    model.add(Dense(256))
-    model.add(Activation('relu'))
-
-    model.add(Dense(nb_classes))
-    model.add(Activation('softmax'))
-    opt = Adam(lr=0.0001)
-    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
-    trans_lay = model.layers[0]
-
-
-
-# In[12]:
 
 
     XX = model.input
 #model.load_weights('./model.h5')
     YY = model.layers[0].output
     F = K.function([XX], [YY])
-    labels = ['GreenStraightRight', 'off', 'GreenStraightLeft', 'GreenStraight', 'RedStraightLeft', 'GreenRight', 'Yellow', 'RedStraight', 'Green', 'GreenLeft', 'RedRight', 'RedLeft', 'Red']
+    labels = ['off', 'Red', 'Yellow', 'Green','GreenStraightRight', 'GreenStraightLeft', 'GreenStraight', 'RedStraightLeft', 'GreenRight', 'RedStraight', 'GreenLeft', 'RedRight', 'RedLeft']
 #summary
     sess = tf.InteractiveSession()
     K.set_session(sess)
@@ -167,8 +115,8 @@ def main():
 
     try:
         
-        for e in range(nb_epochs): 
-            print('-'*40)
+#        for e in range(nb_epochs): 
+#            print('-'*40)
             #progbar = generic_utils.Progbar(X_train.shape[0])
 #         for b in range( ceil(float(X_train.shape[0]) / batch_size) ):
 #             print('%7d / %7d' % (f, X_train.shape[0]))
@@ -187,7 +135,7 @@ def main():
 #             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
 #         scorev = model.evaluate(X_valid, y_valid, verbose=1)
 #         scoret = model.evaluate(X_test, y_test, verbose=1)
-            model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_data=(X_test, y_test),
+        model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
                       callbacks=[reset_callback, tb_callback],verbose=2,
                       class_weight = equal_class_weight(y_test, nb_classes))
         #         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
@@ -197,6 +145,108 @@ def main():
         #confusion matrix
         model.save_weights(args.model)
         confusion_matrix(model, X_test, y_test, labels)
+    model.save_weights(args.model)
+    confusion_matrix(model, X_test, y_test, labels)
+def locnet(input_shape):
+    # initial weights
+    b = np.zeros((2, 3), dtype='float32')
+    b[0, 0] = 1
+    b[1, 1] = 1
+    W = np.zeros((50, 6), dtype='float32')
+    weights = [W, b.flatten()]
+    
+    locnet = Sequential()
+    locnet.add(MaxPooling2D(pool_size=(2,2), input_shape=input_shape))
+    locnet.add(Convolution2D(20, (5, 5)))
+    locnet.add(MaxPooling2D(pool_size=(2,2)))
+    locnet.add(Convolution2D(20, (5, 5)))
+
+    locnet.add(Flatten())
+    locnet.add(Dense(50))
+    locnet.add(Activation('relu'))
+    locnet.add(Dense(6, weights=weights ,name='trans_mat'))
+    #locnet.add(Activation('sigmoid'))
+    return locnet
+
+def original_model(DIM, dep, nb_classes):
+# In[6]:
+
+    model = Sequential()
+    
+    input_shape = (DIM, DIM, dep)
+
+    model.add(SpatialTransformer(localization_net=locnet(input_shape),
+                                 output_size=(DIM/2,DIM/2), input_shape=input_shape))
+
+    model.add(Convolution2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Convolution2D(32, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    model.add(Flatten())
+    model.add(Dense(256))
+    model.add(Activation('relu'))
+
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
+    opt = Adam(lr=0.0001)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
+
+    return model
+def complex_model(DIM, dep, nb_classes):
+    model = Sequential()
+    
+    input_shape = (DIM, DIM, dep)
+
+    model.add(SpatialTransformer(localization_net=locnet(input_shape),
+                                 output_size=(DIM,DIM), input_shape=input_shape))
+
+    model.add(Convolution2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    
+    input_shape = (DIM/2, DIM/2, 32)
+    
+    model.add(SpatialTransformer(localization_net=locnet(input_shape),
+                                 output_size=(DIM/4,DIM/4), input_shape=input_shape))
+    model.add(Convolution2D(64, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    
+
+    model.add(Flatten())
+    model.add(Dense(256))
+    model.add(Activation('relu'))
+
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
+    model.summary()
+    opt = Adam(lr=0.0001)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
+    
+    return model
+def simple_model(DIM, dep, nb_classes):
+    model = Sequential()
+
+    model.add(Convolution2D(32, (3, 3), padding='same', input_shape = (DIM, DIM, dep)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Convolution2D(32, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    model.add(Flatten())
+    model.add(Dense(256))
+    model.add(Activation('relu'))
+
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
+    opt = Adam(lr=0.0001)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=opt)
+    
+    return model
 
 def confusion_matrix(model,x, y_true, labels):
     y_pred = np.argmax(model.predict(x), axis=-1)
@@ -299,13 +349,20 @@ def class_acc(model,x, y_true, labels, epoch, sess, summary_placeholders, summar
         fpr[i] = 1. - tnr[i] 
         fnr[i] = 1. - tpr[i] 
         
-    result = [total_acc]
+    result = [0.] * (9*len(labels) + 1)
     
-    result.extend(acc)
-    result.extend(tpr)
-    result.extend(tnr)
-    result.extend(fpr)
-    result.extend(fnr)
+    result[0] = total_acc
+    for i,label in enumerate(labels):
+        idx = i*9+1
+        result[idx] = acc[i]
+        result[idx+1] = tpr[i]
+        result[idx+2] = tnr[i]
+        result[idx+3] = fpr[i]
+        result[idx+4] = fnr[i]
+        result[idx+5] = tp[i]
+        result[idx+6] = tn[i]
+        result[idx+7] = fp[i]
+        result[idx+8] = fn[i]
     
     
     #summary
@@ -317,18 +374,22 @@ def class_acc(model,x, y_true, labels, epoch, sess, summary_placeholders, summar
     summary_writer.add_summary(summary_str, epoch)
 
 def setup_summary(labels):
-    summary_vars = [tf.Variable(0.) for i in range(len(labels) *5 +1 )] 
+    summary_vars = [tf.Variable(0.) for i in range(len(labels) *9 +1 )] 
     summary_placeholders = [tf.Variable(0.) for var in summary_vars ]
     
     tf.summary.scalar('Total_Accuracy/Epoch', summary_vars[0])
         
     for i,label in enumerate(labels): 
-        idx = 5*i + 1
+        idx = 9*i + 1
         tf.summary.scalar('%s_%s/Epoch' % (label, 'Accuracy'), summary_vars[idx])
         tf.summary.scalar('%s_%s/Epoch' % (label, 'True_Positive_Rate'), summary_vars[idx+1])
-        tf.summary.scalar('%s_%s/Epoch' % (label, 'True_Positive'), summary_vars[idx+2])
-        tf.summary.scalar('%s_%s/Epoch' % (label, 'False_Positive'), summary_vars[idx+3])
-        tf.summary.scalar('%s_%s/Epoch' % (label, 'False_Negative'), summary_vars[idx+4])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'True_Negative_Rate'), summary_vars[idx+2])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'False_Positive_Rate'), summary_vars[idx+3])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'False_Negative_Rate'), summary_vars[idx+4])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'True_Positive'), summary_vars[idx+5])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'True_Negative'), summary_vars[idx+6])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'False_Positive'), summary_vars[idx+7])
+        tf.summary.scalar('%s_%s/Epoch' % (label, 'False_Negative'), summary_vars[idx+8])
     
     
     update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in

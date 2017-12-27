@@ -175,8 +175,8 @@ def main():
 
     try:
         
-        for e in range(nb_epochs): 
-            print('-'*40)
+        #for e in range(nb_epochs): 
+         #   print('-'*40)
             #progbar = generic_utils.Progbar(X_train.shape[0])
 #         for b in range( ceil(float(X_train.shape[0]) / batch_size) ):
 #             print('%7d / %7d' % (f, X_train.shape[0]))
@@ -195,7 +195,7 @@ def main():
 #             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
 #         scorev = model.evaluate(X_valid, y_valid, verbose=1)
 #         scoret = model.evaluate(X_test, y_test, verbose=1)
-            model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_data=(X_test, y_test),
+        model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
                       callbacks=[reset_callback, tb_callback], verbose=2,
                       class_weight = equal_class_weight(y_test, nb_classes))
         #         print('Epoch: {0} | Valid: {1} | Test: {2}'.format(e, scorev, scoret))
@@ -203,7 +203,10 @@ def main():
             
     except KeyboardInterrupt:
         #confusion matrix
+        model.save_weights(args.model)
         confusion_matrix(model, X_test, y_test, labels)
+    model.save_weights(args.model)
+    confusion_matrix(model, X_test, y_test, labels)
 
 def confusion_matrix(model,x, y_true, labels):
     y_pred = np.argmax(model.predict(x), axis=-1)
