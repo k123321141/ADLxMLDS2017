@@ -250,6 +250,7 @@ def simple_model(DIM, dep, nb_classes):
 
 def confusion_matrix(model,x, y_true, labels):
     y_pred = np.argmax(model.predict(x), axis=-1)
+    print 'y_ture shape', y_true.shape
     y_true = np.argmax(y_true, axis=-1)
     num = y_true.shape[0]
     #count labels
@@ -276,10 +277,11 @@ def confusion_matrix(model,x, y_true, labels):
             fp[y_p] += 1     
     for i,label in enumerate(labels):
         print 'label : %10s' % label
-        print '-'*20
-        print '%5d  ,  %5d' % (tp[i], tn[i])
-        print '%5d  ,  %5d' % (fp[i], fn[i])
-        print '-'*20
+
+        print '-----%8s---%8s----' % ('Positive', 'Negative')
+        print 'True  : %5d  ,  %5d' % (tp[i], tn[i])
+        print 'False : %5d  ,  %5d' % (fp[i], fn[i])
+        print '-'*27
         print ''
 
 def ceil(x):

@@ -49,7 +49,6 @@ def read_dir(dir_path):
         #RED
         label = label_dict[label]
         label_buf.append( np.array([label]).reshape([1,1]) )
-
     x = np.vstack(data_buf).astype(np.uint8)
     x = x/256
 
