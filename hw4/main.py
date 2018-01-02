@@ -3,8 +3,8 @@
 
 import numpy as np
 import argparse
-np.random.seed(1337)  # for reproducibility
-from scipy.misc import imresize
+np.random.seed(0413)  # for reproducibility
+from scipy.misc import imresize, imsave
 from keras.models import *
 from keras.callbacks import *
 from keras.layers import *
@@ -15,24 +15,21 @@ import random
 
 def parse():
     parser = argparse.ArgumentParser(description="hw4")
-    '''
     parser.add_argument('-s','--summary', default='./summary/default', help='summary path')
     parser.add_argument('-m','--model', default='./model.h5', help='model path')
-    parser.add_argument('-t','--type', default='stn', help='model type, for testing.')
-    parser.add_argument('-b','--batch', default=256, type=int, help='batch size')
-    parser.add_argument('-w','--class_weight', default=None, help='class weight')
-    '''
+    parser.add_argument('-b','--batch', default=128, type=int, help='batch size')
     args = parser.parse_args()
     return args
 def main():
     args = parse()
-
-    nb_epochs = 100 # you probably want to go longer than this
+    batch_size = args.batch
+    nb_epochs = 10000000 # you probably want to go longer than this
 
     npz = np.load('./train.npz')
     
     img = npz['x']
     text = npz['y']
+    sample_num = 64
     #wrong_text = npz['wrong_y']
     
     '''
@@ -69,53 +66,79 @@ def main():
     discriminator.compile(loss='binary_crossentropy', optimizer=opt)
 
     num = img.shape[0]
-    for i in range(nb_epochs):
+    sample_range = range(len(text))
+    #model.load_weights('./models/model_99.h5')
+    for e in range(1,nb_epochs,1):
+        
+        idxs = random.sample(sample_range, sample_num)
+        idxs2 = random.sample(sample_range, sample_num)
         #train discriminator
         #prepare discriminator data
         x_buf = []
         c_buf = []
         #real img, right text
-        x_buf.append(img)
-        c_buf.append(text)
+        x_buf.append(img[idxs, :, :, :])
+        c_buf.append(text[idxs, :])
         #fake img, right text 
-        print 'predict fake'
-        n_sample = noise_sample(n_dim, num)
-        #n_sample = noise_sample(n_dim, 100)
-        g_input  = np.concatenate([n_sample, text], axis=-1)
-        #g_input  = np.concatenate([n_sample, text[:100]], axis=-1)
-        fake_img = generator.predict(g_input)
+        #print 'predict fake'
+        n = noise_sample(n_dim, sample_num)
+        fake_img = generator.predict([n, text])
         x_buf.append(fake_img) 
-        #c_buf.append(text)
-        c_buf.append(text[:100])
+        c_buf.append(text[idxs, :])
 
         #real img, wrong text
-        print 'prepare wrong text data'
-        x_buf.append(img)
-        c_buf.append(wrong_text(text) )
-
+        #print 'prepare wrong text data'
+        x_buf.append(img[idxs2, :, :, :])
+        c_buf.append(text[idxs, :])
+        #c_buf.append(wrong_text(text[idxs, :]) )
         #
-        print 'stack'
-        for x in x_buf:
-            print 'x' , x.shape
         x = np.vstack(x_buf)
         c = np.vstack(c_buf)
         #prepare label
         y = np.zeros([x.shape[0], 1])
-        for i in range(img.shape[0]):
+        for i in range(sample_num):
             y[i,0] = 1
-        print x.shape,c.shape,y.shape
-        '''
-        x = x[16600:17200] 
-        c = c[16600:17200] 
-        y = y[16600:17200] 
-        '''
-        n = noise_sample(n_dim, 600)
+        
         #train discriminator
+        print 'Start training on iters : %5d' % e
+        #print x.shape,c.shape,n.shape,y.shape, fake_img.shape
         discriminator.trainable = True
-        discriminator.fit(x=[x,c],y=y, epochs=1, batch_size=32, verbose=1)
+        discriminator.train_on_batch(x=[x,c], y=y)
+        #discriminator.fit(x=[x,c],y=y, epochs=1, batch_size=batch_size, verbose=0)
         discriminator.trainable = False
-        model.fit(x=[n,c],y=y, epochs=1, batch_size=32, verbose=1)
+        '''
+        #train generator
+        if e > 1000:
+            model.fit(x=[ n,c[:sample_num, :] ],y=y[:sample_num], epochs=2, batch_size=batch_size, verbose=0)
+            #generate img
+            test_n = n[:100,:]
+            test_c = c[:100,:]
+            merge_img = np.zeros([img_dim * 10, img_dim * 10, 3])
+            for i in range(10):
+                for j in range(10):
+                    merge_img[i*img_dim: (i+1)*img_dim, j*img_dim: (j+1)*img_dim, :] = fake_img[i + 10*j, :, :, :]
 
+            #merge_img = merge_img * 255
+            imsave('./gen_img/epoch-%d.png' % e, merge_img)
+            if e % 100 == 0:
+                model.save_weights('./models/model_%d.h5' % e)
+        '''
+        #model.train_on_batch(x=[n, c[:sample_num, :] ],y=y[:sample_num])
+        model.train_on_batch(x=[n, c[:sample_num, :] ],y=y[:sample_num])
+        #model.fit(x=[n, c[:sample_num, :] ],y=y[:sample_num])
+        if e % 100 == 0:
+            model.save_weights('./models/model_%d.h5' % e)
+            #generate img
+            img_num = 6
+            test_n = n[:img_num*img_num,:]
+            test_c = c[:img_num*img_num,:]
+            merge_img = np.zeros([img_dim * img_num, img_dim * img_num, 3])
+            for i in range(img_num):
+                for j in range(img_num):
+                    merge_img[i*img_dim: (i+1)*img_dim, j*img_dim: (j+1)*img_dim, :] = fake_img[i + img_num*j, :, :, :]
+
+            #merge_img = merge_img * 255
+            imsave('./gen_img/epoch-%d.png' % e, merge_img)
 
         #50973
 
@@ -133,31 +156,46 @@ def noise_sample(n_dim, num):
     return np.random.normal(size=(num, n_dim))
 def generator_model(noise_dim, c_dim):
     #c_dim = code dimension
+
+    n_input = Input(shape=(noise_dim,))
+    c_input = Input(shape=(c_dim,))
+    
+    #gen_input = Concatenate(axis = -1) ([n_input, c_input]) 
+    gen_input = n_input
+
     #input_shape = (122,)
     nch = 256
     reg = lambda: L1L2(l1=1e-7, l2=1e-7)
-    w = 8 
-    model = Sequential(name='generator')
-    model.add(Dense(nch * w * w, input_dim=noise_dim+c_dim, kernel_regularizer=reg()))
-    #model.add(BatchNormalization())
-    model.add(Reshape([w, w, nch]))
-    model.add(Conv2D(int(nch / 2), kernel_size=(3, 3), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    model.add(BatchNormalization( axis=-1))
-    model.add(LeakyReLU(0.2))
-    model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
+    w = 8
 
-    model.add(Conv2D(int(nch / 2), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    model.add(BatchNormalization( axis=-1))
-    model.add(LeakyReLU(0.2))
-    model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
+    gen_model = Sequential(name='generator')
+    #gen_model.add(Dense(nch * w * w, input_dim=noise_dim+c_dim, kernel_regularizer=reg()))
+    gen_model.add(Dense(nch * w * w, input_dim=noise_dim, kernel_regularizer=reg()))
+    #gen_model.add(BatchNormalization())
+    gen_model.add(Reshape([w, w, nch]))
+    gen_model.add(Conv2D(int(nch / 2), kernel_size=(3, 3), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    gen_model.add(BatchNormalization( axis=-1))
+    gen_model.add(LeakyReLU(0.2))
+    gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
 
-    model.add(Conv2D(int(nch / 4), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    model.add(BatchNormalization( axis=1))
-    model.add(LeakyReLU(0.2))
-    model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
+    gen_model.add(Conv2D(int(nch / 2), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    gen_model.add(BatchNormalization( axis=-1))
+    gen_model.add(LeakyReLU(0.2))
+    gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
 
-    model.add(Conv2D(3, kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    model.add(Activation('sigmoid'))
+    gen_model.add(Conv2D(int(nch / 4), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    gen_model.add(BatchNormalization( axis=1))
+    gen_model.add(LeakyReLU(0.2))
+    gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
+
+    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    gen_model.add(Activation('sigmoid'))
+   
+    gen_out = gen_model(gen_input)
+
+    model = Model(inputs=(n_input, c_input), outputs=gen_out, name='generator')
+    #model = Model(inputs=n_input, outputs=gen_out, name='generator')
+    
     
     
     return model
@@ -213,7 +251,7 @@ def gan_model(img_dim, c_dim, noise_dim):
     discriminator = discriminator_model(img_dim, c_dim)
 
     x = Concatenate(axis=-1)([n_input, c_input])
-    x = generator(x)
+    x = generator([n_input, c_input])
     y = discriminator([x, c_input])
     
     model = Model(inputs=[n_input, c_input], outputs=y, name='gan_end2end')

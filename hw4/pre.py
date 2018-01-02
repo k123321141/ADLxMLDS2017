@@ -27,6 +27,7 @@ def main():
                 s += tag + ','
         if s != '':
             s = s[:-1]
+            print s
             y = encode(s)
             img_path = join('./faces',idx+'.jpg')
             x = imread(img_path)
