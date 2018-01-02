@@ -104,28 +104,9 @@ def main():
         #print x.shape,c.shape,n.shape,y.shape, fake_img.shape
         discriminator.trainable = True
         discriminator.train_on_batch(x=[x,c], y=y)
-        #discriminator.fit(x=[x,c],y=y, epochs=1, batch_size=batch_size, verbose=0)
         discriminator.trainable = False
-        '''
-        #train generator
-        if e > 1000:
-            model.fit(x=[ n,c[:sample_num, :] ],y=y[:sample_num], epochs=2, batch_size=batch_size, verbose=0)
-            #generate img
-            test_n = n[:100,:]
-            test_c = c[:100,:]
-            merge_img = np.zeros([img_dim * 10, img_dim * 10, 3])
-            for i in range(10):
-                for j in range(10):
-                    merge_img[i*img_dim: (i+1)*img_dim, j*img_dim: (j+1)*img_dim, :] = fake_img[i + 10*j, :, :, :]
-
-            #merge_img = merge_img * 255
-            imsave('./gen_img/epoch-%d.png' % e, merge_img)
-            if e % 100 == 0:
-                model.save_weights('./models/model_%d.h5' % e)
-        '''
-        #model.train_on_batch(x=[n, c[:sample_num, :] ],y=y[:sample_num])
         model.train_on_batch(x=[n, c[:sample_num, :] ],y=y[:sample_num])
-        #model.fit(x=[n, c[:sample_num, :] ],y=y[:sample_num])
+        #model.train_on_batch(x=[n, c[:sample_num, :] ],y=y[:sample_num])
         if e % 100 == 0:
             model.save_weights('./models/model_%d.h5' % e)
             #generate img
@@ -160,8 +141,8 @@ def generator_model(noise_dim, c_dim):
     n_input = Input(shape=(noise_dim,))
     c_input = Input(shape=(c_dim,))
     
-    #gen_input = Concatenate(axis = -1) ([n_input, c_input]) 
-    gen_input = n_input
+    gen_input = Concatenate(axis = -1) ([n_input, c_input]) 
+    #gen_input = n_input
 
     #input_shape = (122,)
     nch = 256
@@ -169,26 +150,26 @@ def generator_model(noise_dim, c_dim):
     w = 8
 
     gen_model = Sequential(name='generator')
-    #gen_model.add(Dense(nch * w * w, input_dim=noise_dim+c_dim, kernel_regularizer=reg()))
-    gen_model.add(Dense(nch * w * w, input_dim=noise_dim, kernel_regularizer=reg()))
+    gen_model.add(Dense(nch * w * w, input_dim=noise_dim+c_dim))
+    #gen_model.add(Dense(nch * w * w, input_dim=noise_dim))
     #gen_model.add(BatchNormalization())
     gen_model.add(Reshape([w, w, nch]))
-    gen_model.add(Conv2D(int(nch / 2), kernel_size=(3, 3), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    gen_model.add(BatchNormalization( axis=-1))
+    gen_model.add(Conv2D(int(nch / 2), kernel_size=(3, 3), padding='same', data_format='channels_last'))
+    #gen_model.add(BatchNormalization( axis=-1))
     gen_model.add(LeakyReLU(0.2))
     gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
 
-    gen_model.add(Conv2D(int(nch / 2), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    gen_model.add(BatchNormalization( axis=-1))
+    gen_model.add(Conv2D(int(nch / 2), kernel_size=(5, 5), padding='same', data_format='channels_last'))
+    #gen_model.add(BatchNormalization( axis=-1))
     gen_model.add(LeakyReLU(0.2))
     gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
 
-    gen_model.add(Conv2D(int(nch / 4), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
-    gen_model.add(BatchNormalization( axis=1))
+    gen_model.add(Conv2D(int(nch / 4), kernel_size=(5, 5), padding='same', data_format='channels_last'))
+    #gen_model.add(BatchNormalization( axis=1))
     gen_model.add(LeakyReLU(0.2))
     gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
 
-    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', data_format='channels_last'))
     gen_model.add(Activation('sigmoid'))
    
     gen_out = gen_model(gen_input)
@@ -209,18 +190,18 @@ def discriminator_model(img_dim, c_dim):
     #
     
     img_model = Sequential()
-    img_model.add(Conv2D(int(nch / 4), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(),
+    img_model.add(Conv2D(int(nch / 4), kernel_size=(5, 5), padding='same',
                                             input_shape=(img_dim, img_dim, 3), data_format='channels_last'))
     img_model.add(BatchNormalization( axis=-1))
     img_model.add(LeakyReLU(0.2))
     img_model.add(MaxPooling2D((2, 2), data_format='channels_last'))
 
-    img_model.add(Conv2D(int(nch / 2), kernel_size=(5, 5), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    img_model.add(Conv2D(int(nch / 2), kernel_size=(5, 5), padding='same', data_format='channels_last'))
     img_model.add(BatchNormalization( axis=-1))
     img_model.add(LeakyReLU(0.2))
     img_model.add(MaxPooling2D((2, 2), data_format='channels_last'))
 
-    img_model.add(Conv2D(int(nch / 4), kernel_size=(2, 2), padding='same', kernel_regularizer=reg(), data_format='channels_last'))
+    img_model.add(Conv2D(int(nch / 4), kernel_size=(2, 2), padding='same', data_format='channels_last'))
     img_model.add(BatchNormalization( axis=1))
     img_model.add(LeakyReLU(0.2))
 
