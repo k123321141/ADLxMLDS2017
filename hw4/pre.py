@@ -27,11 +27,11 @@ def main():
                 s += tag + ','
         if s != '':
             s = s[:-1]
-            print s
+            #print s
             y = encode(s)
             img_path = join('./faces',idx+'.jpg')
             x = imread(img_path)
-            x = imresize(x, [64,64,3])
+            x = imresize(x, [64,64,3]).astype(np.float32)
             x = x.reshape([1,64,64,3]) / 255
             x_buf.append(x)
             y_buf.append(y)

@@ -119,26 +119,6 @@ def main():
 
     try:
         
-#        for e in range(nb_epochs): 
-#            print('-'*40)
-            #progbar = generic_utils.Progbar(X_train.shape[0])
-#         for b in range( ceil(float(X_train.shape[0]) / batch_size) ):
-#             print('%7d / %7d' % (f, X_train.shape[0]))
-
-#             f = b * batch_size
-#             l = min(X_train.shape[0]+1, (b+1) * batch_size)
-#             X_batch = X_train[f:l]
-#             y_batch = y_train[f:l]
-                
-                
-#             loss = model.train_on_batch(X_batch, y_batch)
-#             reset_trans_lay(trans_lay)
-            
-                
-#             #print(loss)
-#             #progbar.add(X_batch.shape[0], values=[("train loss", loss)])
-#         scorev = model.evaluate(X_valid, y_valid, verbose=1)
-#         scoret = model.evaluate(X_test, y_test, verbose=1)
         if args.class_weight is None:
             model.fit(X_train, y_train, epochs=nb_epochs, batch_size=batch_size, validation_data=(X_test, y_test),
                           callbacks=[reset_callback, tb_callback],verbose=2)
@@ -294,7 +274,7 @@ def global_pooling_model(DIM, dep, nb_classes):
 
 def confusion_matrix(model,x, y_true, labels):
     y_pred = np.argmax(model.predict(x), axis=-1)
-    print 'y_ture shape', y_true.shape
+    #print 'y_ture shape', y_true.shape
     y_true = np.argmax(y_true, axis=-1)
     num = y_true.shape[0]
     #count labels
@@ -315,9 +295,9 @@ def confusion_matrix(model,x, y_true, labels):
             tp[y_t] += 1
             for i in range(len(labels)):
                 if i != y_t:
-                    fn[i] += 1
+                    tn[i] += 1
         else:
-            tn[y_t] += 1
+            fn[y_t] += 1
             fp[y_p] += 1     
     for i,label in enumerate(labels):
         print 'label : %10s' % label
@@ -376,9 +356,9 @@ def class_acc(model,x, y_true, labels, epoch, sess, summary_placeholders, summar
             tp[y_t] += 1
             for i in range(len(labels)):
                 if i != y_t:
-                    fn[i] += 1
+                    tn[i] += 1
         else:
-            tn[y_t] += 1
+            fn[y_t] += 1
             fp[y_p] += 1     
     
     total_acc = total_acc / num
