@@ -32,7 +32,7 @@ def main():
             img_path = join('./faces',idx+'.jpg')
             x = imread(img_path)
             x = imresize(x, [64,64,3]).astype(np.float32)
-            x = x.reshape([1,64,64,3]) / 255
+            x = x.reshape([1,64,64,3]) / 255.
             x_buf.append(x)
             y_buf.append(y)
             wrong_y = wrong_text(y)
@@ -56,30 +56,6 @@ def wrong_text(y):
     for i in random.sample(arr, 4):
         wrong_y[0,i] = 1
     return wrong_y
-
-def main2():
-   
-    p = './tags_clean.csv'
-    with open(p,'r') as f:
-        ls = f.readlines()
-    dic = {}
-    for l in ls:
-        if tag_in(l): 
-            buf = l.split(',')
-            idx = buf[0]
-            ll = buf[-1].strip().split('\t')
-            for lll in ll:
-                t = lll.split(':')[0]
-                if tag_in(t) and '1' not in t:
-                    img_path = join('./faces',idx+'.jpg')
-                    if 'red' in t:
-                        dic[int(idx)] = 'red'
-                    elif 'green' in t:
-                        dic[int(idx)] = 'green'
-                    break
-    with open('./color.json','w') as f:
-        s = json.dumps(dic)
-        f.write(s)
 def tag_in(s, tags):
     for tag in tags:
         if tag in s:

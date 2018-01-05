@@ -84,9 +84,9 @@ def main():
         x = np.vstack(x_buf)
         c = np.vstack(c_buf)
         #prepare label
-        y = np.zeros([x.shape[0], 1])
+        y = np.zeros([x.shape[0],])
         for i in range(sample_num):
-            y[i,0] = 1
+            y[i] = 1
         
         #train discriminator
         print 'Start training on iters : %5d' % e
@@ -107,7 +107,8 @@ def main():
                 for j in range(img_num):
                     merge_img[i*img_dim: (i+1)*img_dim, j*img_dim: (j+1)*img_dim, :] = gen_img[i + img_num*j, :, :, :]
 
-            merge_img = merge_img * 255
+            merge_img = merge_img * 255.
+            merge_img = merge_img.astype(np.uint8)
             imsave('./gen_img/epoch-%d.png' % e, merge_img)
 
         #50973
@@ -142,7 +143,7 @@ def generator_model(noise_dim, c_dim):
 
     #input_shape = (122,)
     nch = 256
-    dep = 3
+    dep = 4
     #reg = lambda: L1L2(l1=1e-7, l2=1e-7)
 
     gen_model = Sequential(name='generator')
@@ -154,14 +155,10 @@ def generator_model(noise_dim, c_dim):
         f = nch / (2** (i+1) )
         #k = max(min(16, 2**i)-1 , 1)
         k = 5
-        gen_model.add(Conv2D(f, kernel_size=(k, k), padding='same', data_format='channels_last'))
-        gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
+        gen_model.add(Conv2DTranspose(f, kernel_size=(k, k), strides=(2,2), padding='same', data_format='channels_last'))
         gen_model.add(BatchNormalization( axis=-1))
         gen_model.add(Activation('relu'))
-
-    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', data_format='channels_last'))
-    gen_model.add(UpSampling2D(size=(2, 2), data_format='channels_last'))
-    gen_model.add(Activation('sigmoid'))
+    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', activation='sigmoid', data_format='channels_last'))
     
     gen_out = gen_model(gen_input)
     model = Model(inputs=(n_input, c_input), outputs=gen_out, name='generator')
@@ -209,7 +206,7 @@ def discriminator_model(img_dim, c_dim):
 
     x = Concatenate(axis = -1) ([img_out, c_input]) 
 
-    x = Dense(512, activation='sigmoid')(x)
+    x = Dense(512, activation='relu')(x)
     y = Dense(1, activation='sigmoid')(x)
     model = Model(inputs=(img_input, c_input), outputs=y, name='discriminator')
 
