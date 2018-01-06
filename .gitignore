@@ -13,6 +13,7 @@
 out.txt
 config.py
 breakout-*
+*.hdf5
 *.h5
 *.gz
 *.tar
