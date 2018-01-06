@@ -6,7 +6,7 @@ from scipy.misc import imresize, imsave
 import json, random
 
 colors = ['green', 'white', 'blue', 'aqua', 'gray', 'purple', 'red', 'pink', 'yellow', 'brown', 'black']
-parts = ['hair', 'eye']
+parts = ['eyes', 'hair']
 
 def main():
    
@@ -15,8 +15,8 @@ def main():
         ls = f.readlines()
     tag_set = set()
     x_buf = []
-    y_buf = []
-    wrong_buf = []
+    y1_buf = []
+    y2_buf = []
     for line in ls:
         idx, line = line.split(',')
         tags = line.strip().split('\t')
@@ -28,41 +28,29 @@ def main():
         if s != '':
             s = s[:-1]
             #print s
-            y = encode(s)
+            y1,y2 = encode(s)
             img_path = join('./faces',idx+'.jpg')
             x = imread(img_path)
-            x = imresize(x, [64,64,3]).astype(np.float32)
-            x = x.reshape([1,64,64,3]) / 255.
+            x = imresize(x, [64,64,3]).astype(np.uint8)
+            x = x.reshape([1,64,64,3]) 
             x_buf.append(x)
-            y_buf.append(y)
-            wrong_y = wrong_text(y)
-            wrong_buf.append(wrong_y)
+            y1_buf.append(y1)
+            y2_buf.append(y2)
             #print idx,s
             #tag_set.add(s)
-    x, y, wrong_y = (np.vstack(x_buf), np.vstack(y_buf), np.vstack(wrong_buf) ) 
+    x, y1, y2  = (np.vstack(x_buf), np.vstack(y1_buf), np.vstack(y2_buf)) 
 
     #print tag_set, len(tag_set)
     with open('./train.npz','wb') as f:
-        np.savez(f, x=x, y=y, wrong_y=wrong_y)
-    print x.shape, y.shape, wrong_y.shape
-def wrong_text(y):
-    shape = (1, len(colors) * len(parts))
-    assert y.shape == shape
-    arr = []
-    for i in range(y.shape[-1]):
-        if y[0,i] == 0:
-            arr.append(i)
-    wrong_y = np.zeros(shape)
-    for i in random.sample(arr, 4):
-        wrong_y[0,i] = 1
-    return wrong_y
+        np.savez(f, x=x, eyes=y1, hair=y2)
+    print x.shape, y1.shape, y2.shape
 def tag_in(s, tags):
     for tag in tags:
         if tag in s:
             return True
     return False
 def encode(s):
-    y = np.zeros([1, len(colors) * len(parts)])
+    y = [np.zeros([1, 1]) for i in range(len(parts))]
     #example purple eyes, green hair
     tags = s.split(',')
     for tag in tags:
@@ -76,8 +64,27 @@ def encode(s):
                         idx = j
                         break
                 assert idx != -1
-                y[0,i*len(parts) + idx] = 1
+                y[i][0,0] = idx
     return y
+"""
+def encode_pre(s):
+    y = [np.zeros([1, len(colors)]) for i in range(len(parts))]
+    #example purple eyes, green hair
+    tags = s.split(',')
+    for tag in tags:
+        for i,part in enumerate(parts):
+
+            #eyes in green eyes
+            if part in tag:
+                idx = -1
+                for j,color in enumerate(colors):
+                    if color in tag:
+                        idx = j
+                        break
+                assert idx != -1
+                y[i][0,idx] = 1
+    return y
+ """
 
 def read_x():
     with open('./x.npy') as f:

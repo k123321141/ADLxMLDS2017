@@ -29,15 +29,8 @@ def main():
     
     img = npz['x']
     text = npz['y']
-    print img.shape,text.shape
-    x = img[18,:,:,:]
-    x = x.reshape([-1])
-    y = text[0,:]
-    print x[100:200]
-    print y
-    import sys
-    #sys.exit()
     sample_num = 64
+    print img[0,:8,:8,:]
     #wrong_text = npz['wrong_y']
     
 
@@ -57,44 +50,43 @@ def main():
     num = img.shape[0]
     sample_range = range(len(text))
     for e in range(1,nb_epochs,1):
+        print 'Start training on iters : %5d' % e
         
         idxs = random.sample(sample_range, sample_num)
         idxs2 = random.sample(sample_range, sample_num)
         
         #train discriminator
         #prepare discriminator data
-        x_buf = []
-        c_buf = []
-        #real img, right text
-        x_buf.append(img[idxs, :, :, :])
-        c_buf.append(text[idxs, :])
-        #fake img, right text 
-        #print 'predict fake'
-        n = noise_sample(n_dim, sample_num)
-        fake_img = generator.predict([n, text])
-        x_buf.append(fake_img) 
-        c_buf.append(text[idxs, :])
-
-        #real img, wrong text
-        #print 'prepare wrong text data'
-        x_buf.append(img[idxs2, :, :, :])
-        c_buf.append(text[idxs, :])
-        #c_buf.append(wrong_text(text[idxs, :]) )
-        #
-        x = np.vstack(x_buf)
-        c = np.vstack(c_buf)
-        #prepare label
-        y = np.zeros([x.shape[0],])
-        for i in range(sample_num):
-            y[i] = 1
+        #discriminator.trainable = True
         
-        #train discriminator
-        print 'Start training on iters : %5d' % e
-        #print x.shape,c.shape,n.shape,y.shape, fake_img.shape
-        discriminator.trainable = True
+        #real img, right text
+        x = img[idxs,:,:,:]
+        c = text[idxs, :]
+        y = np.ones([x.shape[0],])
         discriminator.train_on_batch(x=[x,c], y=y)
-        discriminator.trainable = False
-        model.train_on_batch(x=[n, c[:sample_num, :] ],y=y[:sample_num])
+        
+        #real img, wrong text
+        x = img[idxs,:,:,:]
+        c = text[idxs2, :]
+        y = np.zeros([x.shape[0],])
+        discriminator.train_on_batch(x=[x,c], y=y)
+        
+        #fake img, right text 
+        n = noise_sample(n_dim, sample_num)
+        c = text[idxs, :]
+        fake_img = generator.predict([n, c])
+        x = fake_img
+        y = np.zeros([x.shape[0],])
+        discriminator.train_on_batch([x,c], y)
+
+        
+        #train generator
+        #discriminator.trainable = False
+        y = np.zeros([sample_num*3,])
+        n = noise_sample(n_dim, sample_num*3)
+        idxs = random.sample(sample_range, sample_num*3)
+        c = text[idxs,:]
+        model.fit(x=[n, c], y=y, verbose=0, batch_size=batch_size)
         if e % 100 == 0:
             model.save_weights('./models/model_%d.h5' % e)
             #generate img
@@ -106,8 +98,9 @@ def main():
             for i in range(img_num):
                 for j in range(img_num):
                     merge_img[i*img_dim: (i+1)*img_dim, j*img_dim: (j+1)*img_dim, :] = gen_img[i + img_num*j, :, :, :]
+            print merge_img[:8,:8,:]
 
-            merge_img = merge_img * 255.
+            merge_img = (merge_img+1.) * 127.5
             merge_img = merge_img.astype(np.uint8)
             imsave('./gen_img/epoch-%d.png' % e, merge_img)
 
@@ -132,7 +125,7 @@ def wrong_text(y):
         wrong_y[i,random.sample(arr, 4)] = 1
     return wrong_y
 def noise_sample(n_dim, num):
-    return np.random.normal(size=(num, n_dim))
+    return np.random.uniform(-1.,1.,size=(num, n_dim))
 def generator_model(noise_dim, c_dim):
     #c_dim = code dimension
 
@@ -147,18 +140,15 @@ def generator_model(noise_dim, c_dim):
     #reg = lambda: L1L2(l1=1e-7, l2=1e-7)
 
     gen_model = Sequential(name='generator')
-    gen_model.add(Dense(4 * 4 * nch, input_dim=noise_dim+c_dim))
-    gen_model.add(BatchNormalization(axis=-1))
-    gen_model.add(Activation('relu'))
+    gen_model.add(Dense(4 * 4 * nch, activation='relu', input_dim=noise_dim+c_dim))
     gen_model.add(Reshape([4, 4, nch]))
     for i in range(dep):
         f = nch / (2** (i+1) )
         #k = max(min(16, 2**i)-1 , 1)
         k = 5
-        gen_model.add(Conv2DTranspose(f, kernel_size=(k, k), strides=(2,2), padding='same', data_format='channels_last'))
-        gen_model.add(BatchNormalization( axis=-1))
-        gen_model.add(Activation('relu'))
-    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', activation='sigmoid', data_format='channels_last'))
+        gen_model.add(Conv2DTranspose(f, kernel_size=(k, k), strides=(2,2), padding='same', activation='relu', data_format='channels_last'))
+        #gen_model.add(BatchNormalization( axis=-1))
+    gen_model.add(Conv2D(3, kernel_size=(5, 5), padding='same', activation='tanh', data_format='channels_last'))
     
     gen_out = gen_model(gen_input)
     model = Model(inputs=(n_input, c_input), outputs=gen_out, name='generator')
@@ -184,16 +174,16 @@ def discriminator_model(img_dim, c_dim):
         """
         f = 2 ** (i+5)
         k = 5
-
+        s = 1
         if i == 0:
-            img_model.add(Conv2D(f, kernel_size=(k, k), strides=(2,2), padding='same',
+            img_model.add(Conv2D(f, kernel_size=(k, k), strides=(s,s), padding='same',
                                             input_shape=(img_dim, img_dim, 3), data_format='channels_last'))
         else:
-            img_model.add(Conv2D(f, kernel_size=(k, k), strides=(2,2), padding='same', data_format='channels_last'))
-        img_model.add(BatchNormalization( axis=-1))
+            img_model.add(Conv2D(f, kernel_size=(k, k), strides=(s,s), padding='same', data_format='channels_last'))
+        img_model.add(MaxPooling2D((2, 2), data_format='channels_last'))
+        #img_model.add(BatchNormalization( axis=-1))
         img_model.add(LeakyReLU())
         
-        #img_model.add(MaxPooling2D((2, 2), data_format='channels_last'))
     
 
     img_model.add(Flatten())
@@ -206,7 +196,7 @@ def discriminator_model(img_dim, c_dim):
 
     x = Concatenate(axis = -1) ([img_out, c_input]) 
 
-    x = Dense(512, activation='relu')(x)
+    x = Dense(512, activation='sigmoid')(x)
     y = Dense(1, activation='sigmoid')(x)
     model = Model(inputs=(img_input, c_input), outputs=y, name='discriminator')
 
