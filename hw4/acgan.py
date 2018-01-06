@@ -40,11 +40,11 @@ from keras.optimizers import Adam
 from keras.utils.generic_utils import Progbar
 import numpy as np
 
-np.random.seed(1337)
+np.random.seed(0413)
 
 npz = np.load('./train.npz')
 
-color_classes = 11
+color_classes = 12
 img_dim = 64
 def build_generator(latent_size):
     # we will map a pair of (z, L), where z is a latent vector and L is a
@@ -186,7 +186,6 @@ if __name__ == '__main__':
     y2 = npz['hair'][:16900]
     y1 = y1.reshape([-1])
     y2 = y2.reshape([-1])
-
     print(x_train.shape,y1.shape)
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
 
@@ -260,7 +259,7 @@ if __name__ == '__main__':
             # For the generator, we want all the {fake, not-fake} labels to say
             # not-fake
             trick = np.ones(2 * batch_size) * soft_one
-
+            
             epoch_gen_loss.append(combined.train_on_batch(
                 [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))],
 
@@ -302,14 +301,15 @@ if __name__ == '__main__':
         #generate img
         img_num = color_classes
         noise = np.random.uniform(-1, 1, (color_classes**2, latent_size))
-        sampled_eyes = np.array([color_classes**2])
+        sampled_eyes = np.zeros([color_classes**2, 1])
         for i in range(color_classes):
-            sampled_eyes[i*color_classes : (i+1)*color_classes] = i 
-        sampled_hari = np.array([color_classes**2])
+            sampled_eyes[i*color_classes : (i+1)*color_classes, 0] = i 
+        sampled_hair = np.zeros([color_classes**2, 1])
         for i in range(color_classes):
-            sampled_hair[i*color_classes : (i+1)*color_classes] = i 
+            sampled_hair[i*color_classes : (i+1)*color_classes, 0] = i 
 
         merge_img = np.zeros([img_dim * img_num, img_dim * img_num, 3])
+        #print(noise.shape,sampled_eyes.shape,sampled_hair.shape)
         gen_img = generator.predict(
                 [noise, sampled_eyes, sampled_hair], verbose=0)
         for i in range(img_num):

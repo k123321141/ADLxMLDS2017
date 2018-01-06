@@ -5,7 +5,7 @@ from scipy.ndimage import imread
 from scipy.misc import imresize, imsave
 import json, random
 
-colors = ['green', 'white', 'blue', 'aqua', 'gray', 'purple', 'red', 'pink', 'yellow', 'brown', 'black']
+colors = ['<unk>','green', 'white', 'blue', 'aqua', 'gray', 'purple', 'red', 'pink', 'yellow', 'brown', 'black']
 parts = ['eyes', 'hair']
 
 def main():
@@ -29,6 +29,7 @@ def main():
             s = s[:-1]
             #print s
             y1,y2 = encode(s)
+            print s,y1,y2
             img_path = join('./faces',idx+'.jpg')
             x = imread(img_path)
             x = imresize(x, [64,64,3]).astype(np.uint8)
