@@ -102,15 +102,16 @@ def main(test_txt_path):
             y1 = 0
         else:
             y1 = colors.index( e_m[0].replace(' eyes',''))
-            y1 = np.array([1,y1])
+        y1 = np.array([1,y1])
         #hair
         h_m = hair_patten.findall(tags)
         if len(h_m) == 0:
             y2 = 0
         else:
             y2 = colors.index( h_m[0].replace(' hair',''))
-            y2 = np.array([1,y2])
+        y2 = np.array([1,y2])
         for i in range(5):
+            print y1,y2
             noise = np.random.normal(0, 1, (1, latent_size))
             img = generator.predict([noise, y1, y2]).reshape([64,64,3])
             path = join('./', 'sample', 'sample_%s_%d.jpg' % (idx, i+1))
