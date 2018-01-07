@@ -159,9 +159,9 @@ def main():
     # range [-1, 1]
     npz = np.load('./train.npz')
     
-    x_train = npz['x'][:16900]
-    y1 = npz['eyes'][:16900]
-    y2 = npz['hair'][:16900]
+    x_train = npz['x']
+    y1 = npz['eyes']
+    y2 = npz['hair']
     y1 = y1.reshape([-1])
     y2 = y2.reshape([-1])
     print(x_train.shape,y1.shape)

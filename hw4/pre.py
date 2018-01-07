@@ -3,10 +3,26 @@ import numpy as np
 from os.path import join
 from scipy.ndimage import imread
 from scipy.misc import imresize, imsave
-import json, random
+import json, random, re
+
+random.seed(0413)
 
 colors = ['<unk>','green', 'white', 'blue', 'aqua', 'gray', 'purple', 'red', 'pink', 'yellow', 'brown', 'black']
 parts = ['eyes', 'hair']
+
+#configure eyes pattern
+patt = ''
+for c in colors:
+    patt += c + ' eyes|'
+patt = patt[:-1]
+eyes_patten = re.compile(patt)
+
+#configure hair pattern
+patt = ''
+for c in colors:
+    patt += c + ' hair|'
+patt = patt[:-1]
+hair_patten = re.compile(patt)
 
 def main():
    
@@ -19,28 +35,34 @@ def main():
     y2_buf = []
     for line in ls:
         idx, line = line.split(',')
-        tags = line.strip().split('\t')
-        s = ''
-        for tag in tags:
-            tag = tag.split(':')[0]
-            if tag_in(tag, colors) and tag_in(tag, parts):
-                s += tag + ','
-        if s != '':
-            s = s[:-1]
-            #print s
-            y1,y2 = encode(s)
-            print s,y1,y2
-            img_path = join('./faces',idx+'.jpg')
-            x = imread(img_path)
-            x = imresize(x, [64,64,3]).astype(np.uint8)
-            x = x.reshape([1,64,64,3]) 
-            x_buf.append(x)
-            y1_buf.append(y1)
-            y2_buf.append(y2)
-            #print idx,s
-            #tag_set.add(s)
-    x, y1, y2  = (np.vstack(x_buf), np.vstack(y1_buf), np.vstack(y2_buf)) 
+        tags = line.strip().lower()
+        tags = tags.replace('eye','eyes')
 
+        #eyes
+        e_m = eyes_patten.findall(tags)
+        if len(e_m) == 0:
+            y1 = 0
+        else:
+            idxs = [colors.index( s.replace(' eyes','') ) for s in e_m]
+            y1 = random.choice(idxs)
+        #hair
+        h_m = hair_patten.findall(tags)
+        if len(h_m) == 0:
+            y2 = 0
+        else:
+            idxs = [colors.index( s.replace(' hair','') ) for s in h_m]
+            y2 = random.choice(idxs)
+        
+        y1_buf.append(y1)
+        y2_buf.append(y2)
+        
+        img_path = join('./faces',idx+'.jpg')
+        x = imread(img_path)
+        x = imresize(x, [64,64,3]).astype(np.uint8)
+        x = x.reshape([1,64,64,3]) 
+        x_buf.append(x)
+    x, y1, y2  = (np.vstack(x_buf), np.vstack(y1_buf), np.vstack(y2_buf)) 
+    
     #print tag_set, len(tag_set)
     with open('./train.npz','wb') as f:
         np.savez(f, x=x, eyes=y1, hair=y2)
