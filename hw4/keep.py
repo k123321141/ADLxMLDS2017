@@ -135,9 +135,10 @@ def build_discriminator():
 
     return Model(image, [fake, aux1, aux2])
 
-def main():    
+if __name__ == '__main__':
+
     # batch and latent size taken from the paper
-    epochs = 50000
+    epochs = 3000000
     batch_size = 100
     latent_size = 100
 
@@ -190,11 +191,12 @@ def main():
 
 
     num_train = x_train.shape[0]
+    discriminator.load_weights('./models/params_discriminator_epoch_050.hdf5')
+    generator.load_weights('./models/params_generator_epoch_050.hdf5')
 
     train_history = defaultdict(list)
-    sample_range = range(x_train.shape[0])
 
-    for epoch in range(1, epochs + 1):
+    for epoch in range(51, epochs + 1):
         print('Epoch {}/{}'.format(epoch, epochs))
 
         num_batches = int(x_train.shape[0] / batch_size)
@@ -270,7 +272,7 @@ def main():
 
         # see if the discriminator can figure itself out...
         discriminator_train_loss = np.mean(np.array(epoch_disc_loss), axis=0)
-        print(discriminator_train_loss)
+
         # make new noise
         generator_train_loss = np.mean(np.array(epoch_gen_loss), axis=0)
 
@@ -278,16 +280,15 @@ def main():
         train_history['generator'].append(generator_train_loss)
         train_history['discriminator'].append(discriminator_train_loss)
 
-        print('{0:<22s} | {1:7s} | {2:15s} | {3:10s} | {4:10s}'.format(
+        print('{0:<22s} | {1:4s} | {2:15s} | {3:5s}'.format(
             'component', *discriminator.metrics_names))
-        print('-' * 100)
+        print('-' * 65)
 
-        ROW_FMT = '{0:<22s} | {1:<7.2f} | {2:<15.2f} | {3:<10.2f} | {4:<10.2f}'
+        ROW_FMT = '{0:<22s} | {1:<4.2f} | {2:<15.2f} | {3:<5.2f}'
         print(ROW_FMT.format('generator (train)',
                              *train_history['generator'][-1]))
         print(ROW_FMT.format('discriminator (train)',
-                            * train_history['discriminator'][-1]))
-        print(train_history['discriminator'][-1])
+                             *train_history['discriminator'][-1]))
 
         # save weights every epoch
         generator.save_weights(
@@ -356,7 +357,5 @@ def main():
         Image.fromarray(img).save(
             'plot_epoch_{0:03d}_generated.png'.format(epoch))
         """
-    pickle.dump({'train': train_history},
+    pickle.dump({'train': train_history, 'test': test_history},
                 open('acgan-history.pkl', 'wb'))
-if __name__ == '__main__':
-    main()
