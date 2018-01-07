@@ -221,9 +221,14 @@ def main():
 
             x = np.concatenate((image_batch, generated_images))
 
-            # use soft real/fake labels
-            soft_zero, soft_one = 0.1, 0.9
-            y = np.array([soft_one] * batch_size + [soft_zero] * batch_size)
+            # use soft real/fake labels and flip noise
+            # true : normal distribution from 0.9 with interval 0.2, and clip by 0.7 1.2
+            # fake : normal distribution from 0.1 with interval 0.1, and clip by 0.1 0.3
+            soft_true = np.random.normal(0.9, 0.2,[batch_size, 1])
+            soft_true = np.clip(soft_true, 0.7, 1.2)
+            soft_fake = np.random.normal(0.1, 0.1,[batch_size, 1])
+            soft_fake = np.clip(soft_true, 0, 0.3)
+            y = np.concatenate([soft_true, soft_fake], axis=0)
             aux_y1 = np.concatenate((eyes_batch, sampled_eyes), axis=0)
             aux_y2 = np.concatenate((hair_batch, sampled_hair), axis=0)
 
@@ -241,7 +246,8 @@ def main():
             # we want to train the generator to trick the discriminator
             # For the generator, we want all the {fake, not-fake} labels to say
             # not-fake
-            trick = np.ones(2 * batch_size) * soft_one
+            trick = np.random.normal(0.9, 0.2,[batch_size*2, 1])
+            trick = np.clip(trick, 0.7, 1.0)
             
             iters_gen_loss.append(combined.train_on_batch(
                 [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))],
