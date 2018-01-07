@@ -12,7 +12,7 @@ from six.moves import range
 
 from keras.datasets import mnist
 from keras import layers
-from keras.layers import Input, Dense, Reshape, Flatten, Embedding, Dropout
+from keras.layers import Input, Dense, Reshape, Flatten, Embedding, Dropout, Multiply
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import Conv2DTranspose, Conv2D
 from keras.models import Sequential, Model
@@ -29,40 +29,9 @@ img_dim = 64
 def build_generator(latent_size):
     # we will map a pair of (z, L), where z is a latent vector and L is a
     # label drawn from P_c, to image space (..., 28, 28, 1)
-    cnn = Sequential()
-
-    cnn.add(Dense(3 * 3 * 512, input_dim=latent_size, activation='relu'))
-    cnn.add(Reshape((3, 3, 512)))
-
-    # upsample to (7, 7, ...)
-    cnn.add(Conv2DTranspose(256, 5, strides=1, padding='valid',
-                            activation='relu',
-                            kernel_initializer='glorot_normal'))
-
-    # upsample to (14, 14, ...)
-    cnn.add(Conv2DTranspose(128, 5, strides=2, padding='same',
-                            activation='relu',
-                            kernel_initializer='glorot_normal'))
-    # upsample to (16, 16, ...)
-    cnn.add(Conv2DTranspose(128, 3, strides=1, padding='valid',
-                            activation='relu',
-                            kernel_initializer='glorot_normal'))
-
-    # upsample to (32, 32, ...)
-    cnn.add(Conv2DTranspose(64, 5, strides=2, padding='same',
-                            activation='relu',
-                            kernel_initializer='glorot_normal'))
-    # upsample to (64, 64, ...)
-    cnn.add(Conv2DTranspose(3, 5, strides=2, padding='same',
-                            activation='tanh',
-                            kernel_initializer='glorot_normal'))
-
-    # this is the z space commonly referred to in GAN papers
-    latent = Input(shape=(latent_size, ))
-
     # this will be our label
-    eyes_class = Input(shape=(1,), dtype='int32')
-    hair_class = Input(shape=(1,), dtype='int32')
+    eyes_class = Input(shape=(1,), dtype='int32',name='eyes_tag')
+    hair_class = Input(shape=(1,), dtype='int32',name='hair_tag')
 
     cls1 = Flatten()(Embedding(12, latent_size,
                               embeddings_initializer='glorot_normal')(eyes_class))
@@ -70,9 +39,40 @@ def build_generator(latent_size):
                               embeddings_initializer='glorot_normal')(hair_class))
 
     # hadamard product between z-space and a class conditional embedding
-    h = layers.multiply([latent, cls1, cls2])
+    latent = Input(shape=(latent_size, ),name='normal_nosie')
+    h = Multiply()([latent, cls1, cls2])
+    cnn = h
 
-    fake_image = cnn(h)
+    cnn = Dense(3 * 3 * 512, input_dim=latent_size, activation='relu')(cnn)
+    cnn = Reshape([3, 3, 512])(cnn)
+
+    # upsample to (7, 7, ...)
+    cnn = Conv2DTranspose(256, 5, strides=1, padding='valid',
+                            activation='relu',
+                            kernel_initializer='glorot_normal')(cnn)
+
+    # upsample to (14, 14, ...)
+    cnn = Conv2DTranspose(128, 5, strides=2, padding='same',
+                            activation='relu',
+                            kernel_initializer='glorot_normal')(cnn)
+    # upsample to (16, 16, ...)
+    cnn = Conv2DTranspose(128, 3, strides=1, padding='valid',
+                            activation='relu',
+                            kernel_initializer='glorot_normal')(cnn)
+
+    # upsample to (32, 32, ...)
+    cnn = Conv2DTranspose(64, 5, strides=2, padding='same',
+                            activation='relu',
+                            kernel_initializer='glorot_normal')(cnn)
+    # upsample to (64, 64, ...)
+    cnn = Conv2DTranspose(3, 5, strides=2, padding='same',
+                            activation='tanh',
+                            kernel_initializer='glorot_normal')(cnn)
+
+    # this is the z space commonly referred to in GAN papers
+
+
+    fake_image = cnn
 
     return Model([latent, eyes_class, hair_class], fake_image)
 
@@ -80,31 +80,30 @@ def build_generator(latent_size):
 def build_discriminator():
     # build a relatively standard conv net, with LeakyReLUs as suggested in
     # the reference paper
-    cnn = Sequential()
 
-    cnn.add(Conv2D(32, 3, padding='same', strides=2,
-                   input_shape=(img_dim, img_dim, 3)))
-    cnn.add(LeakyReLU(0.2))
-    cnn.add(Dropout(0.3))
-
-    cnn.add(Conv2D(64, 3, padding='same', strides=1))
-    cnn.add(LeakyReLU(0.2))
-    cnn.add(Dropout(0.3))
-
-    cnn.add(Conv2D(128, 3, padding='same', strides=2))
-    cnn.add(LeakyReLU(0.2))
-    cnn.add(Dropout(0.3))
-
-    cnn.add(Conv2D(256, 3, padding='same', strides=1))
-    cnn.add(LeakyReLU(0.2))
-    cnn.add(Dropout(0.3))
-
-    cnn.add(Flatten())
 
     image = Input(shape=(img_dim, img_dim, 3))
 
-    features = cnn(image)
+    cnn = image
+    cnn = Conv2D(32, 3, padding='same', strides=2,
+                   input_shape=(img_dim, img_dim, 3))(cnn)
+    cnn = LeakyReLU(0.2)(cnn)
+    cnn = Dropout(0.3)(cnn)
 
+    cnn = Conv2D(64, 3, padding='same', strides=1)(cnn)
+    cnn = LeakyReLU(0.2)(cnn)
+    cnn = Dropout(0.3)(cnn)
+
+    cnn = Conv2D(128, 3, padding='same', strides=2)(cnn)
+    cnn = LeakyReLU(0.2)(cnn)
+    cnn = Dropout(0.3)(cnn)
+
+    cnn = Conv2D(256, 3, padding='same', strides=1)(cnn)
+    cnn = LeakyReLU(0.2)(cnn)
+    cnn = Dropout(0.3)(cnn)
+
+    cnn = Flatten()(cnn)
+    features = cnn
     # first output (name=generation) is whether or not the discriminator
     # thinks the image that is being shown is fake, and the second output
     # (name=auxiliary) is the class that the discriminator thinks the image
@@ -288,7 +287,6 @@ def main():
                         (color_classes, 1))
         #generate img
         img_num = color_classes
-        noise = np.random.normal(0, 1, (color_classes**2, latent_size))
         sampled_eyes = np.zeros([color_classes**2, 1])
         for i in range(color_classes):
             sampled_eyes[i*color_classes : (i+1)*color_classes, 0] = i 
@@ -309,41 +307,5 @@ def main():
         merge_img = merge_img.astype(np.uint8)
         Image.fromarray(merge_img).save(
             './gen_img/plot_iters_{0:03d}_generated.png'.format(iters))
-        """
-        num_rows = color_classes
-        noise = np.tile(np.random.normal(0, 1, (num_rows, latent_size)),
-                        (color_classes, 1))
-
-        sampled_eyes = np.array([
-            [i] * num_rows for i in range(color_classes)
-        ]).reshape(-1, 1)
-
-        # get a batch to display
-        generated_images = generator.predict(
-            [noise, sampled_labels], verbose=0)
-
-        # prepare real images sorted by class label
-        real_labels = y_train[(epoch - 1) * num_rows * num_classes:
-                              epoch * num_rows * num_classes]
-        indices = np.argsort(real_labels, axis=0)
-        real_images = x_train[(epoch - 1) * num_rows * num_classes:
-                              epoch * num_rows * num_classes][indices]
-
-        # display generated images, white separator, real images
-        img = np.concatenate(
-            (generated_images,
-             np.repeat(np.ones_like(x_train[:1]), num_rows, axis=0),
-             real_images))
-
-        # arrange them into a grid
-        img = (np.concatenate([r.reshape(-1, 28)
-                               for r in np.split(img, 2 * num_classes + 1)
-                               ], axis=-1) * 127.5 + 127.5).astype(np.uint8)
-
-        Image.fromarray(img).save(
-            'plot_epoch_{0:03d}_generated.png'.format(epoch))
-        """
-    pickle.dump({'train': train_history},
-                open('acgan-history.pkl', 'wb'))
 if __name__ == '__main__':
     main()
