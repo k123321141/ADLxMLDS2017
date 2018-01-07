@@ -4,7 +4,7 @@ from keras.layers import *
 import numpy as np
 from scipy.misc import imsave
 from os.path import join
-import argparse, re
+import argparse, re, os
 np.random.seed(0413)
 
 
@@ -119,4 +119,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='hw4 bash parser')
     parser.add_argument('test_txt_path',default=None, help='txt files')
     args = parser.parse_args()
+    if not os.path.isdir(join('./','sample')):
+        os.mkdir(join('./','sample'))
+    
     main(args.test_txt_path)
+

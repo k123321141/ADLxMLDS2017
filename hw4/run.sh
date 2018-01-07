@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES="" python2 ./generate.py $1 
+python2 ./generate.py $1 
