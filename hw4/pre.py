@@ -53,7 +53,8 @@ def main():
             idxs = [colors.index( s.replace(' hair','') ) for s in h_m]
             y2 = random.choice(idxs)
 
-        if len(h_m) != 0 or len(e_m) != 0:
+        #if len(h_m) != 0 or len(e_m) != 0 :
+        if True :
         
             y1_buf.append(y1)
             y2_buf.append(y2)
