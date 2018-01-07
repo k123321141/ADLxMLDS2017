@@ -196,7 +196,7 @@ def main():
 
         for index in range(num_batches):
             # generate a new batch of noise
-            noise = np.random.uniform(-1, 1, (batch_size, latent_size))
+            noise = np.random.normal(0, 1, (batch_size, latent_size))
             idxs = np.random.choice(x_train.shape[0], batch_size)
             # get a batch of real images
             '''
@@ -239,7 +239,7 @@ def main():
             # make new noise. we generate 2 * batch size here such that we have
             # the generator optimize over an identical number of images as the
             # discriminator
-            noise = np.random.uniform(-1, 1, (2 * batch_size, latent_size))
+            noise = np.random.normal(0, 1, (2 * batch_size, latent_size))
             sampled_eyes = np.random.randint(0, color_classes, 2 * batch_size)
             sampled_hair = np.random.randint(0, color_classes, 2 * batch_size)
 
@@ -284,11 +284,11 @@ def main():
 
         # generate some digits to display
         num_rows = color_classes
-        noise = np.tile(np.random.uniform(-1, 1, (num_rows, latent_size)),
+        noise = np.tile(np.random.normal(0, 1, (num_rows, latent_size)),
                         (color_classes, 1))
         #generate img
         img_num = color_classes
-        noise = np.random.uniform(-1, 1, (color_classes**2, latent_size))
+        noise = np.random.normal(0, 1, (color_classes**2, latent_size))
         sampled_eyes = np.zeros([color_classes**2, 1])
         for i in range(color_classes):
             sampled_eyes[i*color_classes : (i+1)*color_classes, 0] = i 
@@ -311,7 +311,7 @@ def main():
             './gen_img/plot_iters_{0:03d}_generated.png'.format(iters))
         """
         num_rows = color_classes
-        noise = np.tile(np.random.uniform(-1, 1, (num_rows, latent_size)),
+        noise = np.tile(np.random.normal(0, 1, (num_rows, latent_size)),
                         (color_classes, 1))
 
         sampled_eyes = np.array([
