@@ -111,7 +111,6 @@ def main(test_txt_path):
             y2 = colors.index( h_m[0].replace(' hair',''))
         y2 = np.array([1,y2])
         for i in range(5):
-            print y1,y2
             noise = np.random.normal(0, 1, (1, latent_size))
             img = generator.predict([noise, y1, y2]).reshape([64,64,3])
             path = join('./', 'sample', 'sample_%s_%d.jpg' % (idx, i+1))

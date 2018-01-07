@@ -52,15 +52,17 @@ def main():
         else:
             idxs = [colors.index( s.replace(' hair','') ) for s in h_m]
             y2 = random.choice(idxs)
+
+        if len(h_m) != 0 or len(e_m) != 0:
         
-        y1_buf.append(y1)
-        y2_buf.append(y2)
-        
-        img_path = join('./faces',idx+'.jpg')
-        x = imread(img_path)
-        x = imresize(x, [64,64,3]).astype(np.uint8)
-        x = x.reshape([1,64,64,3]) 
-        x_buf.append(x)
+            y1_buf.append(y1)
+            y2_buf.append(y2)
+            
+            img_path = join('./faces',idx+'.jpg')
+            x = imread(img_path)
+            x = imresize(x, [64,64,3]).astype(np.uint8)
+            x = x.reshape([1,64,64,3]) 
+            x_buf.append(x)
     x, y1, y2  = (np.vstack(x_buf), np.vstack(y1_buf), np.vstack(y2_buf)) 
     
     #print tag_set, len(tag_set)
