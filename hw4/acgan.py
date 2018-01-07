@@ -253,7 +253,6 @@ def main():
 
         # see if the discriminator can figure itself out...
         discriminator_train_loss = np.mean(np.array(iters_disc_loss), axis=0)
-        print(discriminator_train_loss)
         # make new noise
         generator_train_loss = np.mean(np.array(iters_gen_loss), axis=0)
 
@@ -270,7 +269,6 @@ def main():
                              *train_history['generator'][-1]))
         print(ROW_FMT.format('discriminator (train)',
                             * train_history['discriminator'][-1]))
-        print(train_history['discriminator'][-1])
 
         # save weights every iters
         generator.save_weights(
