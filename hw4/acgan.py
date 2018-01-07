@@ -1,24 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Train an Auxiliary Classifier Generative Adversarial Network (ACGAN) on the
-MNIST dataset. See https://arxiv.org/abs/1610.09585 for more details.
-
-You should start to see reasonable images after ~5 epochs, and good images
-by ~15 epochs. You should use a GPU, as the convolution-heavy operations are
-very slow on the CPU. Prefer the TensorFlow backend if you plan on iterating,
-as the compilation time can be a blocker using Theano.
-
-Timings:
-
-Hardware           | Backend | Time / Epoch
--------------------------------------------
- CPU               | TF      | 3 hrs
- Titan X (maxwell) | TF      | 4 min
- Titan X (maxwell) | TH      | 7 min
-
-Consult https://github.com/lukedeo/keras-acgan for more information and
-example output
-"""
 from __future__ import print_function
 
 from collections import defaultdict
@@ -137,7 +117,6 @@ def build_discriminator():
 
 def main():    
     # batch and latent size taken from the paper
-    epochs = 50000
     batch_size = 100
     latent_size = 100
 
@@ -192,12 +171,11 @@ def main():
     num_train = x_train.shape[0]
 
     train_history = defaultdict(list)
-    sample_range = range(x_train.shape[0])
 
-    for epoch in range(1, epochs + 1):
-        print('Epoch {}/{}'.format(epoch, epochs))
+    for iters in range(10000000000):
+        print('Iters {}'.format(iters))
 
-        num_batches = int(x_train.shape[0] / batch_size)
+        num_batches = 100 
         progress_bar = Progbar(target=num_batches)
 
         # we don't want the discriminator to also maximize the classification
@@ -213,17 +191,22 @@ def main():
                                               np.zeros(batch_size))),
                               ]
 
-        epoch_gen_loss = []
-        epoch_disc_loss = []
+        iters_gen_loss = []
+        iters_disc_loss = []
 
         for index in range(num_batches):
             # generate a new batch of noise
             noise = np.random.uniform(-1, 1, (batch_size, latent_size))
-
+            idxs = np.random.choice(x_train.shape[0], batch_size)
             # get a batch of real images
+            '''
             image_batch = x_train[index * batch_size:(index + 1) * batch_size]
             eyes_batch = y1[index * batch_size:(index + 1) * batch_size]
             hair_batch = y2[index * batch_size:(index + 1) * batch_size]
+            '''
+            image_batch = x_train[idxs]
+            eyes_batch = y1[idxs]
+            hair_batch = y2[idxs]
 
             # sample some labels from p_c
             sampled_eyes = np.random.randint(0, color_classes, batch_size)
@@ -245,7 +228,7 @@ def main():
             aux_y2 = np.concatenate((hair_batch, sampled_hair), axis=0)
 
             # see if the discriminator can figure itself out...
-            epoch_disc_loss.append(discriminator.train_on_batch(
+            iters_disc_loss.append(discriminator.train_on_batch(
                 x, [y, aux_y1, aux_y2], sample_weight=disc_sample_weight))
 
             # make new noise. we generate 2 * batch size here such that we have
@@ -260,7 +243,7 @@ def main():
             # not-fake
             trick = np.ones(2 * batch_size) * soft_one
             
-            epoch_gen_loss.append(combined.train_on_batch(
+            iters_gen_loss.append(combined.train_on_batch(
                 [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))],
 
                 [trick, sampled_eyes, sampled_hair]))
@@ -269,12 +252,12 @@ def main():
 
 
         # see if the discriminator can figure itself out...
-        discriminator_train_loss = np.mean(np.array(epoch_disc_loss), axis=0)
+        discriminator_train_loss = np.mean(np.array(iters_disc_loss), axis=0)
         print(discriminator_train_loss)
         # make new noise
-        generator_train_loss = np.mean(np.array(epoch_gen_loss), axis=0)
+        generator_train_loss = np.mean(np.array(iters_gen_loss), axis=0)
 
-        # generate an epoch report on performance
+        # generate an iters report on performance
         train_history['generator'].append(generator_train_loss)
         train_history['discriminator'].append(discriminator_train_loss)
 
@@ -289,11 +272,11 @@ def main():
                             * train_history['discriminator'][-1]))
         print(train_history['discriminator'][-1])
 
-        # save weights every epoch
+        # save weights every iters
         generator.save_weights(
-            './models/params_generator_epoch_{0:03d}.hdf5'.format(epoch), True)
+            './models/params_generator_iters_{0:03d}.hdf5'.format(iters), True)
         discriminator.save_weights(
-            './models/params_discriminator_epoch_{0:03d}.hdf5'.format(epoch), True)
+            './models/params_discriminator_iters_{0:03d}.hdf5'.format(iters), True)
 
         # generate some digits to display
         num_rows = color_classes
@@ -321,7 +304,7 @@ def main():
         merge_img = (merge_img+1.) * 127.5
         merge_img = merge_img.astype(np.uint8)
         Image.fromarray(merge_img).save(
-            './gen_img/plot_epoch_{0:03d}_generated.png'.format(epoch))
+            './gen_img/plot_iters_{0:03d}_generated.png'.format(iters))
         """
         num_rows = color_classes
         noise = np.tile(np.random.uniform(-1, 1, (num_rows, latent_size)),
