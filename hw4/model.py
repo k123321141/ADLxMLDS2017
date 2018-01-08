@@ -1,7 +1,5 @@
 import matplotlib as mpl
-
 # This line allows mpl to run with no DISPLAY defined
-mpl.use('Agg')
 
 import pandas as pd
 import numpy as np
