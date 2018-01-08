@@ -11,8 +11,7 @@ from PIL import Image
 from six.moves import range
 
 from keras.datasets import mnist
-from keras import layers
-from keras.layers import Input, Dense, Reshape, Flatten, Embedding, Dropout, Multiply
+from keras.layers import *
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import Conv2DTranspose, Conv2D
 from keras.models import Sequential, Model
@@ -48,26 +47,43 @@ def build_generator(latent_size):
 
     # upsample to (7, 7, ...)
     cnn = Conv2DTranspose(256, 5, strides=1, padding='valid',
-                            activation='relu',
                             kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation(LeakyReLU(0.2))(cnn)
 
     # upsample to (14, 14, ...)
     cnn = Conv2DTranspose(128, 5, strides=2, padding='same',
-                            activation='relu',
                             kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation(LeakyReLU(0.2))(cnn)
+
     # upsample to (16, 16, ...)
     cnn = Conv2DTranspose(128, 3, strides=1, padding='valid',
-                            activation='relu',
                             kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation(LeakyReLU(0.2))(cnn)
 
     # upsample to (32, 32, ...)
     cnn = Conv2DTranspose(64, 5, strides=2, padding='same',
-                            activation='relu',
                             kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation(LeakyReLU(0.2))(cnn)
+
+    cnn = Conv2DTranspose(64, 3, strides=1, padding='same',
+                            kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation(LeakyReLU(0.2))(cnn)
+    
     # upsample to (64, 64, ...)
-    cnn = Conv2DTranspose(3, 5, strides=2, padding='same',
-                            activation='tanh',
+    cnn = Conv2DTranspose(32, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation(LeakyReLU(0.2))(cnn)
+    
+    cnn = Conv2DTranspose(3, 3, strides=1, padding='same',
+                            kernel_initializer='glorot_normal')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = Activation('tanh')(cnn)
 
     # this is the z space commonly referred to in GAN papers
 
@@ -85,18 +101,24 @@ def build_discriminator():
     image = Input(shape=(img_dim, img_dim, 3))
 
     cnn = image
-    cnn = Conv2D(32, 3, padding='same', strides=2,
-                   input_shape=(img_dim, img_dim, 3))(cnn)
+    cnn = Conv2D(32, 3, padding='same', strides=2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Conv2D(64, 3, padding='same', strides=1)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
 
-    cnn = Conv2D(128, 3, padding='same', strides=2)(cnn)
+    cnn = AveragePooling2D()(cnn)
+
+    cnn = Conv2D(128, 3, padding='same', strides=1)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
+    
+    cnn = AveragePooling2D()(cnn)
 
     cnn = Conv2D(256, 3, padding='same', strides=1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
@@ -276,10 +298,11 @@ def main():
                             * train_history['discriminator'][-1]))
 
         # save weights every iters
-        generator.save_weights(
-            './models/params_generator_iters_{0:03d}.hdf5'.format(iters), True)
-        discriminator.save_weights(
-            './models/params_discriminator_iters_{0:03d}.hdf5'.format(iters), True)
+        if iters % 10 == 0:
+            generator.save_weights(
+                './models/params_generator_iters_{0:03d}.hdf5'.format(iters), True)
+            discriminator.save_weights(
+                './models/params_discriminator_iters_{0:03d}.hdf5'.format(iters), True)
 
         # generate some digits to display
         num_rows = color_classes
