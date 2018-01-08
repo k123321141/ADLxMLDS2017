@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 from collections import defaultdict
 try:
@@ -17,9 +16,13 @@ from keras.layers.convolutional import Conv2DTranspose, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.utils.generic_utils import Progbar
+#from sklearn.preprocessing import normalize
 import numpy as np
+import random
+from collections import deque
 
 np.random.seed(0413)
+random.seed(0413)
 
 npz = np.load('./train.npz')
 
@@ -132,10 +135,27 @@ def build_discriminator():
     aux2 = Dense(color_classes, activation='softmax', name='aux_hair')(features)
 
     return Model(image, [fake, aux1, aux2])
+def count_tag_feq(y_train):
+    Y = y_train.reshape([-1])
+    feq_dict = {i:0 for i in range(12)}
+    for y in Y:
+        idx = int(y)
+        feq_dict[idx] += 1
+    feq_dict = {k:max(1,v) for k,v in feq_dict.items()}
+    
+    mean = sum(feq_dict.values()) / len(feq_dict.keys())
+    ret_dict = {k:float(mean)/v for k,v in feq_dict.items()}
+    return ret_dict
+def get_sample_weight_by_feq(Y, feq_dict):
+    Y = Y.reshape([-1])
+    w = [1./feq_dict[int(y)] for y in Y]
+    w = np.array(w, np.float32)
+    return w
 
+    
 def main():    
     # batch and latent size taken from the paper
-    batch_size = 64
+    batch_size = 100
     latent_size = 100
 
     # Adam parameters suggested in https://arxiv.org/abs/1511.06434
@@ -183,8 +203,11 @@ def main():
     y1 = y1.reshape([-1])
     y2 = y2.reshape([-1])
     print(x_train.shape,y1.shape)
+    y1_dict = count_tag_feq(y1)
+    y2_dict = count_tag_feq(y2)
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
 
+    memory = deque(maxlen=10000)
 
     num_train = x_train.shape[0]
 
@@ -236,7 +259,10 @@ def main():
             # layer as a length one sequence
             generated_images = generator.predict(
                 [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))], verbose=0)
-
+            #samplr from memory
+            for i in range(generated_images.shape[0]):
+                memory.append(generated_images[i:i+1])
+            generated_images = np.vstack(random.sample(memory, batch_size))
             x = np.concatenate((image_batch, generated_images))
 
             # use soft real/fake labels and flip noise
@@ -249,10 +275,18 @@ def main():
             y = np.concatenate([soft_true, soft_fake], axis=0)
             aux_y1 = np.concatenate((eyes_batch, sampled_eyes), axis=0)
             aux_y2 = np.concatenate((hair_batch, sampled_hair), axis=0)
-
+            
+            #print disc_sample_weight.tolist()
+            #process sample weights
+            y1_sample_weight = get_sample_weight_by_feq(aux_y1, y1_dict)
+            y2_sample_weight = get_sample_weight_by_feq(aux_y2, y2_dict)
+            sample_weight = [arr.copy() for arr in disc_sample_weight]
+            sample_weight[1] *= y1_sample_weight
+            sample_weight[2] *= y2_sample_weight
+            #print sample_weight
             # see if the discriminator can figure itself out...
             iters_disc_loss.append(discriminator.train_on_batch(
-                x, [y, aux_y1, aux_y2], sample_weight=disc_sample_weight))
+                x, [y, aux_y1, aux_y2], sample_weight=sample_weight))
             
             # make new noise. we generate 2 * batch size here such that we have
             # the generator optimize over an identical number of images as the
