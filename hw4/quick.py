@@ -110,13 +110,11 @@ def build_discriminator():
     cnn = Conv2D(32, 3, padding='same', strides=2)(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Conv2D(64, 3, padding='same', strides=2)(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
 
@@ -128,7 +126,6 @@ def build_discriminator():
 
     cnn = Conv2D(256, 3, padding='same', strides=1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Flatten()(cnn)
