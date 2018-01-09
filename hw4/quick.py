@@ -51,20 +51,22 @@ def build_generator(latent_size):
     # upsample to (7, 7, ...)
     cnn = Conv2DTranspose(256, 5, strides=1,padding='valid',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (14, 14, ...)
     cnn = Conv2DTranspose(128, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (16, 16, ...)
     cnn = Conv2DTranspose(128, 3, strides=1, padding='valid',
                             kernel_initializer='glorot_normal')(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (32, 32, ...)
     cnn = Conv2DTranspose(64, 5, strides=2, padding='same',
@@ -76,12 +78,14 @@ def build_generator(latent_size):
                             kernel_initializer='glorot_normal')(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     
     # upsample to (64, 64, ...)
     cnn = Conv2DTranspose(32, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     
     cnn = Conv2DTranspose(3, 3, strides=1, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
@@ -106,11 +110,13 @@ def build_discriminator():
     cnn = Conv2D(32, 3, padding='same', strides=2)(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Conv2D(64, 3, padding='same', strides=2)(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
 
@@ -122,6 +128,7 @@ def build_discriminator():
 
     cnn = Conv2D(256, 3, padding='same', strides=1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Flatten()(cnn)
@@ -155,7 +162,7 @@ def get_sample_weight_by_feq(Y, feq_dict):
     
 def main():    
     # batch and latent size taken from the paper
-    batch_size = 100
+    batch_size = 20
     latent_size = 100
 
     # Adam parameters suggested in https://arxiv.org/abs/1511.06434
@@ -259,10 +266,6 @@ def main():
             # layer as a length one sequence
             generated_images = generator.predict(
                 [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))], verbose=0)
-            #samplr from memory
-            for i in range(generated_images.shape[0]):
-                memory.append(generated_images[i:i+1])
-            generated_images = np.vstack(random.sample(memory, batch_size))
             x = np.concatenate((image_batch, generated_images))
 
             # use soft real/fake labels and flip noise
