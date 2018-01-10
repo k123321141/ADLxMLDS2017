@@ -52,40 +52,35 @@ def build_generator(latent_size):
     cnn = Conv2DTranspose(256, 5, strides=1,padding='valid',
                             kernel_initializer='glorot_normal')(cnn)
     cnn = Activation('relu')(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
+    #cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (14, 14, ...)
     cnn = Conv2DTranspose(128, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
+    #cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (16, 16, ...)
     cnn = Conv2DTranspose(128, 3, strides=1, padding='valid',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
+    #cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (32, 32, ...)
     cnn = Conv2DTranspose(64, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
 
     cnn = Conv2DTranspose(64, 3, strides=1, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
     
     # upsample to (64, 64, ...)
     cnn = Conv2DTranspose(32, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
     
     cnn = Conv2DTranspose(3, 3, strides=1, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
@@ -108,24 +103,27 @@ def build_discriminator():
 
     cnn = image
     cnn = Conv2D(32, 3, padding='same', strides=2)(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
 
     cnn = Conv2D(64, 3, padding='same', strides=2)(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
 
 
     cnn = Conv2D(128, 3, padding='same', strides=2)(cnn)
     #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
     
 
     cnn = Conv2D(256, 3, padding='same', strides=1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Flatten()(cnn)
