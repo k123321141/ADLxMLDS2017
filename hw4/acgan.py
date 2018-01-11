@@ -130,6 +130,18 @@ def build_discriminator():
     aux2 = Dense(color_classes, activation='softmax', name='aux_hair')(features)
 
     return Model(image, [fake, aux1, aux2])
+
+def count_tag_feq(y_train):
+    Y = y_train.reshape([-1])
+    feq_dict = {i:0 for i in range(12)}
+    for y in Y:
+        idx = int(y)
+        feq_dict[idx] += 1
+    feq_dict = {k:max(1,v) for k,v in feq_dict.items()}
+    
+    mean = sum(feq_dict.values()) / len(feq_dict.keys())
+    ret_dict = {k:float(mean)/v for k,v in feq_dict.items()}
+    return ret_dict
 def get_sample_weight_by_feq(Y, feq_dict):
     Y = Y.reshape([-1])
     w = [1./feq_dict[int(y)] for y in Y]
