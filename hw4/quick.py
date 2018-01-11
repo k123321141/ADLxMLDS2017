@@ -69,18 +69,20 @@ def build_generator(latent_size):
                             kernel_initializer='glorot_normal')(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
 
+    cnn = Conv2DTranspose(64, 3, strides=1, padding='same',
+                            kernel_initializer='glorot_normal')(cnn)
+    cnn = Activation('relu')(cnn)
+
     
     # upsample to (64, 64, ...)
-    '''
     cnn = Conv2DTranspose(32, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
+    cnn = Conv2DTranspose(32, 3, strides=1, padding='same',
+                            kernel_initializer='glorot_normal')(cnn)
+    cnn = Activation('relu')(cnn)
     
     cnn = Conv2DTranspose(3, 3, strides=1, padding='same',
-                            kernel_initializer='glorot_normal')(cnn)
-    cnn = Activation('tanh')(cnn)
-    '''
-    cnn = Conv2DTranspose(3, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     cnn = Activation('tanh')(cnn)
     # this is the z space commonly referred to in GAN papers

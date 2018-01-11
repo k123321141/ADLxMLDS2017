@@ -51,42 +51,40 @@ def build_generator(latent_size):
     # upsample to (7, 7, ...)
     cnn = Conv2DTranspose(256, 5, strides=1,padding='valid',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
+    #cnn = BatchNormalization(axis=-1)(cnn)
 
     # upsample to (14, 14, ...)
     cnn = Conv2DTranspose(128, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
 
     # upsample to (16, 16, ...)
     cnn = Conv2DTranspose(128, 3, strides=1, padding='valid',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
 
     # upsample to (32, 32, ...)
     cnn = Conv2DTranspose(64, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
 
     cnn = Conv2DTranspose(64, 3, strides=1, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation('relu')(cnn)
+
     
     # upsample to (64, 64, ...)
     cnn = Conv2DTranspose(32, 5, strides=2, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
+    cnn = Conv2DTranspose(32, 3, strides=1, padding='same',
+                            kernel_initializer='glorot_normal')(cnn)
+    cnn = Activation('relu')(cnn)
     
     cnn = Conv2DTranspose(3, 3, strides=1, padding='same',
                             kernel_initializer='glorot_normal')(cnn)
     cnn = Activation('tanh')(cnn)
-
     # this is the z space commonly referred to in GAN papers
 
 
@@ -104,18 +102,15 @@ def build_discriminator():
 
     cnn = image
     cnn = Conv2D(32, 3, padding='same', strides=2)(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
 
     cnn = Conv2D(64, 3, padding='same', strides=2)(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
 
 
     cnn = Conv2D(128, 3, padding='same', strides=2)(cnn)
-    #cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
     cnn = Dropout(0.3)(cnn)
     
@@ -135,17 +130,6 @@ def build_discriminator():
     aux2 = Dense(color_classes, activation='softmax', name='aux_hair')(features)
 
     return Model(image, [fake, aux1, aux2])
-def count_tag_feq(y_train):
-    Y = y_train.reshape([-1])
-    feq_dict = {i:0 for i in range(12)}
-    for y in Y:
-        idx = int(y)
-        feq_dict[idx] += 1
-    feq_dict = {k:max(1,v) for k,v in feq_dict.items()}
-    
-    mean = sum(feq_dict.values()) / len(feq_dict.keys())
-    ret_dict = {k:float(mean)/v for k,v in feq_dict.items()}
-    return ret_dict
 def get_sample_weight_by_feq(Y, feq_dict):
     Y = Y.reshape([-1])
     w = [1./feq_dict[int(y)] for y in Y]
