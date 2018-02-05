@@ -113,14 +113,14 @@ def main(test_txt_path):
         for i in range(5):
             noise = np.random.normal(0, 1, (1, latent_size))
             img = generator.predict([noise, y1, y2]).reshape([64,64,3])
-            path = join('./', 'sample', 'sample_%s_%d.jpg' % (idx, i+1))
+            path = join('./', 'samples', 'sample_%s_%d.jpg' % (idx, i+1))
             imsave(path, img)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='hw4 bash parser')
     parser.add_argument('test_txt_path',default=None, help='txt files')
     args = parser.parse_args()
-    if not os.path.isdir(join('./','sample')):
-        os.mkdir(join('./','sample'))
+    if not os.path.isdir(join('./','samples')):
+        os.mkdir(join('./','samples'))
     
     main(args.test_txt_path)
 
