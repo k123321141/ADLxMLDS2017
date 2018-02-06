@@ -194,8 +194,9 @@ class Agent_PG(Agent):
 
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
-        prob = self.model.predict(state, batch_size=1).flatten()
-        action = np.random.choice(self.action_size, 1, p=prob)[0]
+        prob = self.model.predict(state, batch_size=1).reshape([1, self.action_size])
+        action = np.random.choice(self.action_size, 1, p=prob[0,:])[0]
+        #print(prob.shape,action)
         return action, prob
 
     #train funcfion
@@ -255,19 +256,26 @@ class Agent_PG(Agent):
         #print('after prob ',tt[17:20,:])
         #print('')
     def update_src(self):
+        #print('',len(self.actions) ,len(self.probs), len(self.rewards), len(self.states))
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         probs = np.vstack(self.probs)
-        gradients = actions - probs
+        gradients = probs * actions * sum(self.rewards)
+        #gradients = actions - probs
         rewards = np.vstack(self.rewards)
         #rewards = self.discount_rewards(rewards)
         #rewards = rewards / np.std(rewards - np.mean(rewards))
-        rewards = np.sum(rewards)
-        #print(rewards)
-        gradients *= rewards
+        #gradients *= rewards
         
         X = np.squeeze(np.vstack([self.states]))
-        Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
+        #Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
+        Y = self.learning_rate * np.squeeze(np.vstack([gradients]))
+        '''
+        print(actions.shape)
+        print(probs.shape)
+        print(sum(self.rewards))
+        print(X.shape,Y.shape)
+        '''
         self.model.train_on_batch(X, Y)
         self.states, self.probs, self.actions, self.rewards = [], [], [], []
 
