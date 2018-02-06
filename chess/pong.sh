@@ -1,4 +1,5 @@
 #!/bin/bash
+rm ./models/pong_pg.h5
 python3 ./main.py --train_pg \
     --pg_model=./models/pong_pg.h5 \
     --pg_summary=./summary/pong_pg_summary_keep

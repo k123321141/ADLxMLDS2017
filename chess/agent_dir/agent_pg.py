@@ -260,22 +260,25 @@ class Agent_PG(Agent):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         probs = np.vstack(self.probs)
-        gradients = probs * actions * sum(self.rewards)
-        #gradients = actions - probs
+        #gradients = probs * actions 
+        gradients = actions - probs
+        #gradients = (actions - probs) * actions
+        
         rewards = np.vstack(self.rewards)
         #rewards = self.discount_rewards(rewards)
         #rewards = rewards / np.std(rewards - np.mean(rewards))
         #gradients *= rewards
+        gradients *= np.sum(rewards)
         
-        X = np.squeeze(np.vstack([self.states])
-                )
-        x = X[10,:]
+        X = np.squeeze(np.vstack([self.states]))
+        Y = probs + self.learning_rate * gradients
+        #Y = probs + gradients
+        
+        x = X[10:13,:]
+        y = Y[10:13,:]
         tt = self.model.predict(x)
-        print('1. prob ',tt[17:20,:])
 
 
-        #Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
-        Y = self.learning_rate * np.squeeze(np.vstack([gradients]))
         '''
         print(actions.shape)
         print(probs.shape)
@@ -283,13 +286,19 @@ class Agent_PG(Agent):
         print(X.shape,Y.shape)
         '''
         self.model.train_on_batch(X, Y)
-        self.states, self.probs, self.actions, self.rewards = [], [], [], []
         
-        tt = self.model.predict(x)
-
-        print('2. prob ',tt[17:20,:])
-        #print('')
-
+        t2 = self.model.predict(x)
+        ''' 
+        print(self.actions[10:13])
+        print('reward',sum(self.rewards))
+        print('0. y\n', y)
+        print('1. prob\n',tt)
+        print('2. prob\n',t2)
+        print('')
+        '''
+        
+        
+        self.states, self.probs, self.actions, self.rewards = [], [], [], []
     def load(self, name):
         self.model.load_weights(name)
 

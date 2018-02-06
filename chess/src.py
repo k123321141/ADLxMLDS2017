@@ -8,15 +8,8 @@ import tensorflow as tf
 import keras.backend as K
 from collections import deque
 
-<<<<<<< HEAD
-#MODEL_PATH      =   './rl/pong_pg_src.h5'
-#SUMMARY_PATH    =   './rl/summary/pong_pg_src'
-MODEL_PATH      =   '/tmp/src.h5'
-SUMMARY_PATH    =   '/tmp/summary'
-=======
-MODEL_PATH      =   './rl/pong_pg_src.h5'
-SUMMARY_PATH    =   './rl/summary/pong_pg_src2'
->>>>>>> 72d1df03666a0f8d61c66476235b51dae30c5005
+MODEL_PATH      =   './models/src.h5'
+SUMMARY_PATH    =   './summary/src'
 SAVE_INTERVAL   =   10
 STATE_WIDTH     =   210
 STATE_HEIGHT    =   160
@@ -38,14 +31,6 @@ class PGAgent:
         self.model.summary()
         if os.path.isfile(MODEL_PATH):
             print('load model from %s.' % MODEL_PATH)
-            self.load(MODEL_PATH)
-        self.sess = tf.InteractiveSession()
-        K.set_session(self.sess)
-        self.summary_placeholders, self.update_ops, self.summary_op = \
-            self.setup_summary()
-        self.summary_writer = tf.summary.FileWriter(
-            SUMMARY_PATH  , self.sess.graph)
-        self.sess.run(tf.global_variables_initializer())
 
 
     def _build_model(self):
@@ -103,27 +88,6 @@ class PGAgent:
 
     def save(self, name):
         self.model.save_weights(name)
-    def setup_summary(self):
-        episode_total_reward = tf.Variable(0.)
-        episode_win = tf.Variable(0.)
-        episode_duration = tf.Variable(0.)
-        episode_lose = tf.Variable(0.)
-        episode_avg_score = tf.Variable(0.)
-
-        tf.summary.scalar('Total Reward/Episode', episode_total_reward)
-        tf.summary.scalar('Win/Episode', episode_win)
-        tf.summary.scalar('Duration/Episode', episode_duration)
-        tf.summary.scalar('Lose/Episode', episode_lose)
-        tf.summary.scalar('Average Score/Episode', episode_avg_score)
-
-        summary_vars = [episode_total_reward, episode_win,
-                        episode_duration, episode_lose, episode_avg_score]
-        summary_placeholders = [tf.placeholder(tf.float32) for _ in
-                                range(len(summary_vars))]
-        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
-                      range(len(summary_vars))]
-        summary_op = tf.summary.merge_all()
-        return summary_placeholders, update_ops, summary_op
 
 def preprocess(I):
     I = I[35:195]
@@ -137,13 +101,14 @@ if __name__ == "__main__":
     env = gym.make("Pong-v0")
     state = env.reset()
     prev_x = None
-    score = 0
     episode = 0
+    score = 0
 
     state_size = 80 * 80
     action_size = env.action_space.n
+    print action_size
     agent = PGAgent(state_size, action_size)
-    score, win, lose, step,que = 0,0,0,0,deque()
+    score, win, lose, step = 0,0,0,0
     while True:
         if DO_RENDER:
             env.render()
@@ -156,31 +121,21 @@ if __name__ == "__main__":
         state, reward, done, info = env.step(action)
         score += reward
         agent.remember(x, action, prob, reward)
-        if reward == 1:
-            win += 1
-        elif reward == -1:
-            lose +=1
-        step += 1
+        if reward != 0:
+            if reward == 1:
+                win += 1
+            elif reward == -1:
+                lose +=1
+            agent.train()
+            prev_x = None
 
         if done:
             episode += 1
-            que.append(score)
-            agent.train()
             print('Episode: %d - Score: %f.' % (episode, score))
             sys.stdout.flush()
             state = env.reset()
-            prev_x = None
             if episode > 1 and episode % SAVE_INTERVAL == 0:
                 print('save model to %s.' % MODEL_PATH)
                 agent.save(MODEL_PATH)
-            #summary
-            stats = [score, win, step, lose, np.mean(que) ]
-
-            for i in range(len(stats)):
-                agent.sess.run(agent.update_ops[i], feed_dict={
-                    agent.summary_placeholders[i]: float(stats[i])
-                })
-            summary_str = agent.sess.run(agent.summary_op)
-            agent.summary_writer.add_summary(summary_str, episode + 1)
             
             score, win, lose, step = 0,0,0,0
