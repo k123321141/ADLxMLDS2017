@@ -138,7 +138,7 @@ class Agent_PG(Agent):
             self.prev_x = cur_x
 
             action, prob = self.act(x)
-            state, reward, terminal, info = env.step(action)
+            state, reward, terminal, info = env.step(self.real_act(action))
             score += reward
             self.remember(x, action, prob, reward)
             done = reward != 0  #someone get the point
@@ -151,7 +151,16 @@ class Agent_PG(Agent):
                 self.update_src()
                 self.prev_x = None
     
-
+    def real_act(self, action):
+        if action == 0:
+            return 0
+        elif action == 1:
+            return 2
+        elif action == 2:
+            return 3
+        else:
+            print('no such action', action)
+            sys.exit(1)
 
     def make_action(self, observation, test=True):
         """
@@ -288,8 +297,8 @@ class Agent_PG(Agent):
         self.model.train_on_batch(X, Y)
         
         t2 = self.model.predict(x)
-        ''' 
         print(self.actions[10:13])
+        '''
         print('reward',sum(self.rewards))
         print('0. y\n', y)
         print('1. prob\n',tt)
