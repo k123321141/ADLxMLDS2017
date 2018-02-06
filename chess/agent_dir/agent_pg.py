@@ -267,7 +267,13 @@ class Agent_PG(Agent):
         #rewards = rewards / np.std(rewards - np.mean(rewards))
         #gradients *= rewards
         
-        X = np.squeeze(np.vstack([self.states]))
+        X = np.squeeze(np.vstack([self.states])
+                )
+        x = X[10,:]
+        tt = self.model.predict(x)
+        print('1. prob ',tt[17:20,:])
+
+
         #Y = self.probs + self.learning_rate * np.squeeze(np.vstack([gradients]))
         Y = self.learning_rate * np.squeeze(np.vstack([gradients]))
         '''
@@ -278,6 +284,11 @@ class Agent_PG(Agent):
         '''
         self.model.train_on_batch(X, Y)
         self.states, self.probs, self.actions, self.rewards = [], [], [], []
+        
+        tt = self.model.predict(x)
+
+        print('2. prob ',tt[17:20,:])
+        #print('')
 
     def load(self, name):
         self.model.load_weights(name)
