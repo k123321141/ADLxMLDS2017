@@ -34,6 +34,8 @@ class Agent_PG(Agent):
         self.args = args
         
         self.action_size = 3
+        #['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'RIGHTFIRE', 'LEFTFIRE']
+        #0, 2, 3
         if args.test_pg:
             #you can load your model here
             if os.path.isfile(args.pg_model):
@@ -77,6 +79,7 @@ class Agent_PG(Agent):
         self.learning_rate = 0.0001
         self.model = self.build_model()
         self.baseline = args.pg_baseline 
+        self.set_train_fn()
         
         #summary
         self.sess = tf.InteractiveSession()
@@ -92,7 +95,6 @@ class Agent_PG(Agent):
         self.states = []
         self.actions = []
         self.rewards = []
-        self.probs = []
         if os.path.isfile(args.pg_model) and args.keep_train:
             print('load model from %s.' % args.pg_model)
             self.load(args.pg_model)
@@ -102,7 +104,6 @@ class Agent_PG(Agent):
         self.prev_x = None
         score, win, lose, step,que = 0,0,0,0,deque()
         episode = 0
-        self.optimizer = self.gradient_optimizer()
 
         terminal = False 
         done = False
@@ -112,6 +113,12 @@ class Agent_PG(Agent):
                 env.env.render()
             if terminal:    #game over
                 state = env.reset()
+                #every 21 point per update 
+                self.update_policy()
+                self.states, self.actions, self.rewards = [], [], []
+
+
+                #for log
                 episode += 1
                 que.append(score)
                 print('Episode: %d - Score: %f.' % (episode,score))
@@ -137,10 +144,10 @@ class Agent_PG(Agent):
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
 
-            action, prob = self.act(x)
+            action = self.act(x)
             state, reward, terminal, info = env.step(self.real_act(action))
             score += reward
-            self.remember(x, action, prob, reward)
+            self.remember(x, action, reward)
             done = reward != 0  #someone get the point
             if reward == 1:
                 win += 1
@@ -148,7 +155,6 @@ class Agent_PG(Agent):
                 lose += 1
             step += 1
             if done:
-                self.update_src()
                 self.prev_x = None
     
     def real_act(self, action):
@@ -183,7 +189,8 @@ class Agent_PG(Agent):
         
         cur_x = cur_x.reshape([1,cur_x.shape[0]])
         prob = self.model.predict(cur_x, batch_size=1).flatten()
-
+        
+        #stochastic
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         #action = np.argmax(prob)
         return action
@@ -196,42 +203,47 @@ class Agent_PG(Agent):
         model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(self.action_size, activation='softmax'))
-        opt = Adam(lr=self.learning_rate)
-        # See note regarding crossentropy in cartpole_reinforce.py
-        model.compile(loss='categorical_crossentropy', optimizer=opt)
         return model
 
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
-        prob = self.model.predict(state, batch_size=1).reshape([1, self.action_size])
-        action = np.random.choice(self.action_size, 1, p=prob[0,:])[0]
-        #print(prob.shape,action)
-        return action, prob
+        prob = self.model.predict(state, batch_size=1).flatten()
+        action = np.random.choice(self.action_size, 1, p=prob)[0]
+        return action 
 
     #train funcfion
-    def remember(self, state, action, prob, reward):
+    def remember(self, state, action, reward):
         self.actions.append(action)
         self.states.append(state)
-        self.probs.append(prob)
         self.rewards.append(reward)
-    def gradient_optimizer(self):
-        a = K.placeholder(shape=(None,self.action_size), dtype='float32')
-        r = K.placeholder(shape=(None,), dtype='float32')
+    def set_train_fn(self):
+        #polocy gradient loss 
+        #counting the loss of every trajectory with discounted reward, then summerize them. 
+        action_probs = self.model.output 
+        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
+        discounted_rewards = K.placeholder(shape=(None, ), dtype='float32')
 
-        py_x = self.model.output
-        loss = tf.nn.softmax_cross_entropy_with_logits(logits=py_x, labels=a)
-        #loss = -a * K.log(py_x)
-        loss = K.mean(r*loss)
+        probs = K.sum(action_probs * action_one_hot, axis=1)
+        log_probs = K.log(probs)
+        loss = -log_probs * discounted_rewards
+        loss = K.mean(loss)
         
         opt = Adam(lr=self.learning_rate)
-        updates = opt.get_updates(self.model.trainable_weights, [], loss)
+        updates = opt.get_updates(
+                                params=self.model.trainable_weights, 
+                                loss=loss)
 
-        train = K.function([self.model.input, a, r], [loss], updates=updates)
-        return train 
+        self.train_fn = K.function(
+                inputs=[self.model.input, action_one_hot, discounted_rewards],
+                outputs=[loss],
+                updates=updates)
 
     #train funcfion
     def discount_rewards(self, rewards):
-        discounted_rewards = np.zeros_like(rewards)
+        #summerize every trajectory discounted rewards
+        #[ 0  0  0 -1  0  0  0  0  1]
+        #[-0.97029901 -0.98009998 -0.99000001 -1.          0.96059602  0.970299010.98009998  0.99000001  1.        ]
+        discounted_rewards = np.zeros_like(rewards, dtype='float32')
         running_add = 0
         for t in reversed(range(0, rewards.size)):
             if rewards[t] != 0:
@@ -242,28 +254,14 @@ class Agent_PG(Agent):
 
     #train funcfion
     def update_policy(self):
-        rewards = np.vstack(self.rewards)
         actions = np.vstack(self.actions)
-        x = np.squeeze(np.vstack([self.states]))#trajectory len,6400
-        probs = np.vstack(self.probs)
+        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
+        rewards = np.array(self.rewards)
         rewards = self.discount_rewards(rewards)
-        rewards = rewards / np.std(rewards - np.mean(rewards))
-        '''
-        reward = np.sum(rewards) - self.baseline
-        reward = reward * (self.gamma ** (len(self.rewards)-1))
-        reward = np.sum(self.rewards)
+         
+        X = np.vstack([self.states])
+        self.train_fn([X, actions, rewards])
         
-        a = keras.utils.to_categorical(actions, self.action_size)
-        loss = self.optimizer([x, a, rewards.ravel()])
-        y = keras.utils.to_categorical(actions, self.action_size)
-        #gradients = -reward * self.learning_rate * (y - probs)
-        '''
-        self.model.train_on_batch(x, y)
-        self.states, self.probs, self.actions, self.rewards = [], [], [], []
-        tt = self.model.predict(x)
-
-        #print('after prob ',tt[17:20,:])
-        #print('')
     def update_src(self):
         #print('',len(self.actions) ,len(self.probs), len(self.rewards), len(self.states))
         actions = np.vstack(self.actions)
@@ -282,11 +280,11 @@ class Agent_PG(Agent):
         X = np.squeeze(np.vstack([self.states]))
         Y = probs + self.learning_rate * gradients
         #Y = probs + gradients
-        
+        ''' 
         x = X[10:13,:]
         y = Y[10:13,:]
         tt = self.model.predict(x)
-
+        '''
 
         '''
         print(actions.shape)
@@ -296,9 +294,9 @@ class Agent_PG(Agent):
         '''
         self.model.train_on_batch(X, Y)
         
-        t2 = self.model.predict(x)
-        print(self.actions[10:13])
+        #t2 = self.model.predict(x)
         '''
+        print(self.actions[10:13])
         print('reward',sum(self.rewards))
         print('0. y\n', y)
         print('1. prob\n',tt)
@@ -307,7 +305,6 @@ class Agent_PG(Agent):
         '''
         
         
-        self.states, self.probs, self.actions, self.rewards = [], [], [], []
     def load(self, name):
         self.model.load_weights(name)
 
