@@ -14,8 +14,10 @@ def parse():
     parser.add_argument('--env_name', default=None, help='environment name')
     parser.add_argument('--train_pg', action='store_true', help='whether train policy gradient')
     parser.add_argument('--train_dqn', action='store_true', help='whether train DQN')
+    parser.add_argument('--train_ac', action='store_true', help='whether train actor-critic')
     parser.add_argument('--test_pg', action='store_true', help='whether test policy gradient')
     parser.add_argument('--test_dqn', action='store_true', help='whether test DQN')
+    parser.add_argument('--test_ac', action='store_true', help='whether test actor-critic')
     parser.add_argument('--video_dir', default=None, help='output video directory')
     parser.add_argument('--do_render', action='store_true', help='whether render environment')
     try:
@@ -34,6 +36,12 @@ def run(args):
         from agent_dir.agent_pg import Agent_PG
         agent = Agent_PG(env, args)
         agent.train()
+    if args.train_ac:
+        env_name = args.env_name or 'Pong-v0'
+        env = Environment(env_name, args)
+        from agent_dir.agent_ac import Agent_AC
+        agent = Agent_AC(env, args)
+        agent.train()
 
     if args.train_dqn:
         env_name = args.env_name or 'BreakoutNoFrameskip-v4'
@@ -47,6 +55,11 @@ def run(args):
         env = Environment('Pong-v0', args, test=True)
         from agent_dir.agent_pg import Agent_PG
         agent = Agent_PG(env, args)
+        test(agent, env)
+    if args.test_ac:
+        env = Environment('Pong-v0', args, test=True)
+        from agent_dir.agent_ac import Agent_AC
+        agent = Agent_AC(env, args)
         test(agent, env)
 
     if args.test_dqn:

@@ -43,5 +43,13 @@ def add_arguments(parser):
     parser.add_argument('--pg_save_interval', type=int, default=10, help='how many episodes per saving')
     #parser.add_argument('--pg_old_model', action='store_true', default=False, help='load old model with 6 action')
     parser.add_argument('--pg_old_model', action='store_true', default=True, help='load old model with 6 action')
+    
+    #ac setting 
+    parser.add_argument('--ac_model', default=join('.','models','pong_ac.h5'), help='path to save model for trainging')
+    parser.add_argument('--ac_summary', default=join('.','summary','pong_ac'), help='path to save summary for training')
+    parser.add_argument('--ac_discount_factor', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--ac_baseline', type=int, default=0, help='baseline info')
+    parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
+    parser.add_argument('--ac_save_interval', type=int, default=10, help='how many episodes per saving')
     #bonus
     return parser
