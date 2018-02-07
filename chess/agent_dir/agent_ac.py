@@ -38,12 +38,15 @@ class Agent_AC(Agent):
         #0, 2, 3
         if args.test_ac:
             #you can load your model here
-            if os.path.isfile(args.ac_model):
+            actor_path = args.ac_model.replace('.h5','_actor.h5')
+            critic_path = args.ac_model.replace('.h5','_critic.h5')
+            if os.path.isfile(actor_path) and os.path.isfile(critic_path): 
                 print('testing : load model from %s.' % args.ac_model)
                 self.learning_rate = 0.
                 self.prev_x = None
                 self.action_size = 3
-                self.actor, self.critic = self.build_model()
+                self.actor, self.critic, _ = self.build_model()
+
                 self.load(args.ac_model)
             else:
                 print('no model for testing!\nerror path %s' % args.ac_model)
@@ -77,11 +80,11 @@ class Agent_AC(Agent):
 
         self.gamma = args.ac_discount_factor
         self.learning_rate = 0.0001
-        self.actor, self.critic = self.build_model()
+        self.actor, self.critic, self.target_critic = self.build_model()
         self.baseline = args.ac_baseline 
         self.set_actor_train_fn()
         self.set_critic_train_fn()
-        
+        self.update_target_counter = 0 
         #summary
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -96,7 +99,10 @@ class Agent_AC(Agent):
         self.states = []
         self.actions = []
         self.rewards = []
-        if os.path.isfile(args.ac_model) and args.keep_train:
+        
+        actor_path = args.ac_model.replace('.h5','_actor.h5')
+        critic_path = args.ac_model.replace('.h5','_critic.h5')
+        if os.path.isfile(actor_path) and os.path.isfile(critic_path) and args.keep_train: 
             print('load model from %s.' % args.ac_model)
             self.load(args.ac_model)
         else:
@@ -221,7 +227,8 @@ class Agent_AC(Agent):
         x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=[pixel_input, action_input], outputs=critic_output)
-        return actor, critic
+        target_critic = Model(inputs=[pixel_input, action_input], outputs=critic_output)
+        return actor, critic, target_critic
 
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
@@ -299,21 +306,26 @@ class Agent_AC(Agent):
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
         rewards = self.discount_rewards(rewards)
-        rewards = rewards / np.std(rewards - np.mean(rewards))
+        #rewards = rewards / np.std(rewards - np.mean(rewards))
          
         X = np.vstack([self.states])
         #state value
-        state_values = self.critic.predict([X, actions]).flatten()
+        state_values = self.target_critic.predict([X, actions]).flatten()
         next_state_values = np.zeros(state_values.shape, state_values.dtype)
         np.copyto(next_state_values[:-1], state_values[1:])
         self.actor_train_fn([X, actions, rewards, state_values, next_state_values])
         self.critic_train_fn([X, actions, rewards])
-
-        
+        if self.update_target_counter % self.args.ac_update_target == 0:
+            self.update_target_critic()
+        self.update_target_counter += 1
+    def update_target_critic(self):
+        self.target_critic.set_weights(self.critic.get_weights())
         
     def load(self, name):
-        self.actor.load_weights(name.replace('.h5','_actor.h5'))
-        self.critic.load_weights(name.replace('.h5','_critic.h5'))
+        actor_path = name.replace('.h5','_actor.h5')
+        critic_path = name.replace('.h5','_critic.h5')
+        self.actor.load_weights(actor_path)
+        self.critic.load_weights(critic_path)
 
     def save(self, name):
         self.actor.save_weights(name.replace('.h5','_actor.h5'))

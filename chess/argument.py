@@ -51,5 +51,6 @@ def add_arguments(parser):
     parser.add_argument('--ac_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ac_save_interval', type=int, default=10, help='how many episodes per saving')
+    parser.add_argument('--ac_update_target', type=int, default=1, help='frequency of updating target network per episode')
     #bonus
     return parser
