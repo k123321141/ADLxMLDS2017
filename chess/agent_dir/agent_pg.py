@@ -193,7 +193,7 @@ class Agent_PG(Agent):
         #stochastic
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         #action = np.argmax(prob)
-        return action
+        return self.real_act(action)
     def build_model(self):
         model = Sequential()
         model.add(Reshape((80, 80, 1), input_shape=(self.state_size,)))
