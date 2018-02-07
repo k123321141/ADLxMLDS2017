@@ -206,12 +206,13 @@ class Agent_AC(Agent):
         pixel_input = Input(shape=(self.state_size,))
 
         #shared cnn
-        x = Reshape((80, 80, 1))(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        cnn_output = Flatten()(x)
-
-
+        x = Flatten(name='shared_flatten')(x)
+        self.shared_net = Model(inputs=pixel_input, outputs=x, name='shared_network')
+        cnn_output = self.shared_net(pixel_input)
+        
         #actor
         x = Dense(64, activation='relu', kernel_initializer='he_uniform')(cnn_output)
         x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
@@ -246,39 +247,47 @@ class Agent_AC(Agent):
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         action_probs = self.actor.output 
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        state_value = K.placeholder(shape=(None, ), dtype='float32')
-        next_state_value = K.placeholder(shape=(None, ), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, ), dtype='float32')
+        state_value = K.placeholder(shape=(None, 1), dtype='float32')
+        next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
+        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
         
         advantage_fn = discounted_rewards - (state_value - next_state_value)
         probs = K.sum(action_probs * action_one_hot, axis=1)
         log_probs = K.log(probs)
-        loss = -log_probs * discounted_rewards
+        loss = -log_probs * advantage_fn 
         loss = K.mean(loss)
         
+        trainable_weights = []
+
+        for w in self.actor.trainable_weights:
+            if 'shared' not in w.name:
+                trainable_weights.append(w)
+
         opt = Adam(lr=self.learning_rate)
         updates = opt.get_updates(
-                                params=self.actor.trainable_weights, 
+                                params=trainable_weights, 
                                 loss=loss)
-
         self.actor_train_fn = K.function(
                 inputs=[self.actor.input, action_one_hot, discounted_rewards, state_value, next_state_value],
                 outputs=[loss],
                 updates=updates)
+    
     def set_critic_train_fn(self):
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         states = K.placeholder(shape=(None, 6400), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, ), dtype='float32')
+        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
 
         critic_value = self.critic([states, action_one_hot])
 
-        loss = -K.square(critic_value - discounted_rewards)
+        loss = K.square(critic_value - discounted_rewards)
         loss = K.mean(loss)
         
         opt = Adam(lr=self.learning_rate)
+        
+        trainable_weights = self.critic.trainable_weights
         updates = opt.get_updates(
-                                params=self.critic.trainable_weights, 
+                                params=trainable_weights, 
                                 loss=loss)
 
         self.critic_train_fn = K.function(
@@ -307,12 +316,31 @@ class Agent_AC(Agent):
         rewards = np.array(self.rewards)
         rewards = self.discount_rewards(rewards)
         #rewards = rewards / np.std(rewards - np.mean(rewards))
+        rewards = rewards.reshape([-1, 1])
          
         X = np.vstack([self.states])
         #state value
-        state_values = self.target_critic.predict([X, actions]).flatten()
+        state_values = self.target_critic.predict([X, actions])        
         next_state_values = np.zeros(state_values.shape, state_values.dtype)
-        np.copyto(next_state_values[:-1], state_values[1:])
+        np.copyto(next_state_values[:,:-1], state_values[:,1:])
+
+        #test
+        '''
+        x = X[10:11,:]
+        a = actions[10:11,:]
+        y1 = self.critic.predict([x,a])
+        self.actor_train_fn([X, actions, rewards, state_values, next_state_values])
+        y2 = self.critic.predict([x,a])
+        y3 = self.actor.predict(x)
+        print(y1)
+        print(y2)
+        print(y1==y2)
+        self.critic_train_fn([X, actions, rewards])
+        y4 = self.actor.predict(x)
+        print(y3,y4)
+        print(y3==y4)
+        '''
+        
         self.actor_train_fn([X, actions, rewards, state_values, next_state_values])
         self.critic_train_fn([X, actions, rewards])
         if self.update_target_counter % self.args.ac_update_target == 0:
