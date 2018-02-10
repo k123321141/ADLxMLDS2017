@@ -256,12 +256,14 @@ class Agent_AC(Agent):
         log_probs = K.log(probs)
         loss = -log_probs * advantage_fn 
         loss = K.mean(loss)
-        
+        trainable_weights = self.actor.trainable_weights
+        '''
         trainable_weights = []
 
         for w in self.actor.trainable_weights:
             if 'shared' not in w.name:
                 trainable_weights.append(w)
+        '''
 
         opt = Adam(lr=self.learning_rate)
         updates = opt.get_updates(
@@ -276,11 +278,12 @@ class Agent_AC(Agent):
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         states = K.placeholder(shape=(None, 6400), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        #discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        expected_rewards = K.placeholder(shape=(None, 1), dtype='float32')
 
         critic_value = self.critic([states, action_one_hot])
 
-        loss = K.square(critic_value - discounted_rewards)
+        loss = K.square(critic_value - expected_rewards)
         loss = K.mean(loss)
         
         opt = Adam(lr=self.learning_rate)
@@ -291,7 +294,7 @@ class Agent_AC(Agent):
                                 loss=loss)
 
         self.critic_train_fn = K.function(
-                inputs=[states, action_one_hot, discounted_rewards],
+                inputs=[states, action_one_hot, expected_rewards],
                 outputs=[loss],
                 updates=updates)
 
@@ -323,7 +326,7 @@ class Agent_AC(Agent):
         state_values = self.target_critic.predict([X, actions])        
         next_state_values = np.zeros(state_values.shape, state_values.dtype)
         np.copyto(next_state_values[:,:-1], state_values[:,1:])
-
+        expected_rewards = next_state_values + rewards
         #test
         '''
         x = X[10:11,:]
@@ -342,7 +345,7 @@ class Agent_AC(Agent):
         '''
         
         self.actor_train_fn([X, actions, rewards, state_values, next_state_values])
-        self.critic_train_fn([X, actions, rewards])
+        self.critic_train_fn([X, actions, expected_rewards])
         if self.update_target_counter % self.args.ac_update_target == 0:
             self.update_target_critic()
         self.update_target_counter += 1
