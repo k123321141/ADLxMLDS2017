@@ -52,5 +52,16 @@ def add_arguments(parser):
     parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ac_save_interval', type=int, default=10, help='how many episodes per saving')
     parser.add_argument('--ac_update_target', type=int, default=1, help='frequency of updating target network per episode')
+    
+    #ddpg setting 
+    parser.add_argument('--ddpg_model', default=join('.','models','pong_ddpg.h5'), help='path to save model for trainging')
+    parser.add_argument('--ddpg_summary', default=join('.','summary','pong_ddpg'), help='path to save summary for training')
+    parser.add_argument('--ddpg_discount_factor', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--ddpg_baseline', type=int, default=0, help='baseline info')
+    parser.add_argument('--ddpg_max_spisode', type=int, default=100000, help='maximum iteration')
+    parser.add_argument('--ddpg_save_interval', type=int, default=10, help='how many episodes per saving')
+    parser.add_argument('--TAU', type=int, default=0.001, help='the rate of target networks updating')
+    parser.add_argument('--update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
+    parser.add_argument('--reply_buffer', type=int, default=100000, help='memory size for reply experience')
     #bonus
     return parser

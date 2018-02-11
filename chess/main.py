@@ -15,9 +15,11 @@ def parse():
     parser.add_argument('--train_pg', action='store_true', help='whether train policy gradient')
     parser.add_argument('--train_dqn', action='store_true', help='whether train DQN')
     parser.add_argument('--train_ac', action='store_true', help='whether train actor-critic')
+    parser.add_argument('--train_ddpg', action='store_true', help='whether train deep deterministic policy gradient')
     parser.add_argument('--test_pg', action='store_true', help='whether test policy gradient')
     parser.add_argument('--test_dqn', action='store_true', help='whether test DQN')
     parser.add_argument('--test_ac', action='store_true', help='whether test actor-critic')
+    parser.add_argument('--test_ddpg', action='store_true', help='whether test deep deterministic policy gradient')
     parser.add_argument('--video_dir', default=None, help='output video directory')
     parser.add_argument('--do_render', action='store_true', help='whether render environment')
     try:
@@ -43,6 +45,13 @@ def run(args):
         agent = Agent_AC(env, args)
         agent.train()
 
+    if args.train_ddpg:
+        env_name = args.env_name or 'Pong-v0'
+        env = Environment(env_name, args)
+        from agent_dir.agent_ddpg import Agent_DDPG
+        agent = Agent_DDPG(env, args)
+        agent.train()
+
     if args.train_dqn:
         env_name = args.env_name or 'BreakoutNoFrameskip-v4'
         env = Environment(env_name, args, atari_wrapper=True)
@@ -60,6 +69,11 @@ def run(args):
         env = Environment('Pong-v0', args, test=True)
         from agent_dir.agent_ac import Agent_AC
         agent = Agent_AC(env, args)
+        test(agent, env)
+    if args.test_ddpg:
+        env = Environment('Pong-v0', args, test=True)
+        from agent_dir.agent_ddpg import Agent_DDPG
+        agent = Agent_DDPG(env, args)
         test(agent, env)
 
     if args.test_dqn:

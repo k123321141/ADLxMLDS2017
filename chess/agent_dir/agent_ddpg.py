@@ -7,7 +7,7 @@ from keras.optimizers import Adam
 import scipy,keras
 import keras.backend as K
 import tensorflow as tf
-import sys,os
+import sys,os,random
 from collections import deque
 
 def prepro(I):
@@ -18,14 +18,14 @@ def prepro(I):
     I[I != 0] = 1
     return I.astype(np.float).ravel()
 
-class Agent_AC(Agent):
+class Agent_DDPG(Agent):
     def __init__(self, env, args):
         """
         Initialize every things you need here.
         For example: building your model
         """
 
-        super(Agent_AC,self).__init__(env)
+        super(Agent_DDPG,self).__init__(env)
 
 
 
@@ -36,20 +36,20 @@ class Agent_AC(Agent):
         self.action_size = 3
         #['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'RIGHTFIRE', 'LEFTFIRE']
         #0, 2, 3
-        if args.test_ac:
+        if args.test_ddpg:
             #you can load your model here
-            actor_path = args.ac_model.replace('.h5','_actor.h5')
-            critic_path = args.ac_model.replace('.h5','_critic.h5')
+            actor_path = args.ddpg_model.replace('.h5','_actor.h5')
+            critic_path = args.ddpg_model.replace('.h5','_critic.h5')
             if os.path.isfile(actor_path) and os.path.isfile(critic_path): 
-                print('testing : load model from %s.' % args.ac_model)
+                print('testing : load model from %s.' % args.ddpg_model)
                 self.learning_rate = 0.
                 self.prev_x = None
                 self.action_size = 3
                 self.actor, self.critic, _ = self.build_model()
 
-                self.load(args.ac_model)
+                self.load(args.ddpg_model)
             else:
-                print('no model for testing!\nerror path %s' % args.ac_model)
+                print('no model for testing!\nerror path %s' % args.ddpg_model)
                 sys.exit(1)
 
 
@@ -78,12 +78,12 @@ class Agent_AC(Agent):
         args = self.args
 
 
-        self.gamma = args.ac_discount_factor
+        self.gamma = args.ddpg_discount_factor
         self.learning_rate = 0.0001
         self.actor, self.critic = self.build_model()
         self.actor_target, self.critic_target = self.build_model()
-        self.baseline = args.ac_baseline 
-        self.set_a2c_train_fn()
+        self.baseline = args.ddpg_baseline 
+        self.set_ddpg_train_fn()
         #summary
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -92,18 +92,21 @@ class Agent_AC(Agent):
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
-            args.ac_summary  , self.sess.graph)
+            args.ddpg_summary  , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
         self.states = []
+        self.next_states = []
         self.actions = []
         self.rewards = []
+        self.reply_buffer = deque(maxlen=args.reply_buffer)
+        self.update_target_counter = 0
         
-        actor_path = args.ac_model.replace('.h5','_actor.h5')
-        critic_path = args.ac_model.replace('.h5','_critic.h5')
+        actor_path = args.ddpg_model.replace('.h5','_actor.h5')
+        critic_path = args.ddpg_model.replace('.h5','_critic.h5')
         if os.path.isfile(actor_path) and os.path.isfile(critic_path) and args.keep_train: 
-            print('load model from %s.' % args.ac_model)
-            self.load(args.ac_model)
+            print('load model from %s.' % args.ddpg_model)
+            self.load(args.ddpg_model)
         else:
             print('train a new model')
 
@@ -120,8 +123,9 @@ class Agent_AC(Agent):
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
-                self.update_actor_critic()
-                self.states, self.actions, self.rewards = [], [], []
+                self.update_reply_buffer()
+                self.updates(len(self.actions))
+                self.states, self.next_states, self.actions, self.rewards = [], [], [], []
 
 
                 #for log
@@ -129,9 +133,9 @@ class Agent_AC(Agent):
                 que.append(score)
                 print('Episode: %d - Score: %f.' % (episode,score))
                 sys.stdout.flush()
-                if episode > 1 and episode % args.ac_save_interval == 0:
-                    print('save model to %s.' % args.ac_model)
-                    self.save(args.ac_model)
+                if episode > 1 and episode % args.ddpg_save_interval == 0:
+                    print('save model to %s.' % args.ddpg_model)
+                    self.save(args.ddpg_model)
                 #summary
                 stats = [score, win, step, lose, np.mean(que) ]
 
@@ -151,9 +155,12 @@ class Agent_AC(Agent):
             self.prev_x = cur_x
 
             action = self.act(x)
-            state, reward, terminal, info = env.step(self.real_act(action))
+            next_state, reward, terminal, info = env.step(self.real_act(action))
+            next_x = prepro(next_state)
+            next_x = next_x - x
+            
             score += reward
-            self.remember(x, action, reward)
+            self.remember(x, next_x, action, reward)
             done = reward != 0  #someone get the point
             if reward == 1:
                 win += 1
@@ -234,79 +241,37 @@ class Agent_AC(Agent):
         return action 
 
     #train funcfion
-    def remember(self, state, action, reward):
-        self.actions.append(action)
+    def remember(self, state, next_state, action, reward):
         self.states.append(state)
+        self.next_states.append(next_state)
         self.rewards.append(reward)
-    '''
-    def set_actor_train_fn(self):
-        #polocy gradient loss 
-        #counting the loss of every trajectory with discounted reward, then summerize them. 
-        action_probs = self.actor.output 
-        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        state_value = K.placeholder(shape=(None, 1), dtype='float32')
-        next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        self.actions.append(action)
+    def update_reply_buffer(self):
+        actions = np.vstack(self.actions)
+        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
+        rewards = np.array(self.rewards)
+        rewards = self.discount_rewards(rewards)
         
-        advantage_fn = discounted_rewards - (state_value - next_state_value)
-        probs = K.sum(action_probs * action_one_hot, axis=1)
-        log_probs = K.log(probs)
-        loss = -log_probs * advantage_fn 
-        loss = K.mean(loss)
-        trainable_weights = self.actor.trainable_weights
-        opt = Adam(lr=self.learning_rate)
-        updates = opt.get_updates(
-                                params=trainable_weights, 
-                                loss=loss)
-        self.actor_train_fn = K.function(
-                inputs=[self.actor.input, action_one_hot, discounted_rewards, state_value, next_state_value],
-                outputs=[loss],
-                updates=updates)
-    
-    def set_critic_train_fn(self):
-        #counting the loss of every trajectory with discounted reward, then summerize them. 
-        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        states = K.placeholder(shape=(None, 6400), dtype='float32')
-        #discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
-        expected_rewards = K.placeholder(shape=(None, 1), dtype='float32')
-
-        critic_value = self.critic([states, action_one_hot])
-
-        loss = K.square(critic_value - expected_rewards)
-        loss = K.mean(loss)
-        
-        opt = Adam(lr=self.learning_rate)
-        
-        trainable_weights = self.critic.trainable_weights
-        updates = opt.get_updates(
-                                params=trainable_weights, 
-                                loss=loss)
-
-        self.critic_train_fn = K.function(
-                inputs=[states, action_one_hot, expected_rewards],
-                outputs=[loss],
-                updates=updates)
-    '''
-    def set_a2c_train_fn(self):
-        #polocy gradient loss 
+        num = len(self.rewards)
+        for i in range(num):
+            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:]]
+            self.reply_buffer.append(buf)
+    def set_ddpg_train_fn(self):
+        #critic gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         states = K.placeholder(shape=(None, 6400), dtype='float32')
-        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
         next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
+        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         
         action_probs = self.actor([states,])
-        critic_value = self.critic([states, action_one_hot]) 
-        advantage_fn = discounted_rewards - (critic_value - next_state_value)
-        probs = K.sum(action_probs * action_one_hot, axis=1)
-        log_probs = K.log(probs)
+        critic_value = self.critic([states, action_one_hot])
 
-        actor_loss = - K.mean(log_probs * advantage_fn )
-        critic_loss = K.mean(K.square(discounted_rewards - critic_value))
-        entropy = - K.mean(action_probs * K.log(action_probs))
+        actor_loss = - K.sum(self.critic([states, action_probs]) )
+        critic_loss = K.sum(K.square( (discounted_rewards + next_state_value) - critic_value))
        
-        loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
-        
+        loss = actor_loss + critic_loss 
+
         #trainable_weights
         trainable_weights = []
         for wi in self.actor.trainable_weights:
@@ -320,8 +285,8 @@ class Agent_AC(Agent):
         updates = opt.get_updates(
                                 params=trainable_weights, 
                                 loss=loss)
-        self.a2c_train_fn = K.function(
-                inputs=[states, action_one_hot, discounted_rewards, next_state_value],
+        self.ddpg_train_fn = K.function(
+                inputs=[states, next_state_value, discounted_rewards, action_one_hot],
                 outputs=[loss],
                 updates=updates)
     
@@ -340,36 +305,39 @@ class Agent_AC(Agent):
         return discounted_rewards
 
     #train funcfion
-    def update_actor_critic(self):
-        actions = np.vstack(self.actions)
-        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
-        rewards = np.array(self.rewards)
-        rewards = self.discount_rewards(rewards)
-        #rewards = rewards / np.std(rewards - np.mean(rewards))
-        rewards = rewards.reshape([-1, 1])
-         
-        X = np.vstack([self.states])
-        #state value
-        state_values = self.critic.predict([X, actions])        
-        next_state_values = np.zeros(state_values.shape, state_values.dtype)
-        np.copyto(next_state_values[:,:-1], state_values[:,1:])
-        #test
-        '''
-        x = X[10:11,:]
-        a = actions[10:11,:]
-        y1 = self.critic.predict([x,a])
-        self.actor_train_fn([X, actions, rewards, state_values, next_state_values])
-        y2 = self.critic.predict([x,a])
-        y3 = self.actor.predict(x)
-        print(y1)
-        print(y2)
-        print(y1==y2)
-        self.critic_train_fn([X, actions, rewards])
-        y4 = self.actor.predict(x)
-        print(y3,y4)
-        print(y3==y4)
-        '''
-        self.a2c_train_fn([X, actions, rewards, next_state_values]) 
+    def updates(self, batch_size):
+        batch = random.sample(self.reply_buffer, batch_size)
+        states, next_states, rewards, actions = [],[],[],[]
+        for b in batch:
+            states.append(b[0])
+            next_states.append(b[1])
+            rewards.append(b[2])
+            actions.append(b[3])
+        states = np.vstack(states)
+        next_states = np.vstack(next_states)
+        rewards = np.vstack(rewards)
+        actions = np.vstack(actions)
+        
+        #need more details 
+        next_state_values = self.critic_target.predict([next_states, self.actor_target.predict(next_states)])
+        self.ddpg_train_fn([states, next_state_values, rewards, actions]) 
+        if self.update_target_counter % self.args.update_target_frequency == 0:
+            self.update_target_networks()
+
+
+    def update_target_networks(self):
+        #actor
+        actor_weights = self.actor.get_weights()
+        actor_target_weights = self.actor_target.get_weights()
+        for i in range(len(actor_weights)):
+            actor_target_weights[i] = self.args.TAU * actor_weights[i] + (1. - self.args.TAU) * actor_target_weights[i]
+        self.actor_target.set_weights(actor_target_weights)
+        #critic
+        critic_weights = self.critic.get_weights()
+        critic_target_weights = self.critic_target.get_weights()
+        for i in range(len(critic_weights)):
+            critic_target_weights[i] = self.args.TAU * critic_weights[i] + (1. - self.args.TAU) * critic_target_weights[i]
+        self.critic_target.set_weights(critic_target_weights)
         
     def load(self, name):
         actor_path = name.replace('.h5','_actor.h5')
