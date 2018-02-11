@@ -81,6 +81,7 @@ class Agent_AC(Agent):
         self.gamma = args.ac_discount_factor
         self.learning_rate = 0.0001
         self.actor, self.critic = self.build_model()
+        self.actor_target, self.critic_target = self.build_model()
         self.baseline = args.ac_baseline 
         self.set_a2c_train_fn()
         #summary
