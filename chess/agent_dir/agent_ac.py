@@ -237,71 +237,22 @@ class Agent_AC(Agent):
         self.actions.append(action)
         self.states.append(state)
         self.rewards.append(reward)
-    '''
-    def set_actor_train_fn(self):
-        #polocy gradient loss 
-        #counting the loss of every trajectory with discounted reward, then summerize them. 
-        action_probs = self.actor.output 
-        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        state_value = K.placeholder(shape=(None, 1), dtype='float32')
-        next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
-        
-        advantage_fn = discounted_rewards - (state_value - next_state_value)
-        probs = K.sum(action_probs * action_one_hot, axis=1)
-        log_probs = K.log(probs)
-        loss = -log_probs * advantage_fn 
-        loss = K.mean(loss)
-        trainable_weights = self.actor.trainable_weights
-        opt = Adam(lr=self.learning_rate)
-        updates = opt.get_updates(
-                                params=trainable_weights, 
-                                loss=loss)
-        self.actor_train_fn = K.function(
-                inputs=[self.actor.input, action_one_hot, discounted_rewards, state_value, next_state_value],
-                outputs=[loss],
-                updates=updates)
-    
-    def set_critic_train_fn(self):
-        #counting the loss of every trajectory with discounted reward, then summerize them. 
-        action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        states = K.placeholder(shape=(None, 6400), dtype='float32')
-        #discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
-        expected_rewards = K.placeholder(shape=(None, 1), dtype='float32')
-
-        critic_value = self.critic([states, action_one_hot])
-
-        loss = K.square(critic_value - expected_rewards)
-        loss = K.mean(loss)
-        
-        opt = Adam(lr=self.learning_rate)
-        
-        trainable_weights = self.critic.trainable_weights
-        updates = opt.get_updates(
-                                params=trainable_weights, 
-                                loss=loss)
-
-        self.critic_train_fn = K.function(
-                inputs=[states, action_one_hot, expected_rewards],
-                outputs=[loss],
-                updates=updates)
-    '''
     def set_a2c_train_fn(self):
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         states = K.placeholder(shape=(None, 6400), dtype='float32')
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        rewards = K.placeholder(shape=(None, 1), dtype='float32')
         next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
         
         action_probs = self.actor([states,])
         critic_value = self.critic([states, action_one_hot]) 
-        advantage_fn = discounted_rewards - (critic_value - next_state_value)
+        advantage_fn = rewards - (critic_value - next_state_value)
         probs = K.sum(action_probs * action_one_hot, axis=1)
         log_probs = K.log(probs)
 
         actor_loss = - K.mean(log_probs * advantage_fn )
-        critic_loss = K.mean(K.square(discounted_rewards - critic_value))
+        critic_loss = K.mean(K.square(rewards - critic_value))
         entropy = - K.mean(action_probs * K.log(action_probs))
        
         loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
@@ -320,7 +271,7 @@ class Agent_AC(Agent):
                                 params=trainable_weights, 
                                 loss=loss)
         self.a2c_train_fn = K.function(
-                inputs=[states, action_one_hot, discounted_rewards, next_state_value],
+                inputs=[states, action_one_hot, rewards, next_state_value],
                 outputs=[loss],
                 updates=updates)
     
@@ -343,8 +294,6 @@ class Agent_AC(Agent):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
-        rewards = self.discount_rewards(rewards)
-        #rewards = rewards / np.std(rewards - np.mean(rewards))
         rewards = rewards.reshape([-1, 1])
          
         X = np.vstack([self.states])
