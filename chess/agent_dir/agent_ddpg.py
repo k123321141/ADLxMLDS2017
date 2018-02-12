@@ -105,6 +105,7 @@ class Agent_DDPG(Agent):
         self.next_states = []
         self.actions = []
         self.rewards = []
+        self.done = []
         self.reply_buffer = deque(maxlen=args.reply_buffer)
         self.update_target_counter = 0
         
@@ -123,25 +124,25 @@ class Agent_DDPG(Agent):
         terminal = False 
         done = False
         state = env.reset()
+        critic_loss, actor_loss = 0,0
         while True:
             if args.do_render:
                 env.env.render()
+            if len(self.reply_buffer) > self.train_start:
+                critic_loss, actor_loss = self.updates(32)
+            if self.epsilon > self.epsilon_end:
+                self.epsilon -= self.epsilon_decay_step
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
                 self.update_reply_buffer()
-                if len(self.reply_buffer) < self.train_start:
-                    continue
-                if self.epsilon > self.epsilon_end:
-                    self.epsilon -= self.epsilon_decay_step
-                self.updates(len(self.actions))
                 self.states, self.next_states, self.actions, self.rewards = [], [], [], []
 
 
                 #for log
                 episode += 1
                 que.append(score)
-                print('Episode: %d - Score: %f.' % (episode,score))
+                print('Episode: %7d - Score: %2f. epsilon: %.5f loss:[%5.5f, %5.5f]' % (episode,score, self.epsilon, critic_loss, actor_loss))
                 sys.stdout.flush()
                 if episode > 1 and episode % args.ddpg_save_interval == 0:
                     print('save model to %s.' % args.ddpg_model)
@@ -173,10 +174,10 @@ class Agent_DDPG(Agent):
             next_state, reward, terminal, info = env.step(self.real_act(action))
             next_x = prepro(next_state)
             next_x = next_x - x
-            
+             
             score += reward
-            self.remember(x, next_x, action, reward)
             done = reward != 0  #someone get the point
+            self.remember(x, next_x, action, reward, done)
             if reward == 1:
                 win += 1
             elif reward == -1:
@@ -256,11 +257,12 @@ class Agent_DDPG(Agent):
         return action 
 
     #train funcfion
-    def remember(self, state, next_state, action, reward):
+    def remember(self, state, next_state, action, reward, done):
         self.states.append(state)
         self.next_states.append(next_state)
         self.rewards.append(reward)
         self.actions.append(action)
+        self.done.append(done)
     def update_reply_buffer(self):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
@@ -268,21 +270,20 @@ class Agent_DDPG(Agent):
         
         num = len(self.rewards)
         for i in range(num):
-            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:]]
+            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], self.done[i]]
             self.reply_buffer.append(buf)
     def set_ddpg_train_fn(self):
         #critic gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         states = K.placeholder(shape=(None, 6400), dtype='float32')
-        next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
-        rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        target = K.placeholder(shape=(None, 1), dtype='float32')
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         
         action_probs = self.actor([states,])
         critic_value = self.critic([states, action_one_hot])
 
         actor_loss = - K.mean(self.critic([states, action_probs]) )
-        critic_loss = K.mean(K.square( (rewards + self.gamma * next_state_value) - critic_value))
+        critic_loss = K.mean(K.square( target - critic_value))
        
         loss = actor_loss + critic_loss 
         '''
@@ -314,7 +315,7 @@ class Agent_DDPG(Agent):
                                 params=actor_weights, 
                                 loss=actor_loss)
         self.actor_train_fn = K.function(
-                inputs=[states, next_state_value, rewards, action_one_hot],
+                inputs=[states, target, action_one_hot],
                 outputs=[actor_loss,],
                 updates=updates)
         
@@ -326,7 +327,7 @@ class Agent_DDPG(Agent):
                                 params=critic_weights, 
                                 loss=critic_loss)
         self.critic_train_fn = K.function(
-                inputs=[states, next_state_value, rewards, action_one_hot],
+                inputs=[states, target, action_one_hot],
                 outputs=[critic_loss],
                 updates=critic_updates)
     
@@ -347,27 +348,39 @@ class Agent_DDPG(Agent):
     #train funcfion
     def updates(self, batch_size):
         batch = random.sample(self.reply_buffer, batch_size)
-        states, next_states, rewards, actions = [],[],[],[]
+        states, next_states, rewards, actions, done = [],[],[],[],[]
         for b in batch:
             states.append(b[0])
             next_states.append(b[1])
             rewards.append(b[2])
             actions.append(b[3])
+            done.append(b[4])
         states = np.vstack(states)
         next_states = np.vstack(next_states)
-        rewards = np.vstack(rewards)
         actions = np.vstack(actions)
+        rewards = np.vstack(rewards)
         
-        #need more details 
         next_state_values = self.critic_target.predict([next_states, self.actor_target.predict(next_states)])
+        target = np.zeros([len(rewards), 1], dtype='float')
+        for i in range(len(rewards)):
+            if done[i]:
+                target[i,0] = rewards[i,0]             
+            else:
+                target[i,0] = rewards[i,0] + next_state_values[i,0]
+        #need more details 
+        #next_state_values = self.critic_target.predict([next_states, self.actor_target.predict(next_states)])
         #loss, actor_loss, critic_loss = self.ddpg_train_fn([states, next_state_values, rewards, actions]) 
-        critic_loss = self.critic_train_fn([states, next_state_values, rewards, actions]) 
-        actor_loss = self.actor_train_fn([states, next_state_values, rewards, actions]) 
+        #print(next_state_values[-10:])
+
+        #print((rewards + self.gamma*next_state_values)[-10:])
+        critic_loss = self.critic_train_fn([states, target, actions]) 
+        actor_loss = self.actor_train_fn([states, target, actions]) 
         if self.update_target_counter % self.args.update_target_frequency == 0:
             self.update_target_networks()
         #print(loss, actor_loss, critic_loss)
-        print(actor_loss, critic_loss, self.epsilon)
-
+        #print(actor_loss, critic_loss, self.epsilon)
+        #print()
+        return critic_loss[0], actor_loss[0]
 
     def update_target_networks(self):
         #actor
