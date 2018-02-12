@@ -59,7 +59,7 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_discount_factor', type=float, default=0.99, help='discount factor')
     parser.add_argument('--ddpg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ddpg_max_spisode', type=int, default=100000, help='maximum iteration')
-    parser.add_argument('--ddpg_save_interval', type=int, default=10, help='how many episodes per saving')
+    parser.add_argument('--ddpg_save_interval', type=int, default=1, help='how many episodes per saving')
     parser.add_argument('--ddpg_train_start', type=int, default=1, help='random action before start training')
     parser.add_argument('--ddpg_epsilon', type=float, default=0.99, help='start epsilon')
     parser.add_argument('--ddpg_epsilon_end', type=float, default=0.1, help='end epsilon')
