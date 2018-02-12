@@ -243,6 +243,7 @@ class Agent_AC(Agent):
         states = K.placeholder(shape=(None, 6400), dtype='float32')
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
         next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
         
         action_probs = self.actor([states,])
@@ -252,7 +253,7 @@ class Agent_AC(Agent):
         log_probs = K.log(probs)
 
         actor_loss = - K.mean(log_probs * advantage_fn )
-        critic_loss = K.mean(K.square(rewards - critic_value))
+        critic_loss = K.mean(K.square(discounted_rewards - critic_value))
         entropy = - K.mean(action_probs * K.log(action_probs))
        
         loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
@@ -271,7 +272,7 @@ class Agent_AC(Agent):
                                 params=trainable_weights, 
                                 loss=loss)
         self.a2c_train_fn = K.function(
-                inputs=[states, action_one_hot, rewards, next_state_value],
+                inputs=[states, action_one_hot, rewards, discounted_rewards, next_state_value],
                 outputs=[loss],
                 updates=updates)
     
@@ -294,7 +295,10 @@ class Agent_AC(Agent):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
+        discounted_rewards = self.discount_rewards(rewards)
+        
         rewards = rewards.reshape([-1, 1])
+        discounted_rewards = discounted_rewards.reshape([-1, 1])
          
         X = np.vstack([self.states])
         #state value
@@ -317,7 +321,7 @@ class Agent_AC(Agent):
         print(y3,y4)
         print(y3==y4)
         '''
-        self.a2c_train_fn([X, actions, rewards, next_state_values]) 
+        self.a2c_train_fn([X, actions, rewards, discounted_rewards, next_state_values]) 
         
     def load(self, name):
         actor_path = name.replace('.h5','_actor.h5')
