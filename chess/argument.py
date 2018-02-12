@@ -60,8 +60,8 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ddpg_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ddpg_save_interval', type=int, default=10, help='how many episodes per saving')
-    parser.add_argument('--TAU', type=int, default=0.001, help='the rate of target networks updating')
+    parser.add_argument('--TAU', type=int, default=0.01, help='the rate of target networks updating')
     parser.add_argument('--update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
-    parser.add_argument('--reply_buffer', type=int, default=100000, help='memory size for reply experience')
+    parser.add_argument('--reply_buffer', type=int, default=80000, help='memory size for reply experience')
     #bonus
     return parser

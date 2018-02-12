@@ -287,7 +287,7 @@ class Agent_DDPG(Agent):
                                 loss=loss)
         self.ddpg_train_fn = K.function(
                 inputs=[states, next_state_value, discounted_rewards, action_one_hot],
-                outputs=[loss],
+                outputs=[loss, actor_loss, critic_loss],
                 updates=updates)
     
     #train funcfion
@@ -320,9 +320,10 @@ class Agent_DDPG(Agent):
         
         #need more details 
         next_state_values = self.critic_target.predict([next_states, self.actor_target.predict(next_states)])
-        self.ddpg_train_fn([states, next_state_values, rewards, actions]) 
+        loss, actor_loss, critic_loss = self.ddpg_train_fn([states, next_state_values, rewards, actions]) 
         if self.update_target_counter % self.args.update_target_frequency == 0:
             self.update_target_networks()
+        #print(loss, actor_loss, critic_loss)
 
 
     def update_target_networks(self):
@@ -343,7 +344,9 @@ class Agent_DDPG(Agent):
         actor_path = name.replace('.h5','_actor.h5')
         critic_path = name.replace('.h5','_critic.h5')
         self.actor.load_weights(actor_path)
+        self.actor_target.load_weights(actor_path)
         self.critic.load_weights(critic_path)
+        self.critic_target.load_weights(critic_path)
 
     def save(self, name):
         self.actor.save_weights(name.replace('.h5','_actor.h5'))
