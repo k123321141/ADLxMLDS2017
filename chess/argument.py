@@ -60,8 +60,12 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ddpg_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ddpg_save_interval', type=int, default=10, help='how many episodes per saving')
-    parser.add_argument('--TAU', type=int, default=0.01, help='the rate of target networks updating')
-    parser.add_argument('--update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
+    parser.add_argument('--ddpg_train_start', type=int, default=1, help='random action before start training')
+    parser.add_argument('--ddpg_epsilon', type=float, default=0.99, help='start epsilon')
+    parser.add_argument('--ddpg_epsilon_end', type=float, default=0.1, help='end epsilon')
+    parser.add_argument('--ddpg_exploration_steps', type=float, default=5000, help='how many step in env per epsilon decay')
+    parser.add_argument('--TAU', type=int, default=1., help='the rate of target networks updating')
+    parser.add_argument('--update_target_frequency', type=int, default=50, help='frequency of updating target network per episode')
     parser.add_argument('--reply_buffer', type=int, default=80000, help='memory size for reply experience')
     #bonus
     return parser

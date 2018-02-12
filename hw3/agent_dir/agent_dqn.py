@@ -63,8 +63,7 @@ class Agent_DQN(Agent):
         self.epsilon = args.dqn_epsilon
         self.epsilon_end = args.dqn_epsilon_end
         self.exploration_steps = args.dqn_exploration_steps
-        self.epsilon_decay_step = (self.epsilon - self.epsilon_end) \
-                                  / self.exploration_steps
+        self.epsilon_decay_step = (self.epsilon - self.epsilon_end) / self.exploration_steps
         # parameters about training
         self.batch_size = args.dqn_batch
         #self.train_start = 50000
