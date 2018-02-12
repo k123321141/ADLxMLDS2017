@@ -377,6 +377,7 @@ class Agent_DDPG(Agent):
         actor_loss = self.actor_train_fn([states, target, actions]) 
         if self.update_target_counter % self.args.update_target_frequency == 0:
             self.update_target_networks()
+            self.update_target_counter += 1
         #print(loss, actor_loss, critic_loss)
         #print(actor_loss, critic_loss, self.epsilon)
         #print()
