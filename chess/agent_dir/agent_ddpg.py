@@ -250,7 +250,6 @@ class Agent_DDPG(Agent):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
-        rewards = self.discount_rewards(rewards)
         
         num = len(self.rewards)
         for i in range(num):
@@ -261,14 +260,14 @@ class Agent_DDPG(Agent):
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         states = K.placeholder(shape=(None, 6400), dtype='float32')
         next_state_value = K.placeholder(shape=(None, 1), dtype='float32')
-        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
+        rewards = K.placeholder(shape=(None, 1), dtype='float32')
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         
         action_probs = self.actor([states,])
         critic_value = self.critic([states, action_one_hot])
 
         actor_loss = - K.sum(self.critic([states, action_probs]) )
-        critic_loss = K.sum(K.square( (discounted_rewards + next_state_value) - critic_value))
+        critic_loss = K.sum(K.square( (rewards + self.gamma * next_state_value) - critic_value))
        
         loss = actor_loss + critic_loss 
 
@@ -286,7 +285,7 @@ class Agent_DDPG(Agent):
                                 params=trainable_weights, 
                                 loss=loss)
         self.ddpg_train_fn = K.function(
-                inputs=[states, next_state_value, discounted_rewards, action_one_hot],
+                inputs=[states, next_state_value, rewards, action_one_hot],
                 outputs=[loss, actor_loss, critic_loss],
                 updates=updates)
     
