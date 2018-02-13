@@ -79,7 +79,7 @@ class Agent_DDPG(Agent):
 
 
         self.gamma = args.ddpg_discount_factor
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.001
         self.actor, self.critic = self.build_model()
         self.actor_target, self.critic_target = self.build_model()
         self.baseline = args.ddpg_baseline 
@@ -128,14 +128,15 @@ class Agent_DDPG(Agent):
         while True:
             if args.do_render:
                 env.env.render()
-            if len(self.reply_buffer) > self.train_start:
-                critic_loss, actor_loss = self.updates(32)
             if self.epsilon > self.epsilon_end:
                 self.epsilon -= self.epsilon_decay_step
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
                 self.update_reply_buffer()
+                if len(self.reply_buffer) > self.train_start:
+                    #critic_loss, actor_loss = self.updates(32)
+                    critic_loss, actor_loss = self.updates(len(self.rewards))
                 self.states, self.next_states, self.actions, self.rewards = [], [], [], []
 
 
@@ -236,6 +237,10 @@ class Agent_DDPG(Agent):
         cnn_output = self.shared_net(pixel_input)
         
         #actor
+        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        cnn_output = Flatten(name='shared_flatten')(x)
         x = Dense(64, activation='relu', kernel_initializer='he_uniform')(cnn_output)
         x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
         actor_output = Dense(self.action_size, activation='softmax')(x)
@@ -243,9 +248,15 @@ class Agent_DDPG(Agent):
         
         #critic
         action_input = Input(shape=(self.action_size,))
-        x = Concatenate(axis=-1)([cnn_output, action_input])
-        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
+        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        cnn_output = Flatten(name='shared_flatten')(x)
+        x1 = Dense(64, activation='linear')(cnn_output)
+        x2 = Dense(64, activation='linear')(action_input)
+        x = Multiply()([x1, x2])
         x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
+        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=[pixel_input, action_input], outputs=critic_output)
         return actor, critic 
@@ -308,8 +319,7 @@ class Agent_DDPG(Agent):
         #trainable_weights
         actor_weights = []
         for wi in self.actor.trainable_weights:
-            if 'shared' not in wi.name:
-                actor_weights.append(wi)
+            actor_weights.append(wi)
         opt = Adam(lr=self.learning_rate)
         updates = opt.get_updates(
                                 params=actor_weights, 
