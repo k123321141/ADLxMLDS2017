@@ -185,8 +185,7 @@ class Agent_DDPG(Agent):
             step += 1
             if done:
                 self.prev_x = None
-            else:
-                state = next_state
+            state = next_state
     
     def real_act(self, action):
         if action == 0:

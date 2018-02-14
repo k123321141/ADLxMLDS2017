@@ -166,8 +166,7 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
-            else:
-                state = next_state
+            state = next_state
     
     def real_act(self, action):
         if action == 0:
@@ -296,10 +295,8 @@ class Agent_AC(Agent):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
-        #discounted_rewards = self.discount_rewards(rewards)
         
         rewards = rewards.reshape([-1, 1])
-        #discounted_rewards = discounted_rewards.reshape([-1, 1])
          
         states = np.vstack([self.states])
         next_states = np.vstack([self.next_states])
