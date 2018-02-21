@@ -84,6 +84,11 @@ class Agent_AC(Agent):
         _, self.critic_target = self.build_model()
         self.baseline = args.ac_baseline 
         self.set_a2c_train_fn()
+        
+        self.epsilon = args.ac_epsilon
+        self.epsilon_end = args.ac_epsilon_end
+        self.exploration_steps = args.ac_exploration_steps
+        self.epsilon_decay_step = (self.epsilon - self.epsilon_end) / self.exploration_steps
         #summary
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -119,6 +124,8 @@ class Agent_AC(Agent):
         while True:
             if args.do_render:
                 env.env.render()
+            if self.epsilon > self.epsilon_end:
+                self.epsilon -= self.epsilon_decay_step
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
@@ -152,7 +159,11 @@ class Agent_AC(Agent):
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
 
-            action = self.act(x)
+            #random eploration action
+            if np.random.rand() <= self.epsilon:
+                action = random.randrange(self.action_size)
+            else:
+                action = self.act(x)
             next_state, reward, terminal, info = env.step(self.real_act(action))
             next_x = prepro(next_state)
             next_x = next_x - cur_x
