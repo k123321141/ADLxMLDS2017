@@ -315,7 +315,7 @@ class Agent_AC(Agent):
         states = np.vstack([self.states])
         #next_states = np.vstack([self.next_states])
         #state value
-        state_values = self.critic.predict(states)        
+        state_values = self.critic_target.predict(states)        
         #advantage_fn = rewards - state_values + self.gamma * next_state_values
         advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
         for i, act in enumerate(self.actions):
