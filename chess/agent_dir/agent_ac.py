@@ -265,7 +265,7 @@ class Agent_AC(Agent):
         log_probs = K.log(action_probs)
         critic_value = self.critic([states,]) 
 
-        actor_loss = - K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
+        actor_loss = -1. *  K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
         critic_loss = K.mean(K.sum(K.square(target - critic_value), axis=-1) )
         #entropy = - K.mean(action_probs * K.log(action_probs))
        
