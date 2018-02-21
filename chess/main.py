@@ -26,6 +26,7 @@ def parse():
         from argument import add_arguments
         parser = add_arguments(parser)
     except:
+        print('except')
         pass
     args = parser.parse_args()
     return args

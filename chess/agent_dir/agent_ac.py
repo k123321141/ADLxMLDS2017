@@ -1,13 +1,14 @@
 from agent_dir.agent import Agent
 import gym
 import numpy as np
+
 from keras.models import *
 from keras.layers import * 
 from keras.optimizers import Adam
 import scipy,keras
 import keras.backend as K
 import tensorflow as tf
-import sys,os
+import sys,os,random
 from collections import deque
 
 def prepro(I):
@@ -136,7 +137,7 @@ class Agent_AC(Agent):
                 #for log
                 episode += 1
                 que.append(score)
-                print('Episode: %d - Score: %f.' % (episode,score))
+                print('Episode: %d - Score: %2.1f - Epsilon: %.4f' % (episode,score,self.epsilon))
                 sys.stdout.flush()
                 if episode > 1 and episode % args.ac_save_interval == 0:
                     print('save model to %s.' % args.ac_model)
@@ -265,7 +266,7 @@ class Agent_AC(Agent):
         critic_value = self.critic([states,]) 
 
         actor_loss = - K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
-        critic_loss = K.mean(K.square(target - critic_value))
+        critic_loss = K.mean(K.sum(K.square(target - critic_value), axis=-1) )
         #entropy = - K.mean(action_probs * K.log(action_probs))
        
         #loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
@@ -318,7 +319,7 @@ class Agent_AC(Agent):
         #advantage_fn = rewards - state_values + self.gamma * next_state_values
         advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
         for i, act in enumerate(self.actions):
-            advantage_fn[i, act] = state_values[i,0]
+            advantage_fn[i, act] = discounted_rewards[i,0] - state_values[i,0]
         target = discounted_rewards
         self.a2c_train_fn([states, target, advantage_fn]) 
         self.update_target_networks()
