@@ -81,6 +81,7 @@ class Agent_AC(Agent):
         self.gamma = args.ac_discount_factor
         self.learning_rate = 0.0001
         self.actor, self.critic = self.build_model()
+        _, self.critic_target = self.build_model()
         self.baseline = args.ac_baseline 
         self.set_a2c_train_fn()
         #summary
@@ -154,7 +155,7 @@ class Agent_AC(Agent):
             action = self.act(x)
             next_state, reward, terminal, info = env.step(self.real_act(action))
             next_x = prepro(next_state)
-            next_x = next_x - x
+            next_x = next_x - cur_x
             
             score += reward
             done = reward != 0  #someone get the point
@@ -246,17 +247,18 @@ class Agent_AC(Agent):
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         states = K.placeholder(shape=(None, 6400), dtype='float32')
         target = K.placeholder(shape=(None, 1), dtype='float32')
-        advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
+        advantage_fn = K.placeholder(shape=(None, self.action_size), dtype='float32')
 
         action_probs = self.actor([states,])
         log_probs = K.log(action_probs)
         critic_value = self.critic([states,]) 
 
-        actor_loss = - K.mean(log_probs * advantage_fn )
+        actor_loss = - K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
         critic_loss = K.mean(K.square(target - critic_value))
-        entropy = - K.mean(action_probs * K.log(action_probs))
+        #entropy = - K.mean(action_probs * K.log(action_probs))
        
-        loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
+        #loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
+        loss = actor_loss + critic_loss
         
         #trainable_weights
         trainable_weights = []
@@ -273,7 +275,7 @@ class Agent_AC(Agent):
                                 loss=loss)
         self.a2c_train_fn = K.function(
                 inputs=[states, target, advantage_fn],
-                outputs=[loss],
+                outputs=[actor_loss, critic_loss],
                 updates=updates)
     
     #train funcfion
@@ -295,19 +297,29 @@ class Agent_AC(Agent):
         actions = np.vstack(self.actions)
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
-        
-        rewards = rewards.reshape([-1, 1])
+        discounted_rewards = self.discount_rewards(rewards)
+        discounted_rewards = discounted_rewards.reshape([-1, 1])
          
         states = np.vstack([self.states])
-        next_states = np.vstack([self.next_states])
+        #next_states = np.vstack([self.next_states])
         #state value
         state_values = self.critic.predict(states)        
-        next_state_values = self.critic.predict(next_states)   
-        next_state_values[-1,0] = 0
-        advantage_fn = rewards - (state_values - self.gamma * next_state_values)
-        target = rewards + self.gamma * next_state_values
+        #advantage_fn = rewards - state_values + self.gamma * next_state_values
+        advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
+        for i, act in enumerate(self.actions):
+            advantage_fn[i, act] = state_values[i,0]
+        target = discounted_rewards
         self.a2c_train_fn([states, target, advantage_fn]) 
+        self.update_target_networks()
+
+    def update_target_networks(self):
+        #critic
+        critic_weights = self.critic.get_weights()
+        critic_target_weights = self.critic_target.get_weights()
         
+        for i in range(len(critic_weights)):
+            critic_target_weights[i] = self.args.TAU * critic_weights[i] + (1. - self.args.TAU) * critic_target_weights[i]
+        self.critic_target.set_weights(critic_target_weights)
     def load(self, name):
         actor_path = name.replace('.h5','_actor.h5')
         critic_path = name.replace('.h5','_critic.h5')

@@ -173,7 +173,7 @@ class Agent_DDPG(Agent):
 
             next_state, reward, terminal, info = env.step(self.real_act(action))
             next_x = prepro(next_state)
-            next_x = next_x - x
+            next_x = next_x - cur_x
              
             score += reward
             done = reward != 0  #someone get the point
