@@ -265,29 +265,31 @@ class Agent_AC(Agent):
         log_probs = K.log(action_probs)
         critic_value = self.critic([states,]) 
 
-        actor_loss = -1. *  K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
+        actor_loss = -K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
         critic_loss = K.mean(K.sum(K.square(target - critic_value), axis=-1) )
         #entropy = - K.mean(action_probs * K.log(action_probs))
        
         #loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
         loss = actor_loss + critic_loss
         
+        opt = Adam(lr=0.001)
         #trainable_weights
-        trainable_weights = []
-        for wi in self.actor.trainable_weights:
-            if wi not in trainable_weights:
-                trainable_weights.append(wi)
-        for wi in self.critic.trainable_weights:
-            if wi not in trainable_weights:
-                trainable_weights.append(wi)
+        updates = opt.get_updates(
+                                params=self.actor.trainable_weights, 
+                                loss=actor_loss)
+        self.actor_train_fn = K.function(
+                inputs=[states, target, advantage_fn],
+                outputs=[actor_loss,],
+                updates=updates)
+        
 
         opt = Adam(lr=0.001)
         updates = opt.get_updates(
-                                params=trainable_weights, 
-                                loss=loss)
-        self.a2c_train_fn = K.function(
+                                params=self.critic.trainable_weights, 
+                                loss=critic_loss)
+        self.critic_train_fn = K.function(
                 inputs=[states, target, advantage_fn],
-                outputs=[actor_loss, critic_loss],
+                outputs=[critic_loss, ],
                 updates=updates)
     
     #train funcfion
@@ -321,7 +323,8 @@ class Agent_AC(Agent):
         for i, act in enumerate(self.actions):
             advantage_fn[i, act] = discounted_rewards[i,0] - state_values[i,0]
         target = discounted_rewards
-        self.a2c_train_fn([states, target, advantage_fn]) 
+        self.critic_train_fn([states, target, advantage_fn]) 
+        self.actor_train_fn([states, target, advantage_fn]) 
         self.update_target_networks()
 
     def update_target_networks(self):
