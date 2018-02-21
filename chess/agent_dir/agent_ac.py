@@ -244,6 +244,7 @@ class Agent_AC(Agent):
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
         prob = self.actor.predict(state, batch_size=1).flatten()
+        #print(prob)
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         return action 
 
@@ -265,7 +266,7 @@ class Agent_AC(Agent):
         log_probs = K.log(action_probs)
         critic_value = self.critic([states,]) 
 
-        actor_loss = -K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
+        actor_loss = K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
         critic_loss = K.mean(K.sum(K.square(target - critic_value), axis=-1) )
         #entropy = - K.mean(action_probs * K.log(action_probs))
        
