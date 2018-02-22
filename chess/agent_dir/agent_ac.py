@@ -134,7 +134,7 @@ class Agent_AC(Agent):
                 #every 21 point per update 
                 self.update_reply_buffer()
                 if len(self.reply_buffer) > self.train_start:
-                    self.update_actor_critic()
+                    self.update_actor_critic(len(self.rewards))
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
 
 
@@ -322,7 +322,7 @@ class Agent_AC(Agent):
         return discounted_rewards
 
     #train funcfion
-    def update_actor_critic(self):
+    def update_actor_critic(self, batch_size):
         
         batch = random.sample(self.reply_buffer, batch_size)
         states, next_states, rewards, actions, done = [],[],[],[],[]
@@ -342,11 +342,17 @@ class Agent_AC(Agent):
         state_values = self.critic_target.predict(states)       
         next_state_values = self.critic_target.predict(next_states)       
         next_state_values[-1,0] = 0.
-        advantage_fn = rewards - (state_values - next_state_values)
-        #advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
+        buf = rewards - (state_values - next_state_values)
+        advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
+        target = np.zeros_like(state_values)
+
         for i, act in enumerate(self.actions):
-            advantage_fn[i, act] = discounted_rewards[i,0] - state_values[i,0]
-        target = discounted_rewards
+            advantage_fn[i, act] = buf[i,0]
+            if done[i]:
+                target[i,0] = rewards[i,0]             
+            else:
+                target[i,0] = rewards[i,0] + self.gamma * next_state_values[i,0]
+
         self.critic_train_fn([states, target, advantage_fn]) 
         self.actor_train_fn([states, target, advantage_fn]) 
         self.update_target_networks()
