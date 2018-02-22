@@ -137,7 +137,7 @@ class Agent_DDPG(Agent):
                 if len(self.reply_buffer) > self.train_start:
                     #critic_loss, actor_loss = self.updates(32)
                     critic_loss, actor_loss = self.updates(len(self.rewards))
-                self.states, self.next_states, self.actions, self.rewards = [], [], [], []
+                self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
 
 
                 #for log

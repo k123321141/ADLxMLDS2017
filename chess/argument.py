@@ -52,9 +52,9 @@ def add_arguments(parser):
     parser.add_argument('--ac_save_interval', type=int, default=10, help='how many episodes per saving')
     parser.add_argument('--ac_update_target', type=int, default=1, help='frequency of updating target network per episode')
     parser.add_argument('--ac_train_start', type=int, default=1, help='random action before start training')
-    parser.add_argument('--ac_epsilon', type=float, default=0.5, help='start epsilon')
+    parser.add_argument('--ac_epsilon', type=float, default=0.1, help='start epsilon')
     parser.add_argument('--ac_epsilon_end', type=float, default=0.1, help='end epsilon')
-    parser.add_argument('--ac_exploration_steps', type=float, default=500000, help='how many step in env per epsilon decay')
+    parser.add_argument('--ac_exploration_steps', type=float, default=2000000, help='how many step in env per epsilon decay')
     
     #ddpg setting 
     parser.add_argument('--ddpg_model', default=join('.','models','pong_ddpg.h5'), help='path to save model for trainging')

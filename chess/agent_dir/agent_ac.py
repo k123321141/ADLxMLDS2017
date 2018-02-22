@@ -86,6 +86,7 @@ class Agent_AC(Agent):
         self.baseline = args.ac_baseline 
         self.set_a2c_train_fn()
         
+        self.train_start = args.ac_train_start
         self.epsilon = args.ac_epsilon
         self.epsilon_end = args.ac_epsilon_end
         self.exploration_steps = args.ac_exploration_steps
@@ -106,6 +107,7 @@ class Agent_AC(Agent):
         self.actions = []
         self.rewards = []
         self.done = []
+        self.reply_buffer = deque(maxlen=args.reply_buffer)
         
         actor_path = args.ac_model.replace('.h5','_actor.h5')
         critic_path = args.ac_model.replace('.h5','_critic.h5')
@@ -130,8 +132,10 @@ class Agent_AC(Agent):
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
-                self.update_actor_critic()
-                self.states, self.next_states, self.actions, self.rewards = [], [], [], []
+                self.update_reply_buffer()
+                if len(self.reply_buffer) > self.train_start:
+                    self.update_actor_critic()
+                self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
 
 
                 #for log
@@ -255,6 +259,16 @@ class Agent_AC(Agent):
         self.rewards.append(reward)
         self.actions.append(action)
         self.done.append(done)
+    
+    def update_reply_buffer(self):
+        actions = np.vstack(self.actions)
+        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
+        rewards = np.array(self.rewards)
+        
+        num = len(self.rewards)
+        for i in range(num):
+            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], self.done[i]]
+            self.reply_buffer.append(buf)
     def set_a2c_train_fn(self):
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
@@ -266,7 +280,7 @@ class Agent_AC(Agent):
         log_probs = K.log(action_probs)
         critic_value = self.critic([states,]) 
 
-        actor_loss = K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
+        actor_loss = -K.mean(K.sum(log_probs * advantage_fn, axis=-1) )
         critic_loss = K.mean(K.sum(K.square(target - critic_value), axis=-1) )
         #entropy = - K.mean(action_probs * K.log(action_probs))
        
@@ -309,18 +323,27 @@ class Agent_AC(Agent):
 
     #train funcfion
     def update_actor_critic(self):
-        actions = np.vstack(self.actions)
-        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
-        rewards = np.array(self.rewards)
-        discounted_rewards = self.discount_rewards(rewards)
-        discounted_rewards = discounted_rewards.reshape([-1, 1])
+        
+        batch = random.sample(self.reply_buffer, batch_size)
+        states, next_states, rewards, actions, done = [],[],[],[],[]
+        for b in batch:
+            states.append(b[0])
+            next_states.append(b[1])
+            rewards.append(b[2])
+            actions.append(b[3])
+            done.append(b[4])
+        states = np.vstack(states)
+        next_states = np.vstack(next_states)
+        actions = np.vstack(actions)
+        rewards = np.vstack(rewards)
          
-        states = np.vstack([self.states])
         #next_states = np.vstack([self.next_states])
         #state value
-        state_values = self.critic_target.predict(states)        
-        #advantage_fn = rewards - state_values + self.gamma * next_state_values
-        advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
+        state_values = self.critic_target.predict(states)       
+        next_state_values = self.critic_target.predict(next_states)       
+        next_state_values[-1,0] = 0.
+        advantage_fn = rewards - (state_values - next_state_values)
+        #advantage_fn = np.zeros([len(self.rewards), self.action_size], dtype='float32')
         for i, act in enumerate(self.actions):
             advantage_fn[i, act] = discounted_rewards[i,0] - state_values[i,0]
         target = discounted_rewards
@@ -341,6 +364,7 @@ class Agent_AC(Agent):
         critic_path = name.replace('.h5','_critic.h5')
         self.actor.load_weights(actor_path)
         self.critic.load_weights(critic_path)
+        self.critic_target.load_weights(critic_path)
 
     def save(self, name):
         self.actor.save_weights(name.replace('.h5','_actor.h5'))
