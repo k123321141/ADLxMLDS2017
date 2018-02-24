@@ -69,6 +69,8 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_epsilon', type=float, default=0.5, help='start epsilon')
     parser.add_argument('--ddpg_epsilon_end', type=float, default=0.1, help='end epsilon')
     parser.add_argument('--ddpg_exploration_steps', type=float, default=500000, help='how many step in env per epsilon decay')
+    parser.add_argument('--ddpg_update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
+    parser.add_argument('--ddpg_TAU', type=int, default=0.3, help='the rate of target networks updating')
 
     parser.add_argument('--TAU', type=int, default=0.1, help='the rate of target networks updating')
     parser.add_argument('--update_target_frequency', type=int, default=10, help='frequency of updating target network per episode')

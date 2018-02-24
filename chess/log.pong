@@ -1,0 +1,170 @@
+Using TensorFlow backend.
+2018-02-24 16:17:42.603567: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-02-24 16:17:42.603594: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-02-24 16:17:42.603599: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2018-02-24 16:17:42.603603: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-02-24 16:17:42.603607: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2018-02-24 16:17:43.089332: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-02-24 16:17:43.089585: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+name: GeForce GTX 970
+major: 5 minor: 2 memoryClockRate (GHz) 1.253
+pciBusID 0000:01:00.0
+Total memory: 3.94GiB
+Free memory: 3.87GiB
+2018-02-24 16:17:43.089596: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2018-02-24 16:17:43.089600: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2018-02-24 16:17:43.089606: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+train a new model
+Episode: 1 - Score: -20.000000.
+Episode: 2 - Score: -21.000000.
+Episode: 3 - Score: -19.000000.
+Episode: 4 - Score: -21.000000.
+Episode: 5 - Score: -19.000000.
+Episode: 6 - Score: -18.000000.
+Episode: 7 - Score: -20.000000.
+Episode: 8 - Score: -21.000000.
+Episode: 9 - Score: -21.000000.
+Episode: 10 - Score: -18.000000.
+save model to ./models/pong_pg.h5.
+Episode: 11 - Score: -21.000000.
+Episode: 12 - Score: -18.000000.
+Episode: 13 - Score: -21.000000.
+Episode: 14 - Score: -21.000000.
+Episode: 15 - Score: -20.000000.
+Episode: 16 - Score: -21.000000.
+Episode: 17 - Score: -20.000000.
+Episode: 18 - Score: -19.000000.
+Episode: 19 - Score: -21.000000.
+Episode: 20 - Score: -21.000000.
+save model to ./models/pong_pg.h5.
+Episode: 21 - Score: -20.000000.
+Episode: 22 - Score: -20.000000.
+Episode: 23 - Score: -20.000000.
+Episode: 24 - Score: -21.000000.
+Episode: 25 - Score: -20.000000.
+Episode: 26 - Score: -21.000000.
+Episode: 27 - Score: -19.000000.
+Episode: 28 - Score: -21.000000.
+Episode: 29 - Score: -21.000000.
+Episode: 30 - Score: -17.000000.
+save model to ./models/pong_pg.h5.
+Episode: 31 - Score: -21.000000.
+Episode: 32 - Score: -21.000000.
+Episode: 33 - Score: -20.000000.
+Episode: 34 - Score: -20.000000.
+Episode: 35 - Score: -21.000000.
+Episode: 36 - Score: -20.000000.
+Episode: 37 - Score: -20.000000.
+Episode: 38 - Score: -21.000000.
+Episode: 39 - Score: -20.000000.
+Episode: 40 - Score: -21.000000.
+save model to ./models/pong_pg.h5.
+Episode: 41 - Score: -21.000000.
+Episode: 42 - Score: -21.000000.
+Episode: 43 - Score: -21.000000.
+Episode: 44 - Score: -21.000000.
+Episode: 45 - Score: -21.000000.
+Episode: 46 - Score: -21.000000.
+Episode: 47 - Score: -21.000000.
+Episode: 48 - Score: -21.000000.
+Episode: 49 - Score: -20.000000.
+Episode: 50 - Score: -20.000000.
+save model to ./models/pong_pg.h5.
+Episode: 51 - Score: -21.000000.
+Episode: 52 - Score: -21.000000.
+Episode: 53 - Score: -20.000000.
+Episode: 54 - Score: -21.000000.
+Episode: 55 - Score: -21.000000.
+Episode: 56 - Score: -21.000000.
+Episode: 57 - Score: -20.000000.
+Episode: 58 - Score: -21.000000.
+Episode: 59 - Score: -21.000000.
+Episode: 60 - Score: -21.000000.
+save model to ./models/pong_pg.h5.
+Episode: 61 - Score: -21.000000.
+Episode: 62 - Score: -20.000000.
+Episode: 63 - Score: -21.000000.
+Episode: 64 - Score: -21.000000.
+Episode: 65 - Score: -21.000000.
+Episode: 66 - Score: -19.000000.
+Episode: 67 - Score: -21.000000.
+Episode: 68 - Score: -21.000000.
+Episode: 69 - Score: -21.000000.
+Episode: 70 - Score: -21.000000.
+save model to ./models/pong_pg.h5.
+Episode: 71 - Score: -19.000000.
+Episode: 72 - Score: -19.000000.
+Episode: 73 - Score: -21.000000.
+Episode: 74 - Score: -19.000000.
+Episode: 75 - Score: -21.000000.
+Episode: 76 - Score: -18.000000.
+Episode: 77 - Score: -21.000000.
+Episode: 78 - Score: -20.000000.
+Episode: 79 - Score: -21.000000.
+Episode: 80 - Score: -20.000000.
+save model to ./models/pong_pg.h5.
+Episode: 81 - Score: -21.000000.
+Episode: 82 - Score: -21.000000.
+Episode: 83 - Score: -20.000000.
+Episode: 84 - Score: -21.000000.
+Episode: 85 - Score: -19.000000.
+Episode: 86 - Score: -19.000000.
+Episode: 87 - Score: -19.000000.
+Episode: 88 - Score: -19.000000.
+Episode: 89 - Score: -20.000000.
+Episode: 90 - Score: -20.000000.
+save model to ./models/pong_pg.h5.
+Episode: 91 - Score: -21.000000.
+Episode: 92 - Score: -21.000000.
+Episode: 93 - Score: -19.000000.
+Episode: 94 - Score: -21.000000.
+Episode: 95 - Score: -21.000000.
+Episode: 96 - Score: -20.000000.
+Episode: 97 - Score: -21.000000.
+Episode: 98 - Score: -21.000000.
+Episode: 99 - Score: -21.000000.
+Episode: 100 - Score: -20.000000.
+save model to ./models/pong_pg.h5.
+Episode: 101 - Score: -21.000000.
+Episode: 102 - Score: -21.000000.
+Episode: 103 - Score: -19.000000.
+Episode: 104 - Score: -21.000000.
+Episode: 105 - Score: -20.000000.
+Episode: 106 - Score: -21.000000.
+Episode: 107 - Score: -21.000000.
+Episode: 108 - Score: -19.000000.
+Episode: 109 - Score: -21.000000.
+Episode: 110 - Score: -21.000000.
+save model to ./models/pong_pg.h5.
+Episode: 111 - Score: -19.000000.
+Episode: 112 - Score: -21.000000.
+Episode: 113 - Score: -21.000000.
+Episode: 114 - Score: -19.000000.
+Episode: 115 - Score: -21.000000.
+Episode: 116 - Score: -19.000000.
+Episode: 117 - Score: -20.000000.
+Episode: 118 - Score: -20.000000.
+Episode: 119 - Score: -21.000000.
+Episode: 120 - Score: -20.000000.
+save model to ./models/pong_pg.h5.
+Episode: 121 - Score: -19.000000.
+Episode: 122 - Score: -21.000000.
+Episode: 123 - Score: -21.000000.
+Episode: 124 - Score: -21.000000.
+Episode: 125 - Score: -20.000000.
+Episode: 126 - Score: -21.000000.
+Episode: 127 - Score: -21.000000.
+Episode: 128 - Score: -19.000000.
+Episode: 129 - Score: -21.000000.
+Episode: 130 - Score: -21.000000.
+save model to ./models/pong_pg.h5.
+Episode: 131 - Score: -21.000000.
+Episode: 132 - Score: -19.000000.
+Episode: 133 - Score: -20.000000.
+Episode: 134 - Score: -20.000000.
+Episode: 135 - Score: -21.000000.
+Episode: 136 - Score: -21.000000.
+Episode: 137 - Score: -21.000000.
+Episode: 138 - Score: -21.000000.
+Episode: 139 - Score: -21.000000.
+./pong.sh: line 5: 18672 終止                  python3 -u ./main.py --train_pg --pg_model=./models/pong_pg.h5 --pg_summary=./summary/pong_pg_summary_keep

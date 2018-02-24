@@ -80,11 +80,10 @@ class Agent_DDPG(Agent):
         self.gamma = args.ddpg_discount_factor
         self.learning_rate = 0.001
         self.actor, self.critic = self.build_model()
-        self.actor_target, self.critic_target = self.build_model()
+        #self.actor_target, self.critic_target = self.build_model()
         self.baseline = args.ddpg_baseline 
         self.set_ddpg_train_fn()
         
-        self.train_start = args.ddpg_train_start
         self.epsilon = args.ddpg_epsilon
         self.epsilon_end = args.ddpg_epsilon_end
         self.exploration_steps = args.ddpg_exploration_steps
@@ -131,9 +130,7 @@ class Agent_DDPG(Agent):
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
-                self.update_reply_buffer()
-                if len(self.reply_buffer) > self.train_start:
-                    critic_loss, actor_loss = self.updates(len(self.rewards))
+                critic_loss, actor_loss = self.updates(len(self.rewards))
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
 
 
@@ -230,15 +227,10 @@ class Agent_DDPG(Agent):
         x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
         x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Flatten(name='shared_flatten')(x)
-        self.shared_net = Model(inputs=pixel_input, outputs=x, name='shared_network')
-        cnn_output = self.shared_net(pixel_input)
+        cnn_output = Flatten(name='shared_flatten')(x)
+        self.shared_net = Model(inputs=pixel_input, outputs=cnn_output, name='shared_network')
         
         #actor
-        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        cnn_output = Flatten(name='shared_flatten')(x)
         x = Dense(64, activation='relu', kernel_initializer='he_uniform')(cnn_output)
         x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
         actor_output = Dense(self.action_size, activation='softmax')(x)
@@ -246,14 +238,10 @@ class Agent_DDPG(Agent):
         
         #critic
         action_input = Input(shape=(self.action_size,))
-        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        cnn_output = Flatten(name='shared_flatten')(x)
-        x1 = Dense(64, activation='linear')(cnn_output)
-        x2 = Dense(64, activation='linear')(action_input)
+        x1 = Dense(64, activation='relu', kernel_initializer='he_uniform')(cnn_output)
+        x1 = Dense(32, activation='relu', kernel_initializer='he_uniform')(x1)
+        x2 = Dense(32, activation='linear')(action_input)
         x = Multiply()([x1, x2])
-        x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
         x = Dense(16, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=[pixel_input, action_input], outputs=critic_output)
@@ -272,27 +260,18 @@ class Agent_DDPG(Agent):
         self.rewards.append(reward)
         self.actions.append(action)
         self.done.append(done)
-    def update_reply_buffer(self):
-        actions = np.vstack(self.actions)
-        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
-        rewards = np.array(self.rewards)
-        
-        num = len(self.rewards)
-        for i in range(num):
-            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], self.done[i]]
-            self.reply_buffer.append(buf)
     def set_ddpg_train_fn(self):
         #critic gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         states = K.placeholder(shape=(None, 6400), dtype='float32')
-        target = K.placeholder(shape=(None, 1), dtype='float32')
+        discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         
         action_probs = self.actor([states,])
         critic_value = self.critic([states, action_one_hot])
 
         actor_loss = - K.mean(self.critic([states, action_probs]) )
-        critic_loss = K.mean(K.square( target - critic_value))
+        critic_loss = K.mean(K.square( discounted_rewards - critic_value))
        
         loss = actor_loss + critic_loss 
         '''
@@ -315,27 +294,21 @@ class Agent_DDPG(Agent):
                 updates=updates)
         '''
         #trainable_weights
-        actor_weights = []
-        for wi in self.actor.trainable_weights:
-            actor_weights.append(wi)
         opt = Adam(lr=self.learning_rate)
-        updates = opt.get_updates(
-                                params=actor_weights, 
+        actor_updates = opt.get_updates(
+                                params=self.actor.trainable_weights, 
                                 loss=actor_loss)
         self.actor_train_fn = K.function(
-                inputs=[states, target, action_one_hot],
+                inputs=[states,],
                 outputs=[actor_loss,],
                 updates=updates)
         
-        critic_weights = []
-        for wi in self.critic.trainable_weights:
-            critic_weights.append(wi)
         opt = Adam(lr=self.learning_rate)
         critic_updates = opt.get_updates(
-                                params=critic_weights, 
-                                loss=critic_loss)
+                                params=self.critic.trainable_weights, 
+                                loss=critic_loss * 5.)
         self.critic_train_fn = K.function(
-                inputs=[states, target, action_one_hot],
+                inputs=[states, discounted_rewards, action_one_hot],
                 outputs=[critic_loss],
                 updates=critic_updates)
     
@@ -355,63 +328,40 @@ class Agent_DDPG(Agent):
 
     #train funcfion
     def updates(self, batch_size):
-        batch = random.sample(self.reply_buffer, batch_size)
-        states, next_states, rewards, actions, done = [],[],[],[],[]
-        for b in batch:
-            states.append(b[0])
-            next_states.append(b[1])
-            rewards.append(b[2])
-            actions.append(b[3])
-            done.append(b[4])
-        states = np.vstack(states)
-        next_states = np.vstack(next_states)
-        actions = np.vstack(actions)
-        rewards = np.vstack(rewards)
+        states = np.vstack(self.states)
+        actions = np.vstack(self.actions)
+        one_hot_actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
+        rewards = np.array(self.rewards)
+        discounted_rewards = self.discount_rewards(rewards) 
         
-        next_state_values = self.critic_target.predict([next_states, self.actor_target.predict(next_states)])
-        target = np.zeros([len(rewards), 1], dtype='float')
-        for i in range(len(rewards)):
-            if done[i]:
-                target[i,0] = rewards[i,0]             
-            else:
-                target[i,0] = rewards[i,0] + next_state_values[i,0]
-        #need more details 
-        #next_state_values = self.critic_target.predict([next_states, self.actor_target.predict(next_states)])
-        #loss, actor_loss, critic_loss = self.ddpg_train_fn([states, next_state_values, rewards, actions]) 
-        #print(next_state_values[-10:])
-
-        #print((rewards + self.gamma*next_state_values)[-10:])
-        critic_loss = self.critic_train_fn([states, target, actions]) 
-        actor_loss = self.actor_train_fn([states, target, actions]) 
-        if self.update_target_counter % self.args.update_target_frequency == 0:
-            self.update_target_networks()
-            self.update_target_counter += 1
-        #print(loss, actor_loss, critic_loss)
-        #print(actor_loss, critic_loss, self.epsilon)
-        #print()
+        critic_loss = self.critic_train_fn([states, discounted_rewards, actions]) 
+        actor_loss = self.actor_train_fn([states,]) 
+        #self.update_target_networks()
         return critic_loss[0], actor_loss[0]
 
     def update_target_networks(self):
-        #actor
-        actor_weights = self.actor.get_weights()
-        actor_target_weights = self.actor_target.get_weights()
-        for i in range(len(actor_weights)):
-            actor_target_weights[i] = self.args.TAU * actor_weights[i] + (1. - self.args.TAU) * actor_target_weights[i]
-        self.actor_target.set_weights(actor_target_weights)
-        #critic
-        critic_weights = self.critic.get_weights()
-        critic_target_weights = self.critic_target.get_weights()
-        for i in range(len(critic_weights)):
-            critic_target_weights[i] = self.args.TAU * critic_weights[i] + (1. - self.args.TAU) * critic_target_weights[i]
-        self.critic_target.set_weights(critic_target_weights)
+        if self.update_target_counter % self.args.ddpg_update_target_frequency == 0:
+            #critic
+            critic_weights = self.critic.get_weights()
+            critic_target_weights = self.critic_target.get_weights()
+            for i in range(len(critic_weights)):
+                critic_target_weights[i] = self.args.TAU * critic_weights[i] + (1. - self.args.TAU) * critic_target_weights[i]
+            self.critic_target.set_weights(critic_target_weights)
+            #actor
+            actor_weights = self.actor.get_weights()
+            actor_target_weights = self.actor_target.get_weights()
+            for i in range(len(actor_weights)):
+                actor_target_weights[i] = self.args.TAU * actor_weights[i] + (1. - self.args.TAU) * actor_target_weights[i]
+            self.actor_target.set_weights(actor_target_weights)
+        self.update_target_counter +=1
         
     def load(self, name):
         actor_path = name.replace('.h5','_actor.h5')
         critic_path = name.replace('.h5','_critic.h5')
         self.actor.load_weights(actor_path)
-        self.actor_target.load_weights(actor_path)
+        #self.actor_target.load_weights(actor_path)
         self.critic.load_weights(critic_path)
-        self.critic_target.load_weights(critic_path)
+        #self.critic_target.load_weights(critic_path)
 
     def save(self, name):
         self.actor.save_weights(name.replace('.h5','_actor.h5'))
