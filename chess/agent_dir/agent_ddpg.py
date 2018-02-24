@@ -301,7 +301,7 @@ class Agent_DDPG(Agent):
         opt = Adam(lr=self.learning_rate)
         actor_updates = opt.get_updates(
                                 params=actor_training_weights, 
-                                loss=actor_loss)
+                                loss=-actor_loss)
         self.actor_train_fn = K.function(
                 inputs=[states,],
                 outputs=[actor_loss,],
