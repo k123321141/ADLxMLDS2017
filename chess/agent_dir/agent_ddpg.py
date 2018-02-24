@@ -8,6 +8,7 @@ import scipy,keras
 import keras.backend as K
 import tensorflow as tf
 import sys,os,random
+from collections import deque
 
 def prepro(I):
     I = I[35:195]
@@ -301,7 +302,7 @@ class Agent_DDPG(Agent):
         self.actor_train_fn = K.function(
                 inputs=[states,],
                 outputs=[actor_loss,],
-                updates=updates)
+                updates=actor_updates)
         
         opt = Adam(lr=self.learning_rate)
         critic_updates = opt.get_updates(
@@ -332,9 +333,9 @@ class Agent_DDPG(Agent):
         actions = np.vstack(self.actions)
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
-        discounted_rewards = self.discount_rewards(rewards) 
+        discounted_rewards = self.discount_rewards(rewards).reshape([-1,1]) 
         
-        critic_loss = self.critic_train_fn([states, discounted_rewards, actions]) 
+        critic_loss = self.critic_train_fn([states, discounted_rewards, one_hot_actions]) 
         actor_loss = self.actor_train_fn([states,]) 
         #self.update_target_networks()
         return critic_loss[0], actor_loss[0]
