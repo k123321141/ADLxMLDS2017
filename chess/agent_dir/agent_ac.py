@@ -107,6 +107,8 @@ class Agent_AC(Agent):
         self.actions = []
         self.rewards = []
         self.done = []
+        self.train_counter = 0
+        self.update_target_counter = 0
         self.reply_buffer = deque(maxlen=args.reply_buffer)
         
         actor_path = args.ac_model.replace('.h5','_actor.h5')
@@ -129,13 +131,14 @@ class Agent_AC(Agent):
                 env.env.render()
             if self.epsilon > self.epsilon_end:
                 self.epsilon -= self.epsilon_decay_step
+            if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
+                if self.train_counter % self.args.ac_train_frequency == 0:
+                    self.update_actor_critic(self.args.ac_batch_size)
+                self.train_counter += 1
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
                 self.update_reply_buffer()
-                if len(self.reply_buffer) > self.train_start:
-                    batch_size = min(len(self.reply_buffer), 3 * len(self.rewards))
-                    self.update_actor_critic(batch_size)
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
 
 
@@ -263,7 +266,6 @@ class Agent_AC(Agent):
     
     def update_reply_buffer(self):
         actions = np.vstack(self.actions)
-        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
         
         num = len(self.rewards)
@@ -286,27 +288,31 @@ class Agent_AC(Agent):
         #entropy = - K.mean(action_probs * K.log(action_probs))
        
         #loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
-        loss = actor_loss + critic_loss
-        
-        opt = Adam(lr=0.001)
+        #loss = actor_loss + critic_loss
+        critic_loss = critic_loss * 5.
+        opt = Adam(lr=self.learning_rate)
         #trainable_weights
-        updates = opt.get_updates(
+        actor_updates = opt.get_updates(
                                 params=self.actor.trainable_weights, 
                                 loss=actor_loss)
         self.actor_train_fn = K.function(
                 inputs=[states, target, advantage_fn],
                 outputs=[actor_loss,],
-                updates=updates)
+                updates=actor_updates)
         
 
-        opt = Adam(lr=0.001)
-        updates = opt.get_updates(
+        opt = Adam(lr=self.learning_rate)
+        critic_updates = opt.get_updates(
                                 params=self.critic.trainable_weights, 
                                 loss=critic_loss)
         self.critic_train_fn = K.function(
                 inputs=[states, target, advantage_fn],
                 outputs=[critic_loss, ],
-                updates=updates)
+                updates=critic_updates)
+        self.eval = K.function(
+                inputs=[states, target, advantage_fn],
+                outputs=[critic_loss, ],
+                updates=None)
     
     #train funcfion
     def discount_rewards(self, rewards):
@@ -337,17 +343,16 @@ class Agent_AC(Agent):
         next_states = np.vstack(next_states)
         actions = np.vstack(actions)
         rewards = np.vstack(rewards)
-         
-        #next_states = np.vstack([self.next_states])
+        #discounted_rewards = self.discount_rewards(rewards.reshape([-1,])) 
         #state value
         state_values = self.critic_target.predict(states)       
         next_state_values = self.critic_target.predict(next_states)       
-        next_state_values[-1,0] = 0.
         buf = rewards - (state_values - next_state_values)
-        advantage_fn = np.zeros_like(actions)
+        advantage_fn = np.zeros([batch_size, self.action_size], dtype=np.float32)
         target = np.zeros_like(state_values)
 
-        for i, act in enumerate(self.actions):
+        for i in range(batch_size):
+            act = actions[i,0]
             advantage_fn[i, act] = buf[i,0]
             if done[i]:
                 target[i,0] = rewards[i,0]             
@@ -356,15 +361,17 @@ class Agent_AC(Agent):
         self.critic_train_fn([states, target, advantage_fn]) 
         self.actor_train_fn([states, target, advantage_fn]) 
         self.update_target_networks()
-
+        
     def update_target_networks(self):
         #critic
-        critic_weights = self.critic.get_weights()
-        critic_target_weights = self.critic_target.get_weights()
-        
-        for i in range(len(critic_weights)):
-            critic_target_weights[i] = self.args.TAU * critic_weights[i] + (1. - self.args.TAU) * critic_target_weights[i]
-        self.critic_target.set_weights(critic_target_weights)
+        if self.update_target_counter % self.args.ac_update_target_frequency == 0:
+            critic_weights = self.critic.get_weights()
+            critic_target_weights = self.critic_target.get_weights()
+            self.update_target_counter +=1
+            for i in range(len(critic_weights)):
+                critic_target_weights[i] = self.args.TAU * critic_weights[i] + (1. - self.args.TAU) * critic_target_weights[i]
+            self.critic_target.set_weights(critic_target_weights)
+        self.update_target_counter +=1
     def load(self, name):
         actor_path = name.replace('.h5','_actor.h5')
         critic_path = name.replace('.h5','_critic.h5')

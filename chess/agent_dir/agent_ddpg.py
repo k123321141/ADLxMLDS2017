@@ -8,7 +8,6 @@ import scipy,keras
 import keras.backend as K
 import tensorflow as tf
 import sys,os,random
-from collections import deque
 
 def prepro(I):
     I = I[35:195]
@@ -106,7 +105,6 @@ class Agent_DDPG(Agent):
         self.actions = []
         self.rewards = []
         self.done = []
-        self.reply_buffer = deque(maxlen=args.reply_buffer)
         self.update_target_counter = 0
         
         actor_path = args.ddpg_model.replace('.h5','_actor.h5')
@@ -135,7 +133,6 @@ class Agent_DDPG(Agent):
                 #every 21 point per update 
                 self.update_reply_buffer()
                 if len(self.reply_buffer) > self.train_start:
-                    #critic_loss, actor_loss = self.updates(32)
                     critic_loss, actor_loss = self.updates(len(self.rewards))
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
 
