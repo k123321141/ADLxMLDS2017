@@ -267,12 +267,13 @@ class Agent_DDPG(Agent):
         discounted_rewards = K.placeholder(shape=(None, 1), dtype='float32')
         action_one_hot = K.placeholder(shape=(None, self.action_size), dtype='float32')
         
-        action_probs = self.actor([states,])
+        action_probs = self.actor([states,]) * action_one_hot
         critic_value = self.critic([states, action_one_hot])
 
         actor_loss = - K.mean(self.critic([states, action_probs]) )
         critic_loss = K.mean(K.square( discounted_rewards - critic_value))
-       
+        
+        critic_loss = critic_loss * critic_loss
         loss = actor_loss + critic_loss 
         '''
         #trainable_weights
@@ -301,16 +302,16 @@ class Agent_DDPG(Agent):
         opt = Adam(lr=self.learning_rate)
         actor_updates = opt.get_updates(
                                 params=actor_training_weights, 
-                                loss=-actor_loss)
+                                loss=-actor_loss*10)
         self.actor_train_fn = K.function(
-                inputs=[states,],
+                inputs=[states, action_one_hot],
                 outputs=[actor_loss,],
                 updates=actor_updates)
         
         opt = Adam(lr=self.learning_rate)
         critic_updates = opt.get_updates(
                                 params=self.critic.trainable_weights, 
-                                loss=critic_loss * 5.)
+                                loss=critic_loss )
         self.critic_train_fn = K.function(
                 inputs=[states, discounted_rewards, action_one_hot],
                 outputs=[critic_loss],
@@ -339,7 +340,7 @@ class Agent_DDPG(Agent):
         discounted_rewards = self.discount_rewards(rewards).reshape([-1,1]) 
         
         critic_loss = self.critic_train_fn([states, discounted_rewards, one_hot_actions]) 
-        actor_loss = self.actor_train_fn([states,]) 
+        actor_loss = self.actor_train_fn([states, one_hot_actions]) 
         #self.update_target_networks()
 
 
@@ -373,7 +374,7 @@ class Agent_DDPG(Agent):
     def load(self, name):
         actor_path = name.replace('.h5','_actor.h5')
         critic_path = name.replace('.h5','_critic.h5')
-        self.actor.load_weights(actor_path)
+        #self.actor.load_weights(actor_path)
         #self.actor_target.load_weights(actor_path)
         self.critic.load_weights(critic_path)
         #self.critic_target.load_weights(critic_path)
