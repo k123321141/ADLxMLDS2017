@@ -289,7 +289,7 @@ class Agent_AC(Agent):
        
         #loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
         #loss = actor_loss + critic_loss
-        critic_loss = critic_loss * 5.
+        critic_loss = critic_loss * 0.5
         opt = Adam(lr=self.learning_rate)
         #trainable_weights
         actor_updates = opt.get_updates(

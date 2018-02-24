@@ -228,21 +228,20 @@ class Agent_DDPG(Agent):
         x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
         x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        cnn_output = Flatten(name='shared_flatten')(x)
+        x = Flatten(name='shared_flatten')(x)
+        cnn_output = Dense(64, activation='relu', kernel_initializer='he_uniform', name='shared_relu')(x)
         self.shared_net = Model(inputs=pixel_input, outputs=cnn_output, name='shared_network')
         
         #actor
-        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(cnn_output)
-        x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
+        x = Dense(32, activation='relu', kernel_initializer='he_uniform')(cnn_output)
         actor_output = Dense(self.action_size, activation='softmax')(x)
         actor = Model(inputs=pixel_input, outputs=actor_output)
         
         #critic
         action_input = Input(shape=(self.action_size,))
-        x1 = Dense(64, activation='relu', kernel_initializer='he_uniform')(cnn_output)
-        x1 = Dense(32, activation='relu', kernel_initializer='he_uniform')(x1)
+        x1 = Dense(32, activation='relu', kernel_initializer='he_uniform')(cnn_output)
         x2 = Dense(32, activation='linear')(action_input)
-        x = Multiply()([x1, x2])
+        x = Concatenate(axis=-1)([x1, x2])
         x = Dense(16, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=[pixel_input, action_input], outputs=critic_output)
@@ -295,9 +294,13 @@ class Agent_DDPG(Agent):
                 updates=updates)
         '''
         #trainable_weights
+        actor_training_weights = []
+        for wi in self.actor.trainable_weights:
+            if 'shared' not in wi.name:
+                actor_training_weights.append(wi)
         opt = Adam(lr=self.learning_rate)
         actor_updates = opt.get_updates(
-                                params=self.actor.trainable_weights, 
+                                params=actor_training_weights, 
                                 loss=actor_loss)
         self.actor_train_fn = K.function(
                 inputs=[states,],
@@ -338,6 +341,17 @@ class Agent_DDPG(Agent):
         critic_loss = self.critic_train_fn([states, discounted_rewards, one_hot_actions]) 
         actor_loss = self.actor_train_fn([states,]) 
         #self.update_target_networks()
+
+
+        #for log
+        '''
+        outputs = self.critic.predict([states, one_hot_actions]).flatten().tolist()
+        l = discounted_rewards.flatten().tolist()
+        s = 3
+        print(outputs[-s:], outputs[:s])
+        print(l[-s:], l[:s])
+        print()
+        '''
         return critic_loss[0], actor_loss[0]
 
     def update_target_networks(self):
