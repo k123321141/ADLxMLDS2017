@@ -134,8 +134,11 @@ class Agent_AC(Agent):
                 self.epsilon -= self.epsilon_decay_step
             if self.global_step > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
                 if self.global_step % self.args.ac_train_frequency == 0:
+                    buf = cur_x.reshape([1, 6400])
+                    p1 = self.actor_target.predict(buf, batch_size=1)
                     self.update_actor_critic(self.args.ac_batch_size)
                     self.update_counter += 1
+                    p2 = self.actor_target.predict(buf, batch_size=1)
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 

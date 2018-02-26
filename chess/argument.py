@@ -50,7 +50,7 @@ def add_arguments(parser):
     parser.add_argument('--ac_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ac_save_interval', type=int, default=10, help='how many episodes per saving')
-    parser.add_argument('--ac_update_target_frequency', type=int, default=10, help='frequency of updating target network per episode')
+    parser.add_argument('--ac_update_target_frequency', type=int, default=100, help='frequency of updating target network per episode')
     parser.add_argument('--ac_train_start', type=int, default=10000, help='random action before start training')
     parser.add_argument('--ac_train_frequency', type=int, default=10, help='how many steps per update')
     parser.add_argument('--ac_batch_size', type=int, default=32, help='batch size per update')
@@ -72,7 +72,7 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
     parser.add_argument('--ddpg_TAU', type=int, default=0.3, help='the rate of target networks updating')
 
-    parser.add_argument('--TAU', type=int, default=0.1, help='the rate of target networks updating')
+    parser.add_argument('--TAU', type=int, default=1, help='the rate of target networks updating')
     parser.add_argument('--update_target_frequency', type=int, default=100, help='frequency of updating target network per episode')
     parser.add_argument('--reply_buffer', type=int, default=80000, help='memory size for reply experience')
     #bonus
