@@ -126,19 +126,17 @@ class Agent_AC(Agent):
         terminal = False 
         done = False
         state = env.reset()
+        c = ball_touch_bar =  0 # for counting timestamp when player controll bar to touch the ball
         while True:
             self.global_step += 1
             if args.do_render:
                 env.env.render()
             if self.epsilon > self.epsilon_end:
                 self.epsilon -= self.epsilon_decay_step
-            if self.global_step > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
+            if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
                 if self.global_step % self.args.ac_train_frequency == 0:
-                    buf = cur_x.reshape([1, 6400])
-                    p1 = self.actor_target.predict(buf, batch_size=1)
                     self.update_actor_critic(self.args.ac_batch_size)
                     self.update_counter += 1
-                    p2 = self.actor_target.predict(buf, batch_size=1)
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
@@ -187,10 +185,13 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
-                self.update_reply_buffer()
+                self.update_reply_buffer(ball_touch_bar)
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
+                c = ball_touch_bar =  0 # for counting timestamp when player controll bar to touch the ball
+            img = cur_x.reshape([80,80])
+            ball_touch_bar = c if (img[:,68:70] == 1).any() else ball_touch_bar
             state = next_state
-    
+            c += 1
     def real_act(self, action):
         if action == 0:
             return 0
@@ -266,12 +267,13 @@ class Agent_AC(Agent):
         self.actions.append(action)
         self.done.append(done)
     
-    def update_reply_buffer(self):
+    def update_reply_buffer(self, ball_touch_bar):
+        assert ball_touch_bar > 0
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards)
         discounted_rewards = discount(rewards, self.gamma) 
         num = len(self.rewards)
-        for i in range(num):
+        for i in range(max(0,ball_touch_bar - 60), ball_touch_bar):
             buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], self.done[i], discounted_rewards[i:i+1]]
             self.reply_buffer.append(buf)
     def set_a2c_train_fn(self):
@@ -337,13 +339,13 @@ class Agent_AC(Agent):
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
         #state value
         state_values = self.critic_target.predict(states)       
-        next_state_values = self.critic_target.predict(next_states)       
-
+        #next_state_values = self.critic_target.predict(next_states)       
+        '''
         for i in range(batch_size):
             if done[i]:
                 next_state_values[i, 0] = 0. 
-        advantage_fn = rewards + self.gamma*next_state_values - state_values
-        advantage_fn = advantage_fn * np.abs(discounted_rewards)
+        '''
+        advantage_fn = discounted_rewards - state_values
         self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
         self.update_target_networks()
         

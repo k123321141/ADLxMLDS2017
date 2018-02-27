@@ -108,6 +108,7 @@ class Agent_PG(Agent):
         terminal = False 
         done = False
         state = env.reset()
+        ss = 0
         while True:
             if args.do_render:
                 env.env.render()
@@ -156,6 +157,9 @@ class Agent_PG(Agent):
             step += 1
             if done:
                 self.prev_x = None
+                print(ss, reward)
+                ss = 0
+            ss += 1
     
     def real_act(self, action):
         if action == 0:
@@ -258,52 +262,12 @@ class Agent_PG(Agent):
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
         rewards = self.discount_rewards(rewards)
-        rewards = rewards / np.std(rewards - np.mean(rewards))
+        #print(rewards[:10])
+        #rewards = rewards / np.std(rewards - np.mean(rewards))
          
         X = np.vstack([self.states])
         self.train_fn([X, actions, rewards])
         
-    def update_src(self):
-        #print('',len(self.actions) ,len(self.probs), len(self.rewards), len(self.states))
-        actions = np.vstack(self.actions)
-        actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
-        probs = np.vstack(self.probs)
-        #gradients = probs * actions 
-        gradients = actions - probs
-        #gradients = (actions - probs) * actions
-        
-        rewards = np.vstack(self.rewards)
-        #rewards = self.discount_rewards(rewards)
-        #rewards = rewards / np.std(rewards - np.mean(rewards))
-        #gradients *= rewards
-        gradients *= np.sum(rewards)
-        
-        X = np.squeeze(np.vstack([self.states]))
-        Y = probs + self.learning_rate * gradients
-        #Y = probs + gradients
-        ''' 
-        x = X[10:13,:]
-        y = Y[10:13,:]
-        tt = self.model.predict(x)
-        '''
-
-        '''
-        print(actions.shape)
-        print(probs.shape)
-        print(sum(self.rewards))
-        print(X.shape,Y.shape)
-        '''
-        self.model.train_on_batch(X, Y)
-        
-        #t2 = self.model.predict(x)
-        '''
-        print(self.actions[10:13])
-        print('reward',sum(self.rewards))
-        print('0. y\n', y)
-        print('1. prob\n',tt)
-        print('2. prob\n',t2)
-        print('')
-        '''
         
         
     def load(self, name):
