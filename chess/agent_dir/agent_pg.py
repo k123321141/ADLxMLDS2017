@@ -108,7 +108,6 @@ class Agent_PG(Agent):
         terminal = False 
         done = False
         state = env.reset()
-        ss = 0
         while True:
             if args.do_render:
                 env.env.render()
@@ -157,9 +156,6 @@ class Agent_PG(Agent):
             step += 1
             if done:
                 self.prev_x = None
-                print(ss, reward)
-                ss = 0
-            ss += 1
     
     def real_act(self, action):
         if action == 0:
@@ -206,6 +202,7 @@ class Agent_PG(Agent):
         model.add(Flatten())
         model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
+        model.add(Dense(16, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(self.action_size, activation='softmax'))
         return model
 
@@ -262,8 +259,7 @@ class Agent_PG(Agent):
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
         rewards = self.discount_rewards(rewards)
-        #print(rewards[:10])
-        #rewards = rewards / np.std(rewards - np.mean(rewards))
+        rewards = rewards / np.std(rewards - np.mean(rewards))
          
         X = np.vstack([self.states])
         self.train_fn([X, actions, rewards])
