@@ -1,5 +1,6 @@
 #!/bin/bash
 #rm ./models/pong_ddpg*
+rm ./summary/pong_ddpg/*
 python3 -u ./main.py --train_ddpg \
     --pg_model=./models/pong_ddpg.h5 \
     --pg_summary=./summary/pong_ddpg/summary

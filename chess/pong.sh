@@ -1,5 +1,6 @@
 #!/bin/bash
 rm ./models/pong_pg.h5
+rm ./summary/pong_pg_summary_keep/*
 python3 -u ./main.py --train_pg \
     --pg_model=./models/pong_pg.h5 \
     --pg_summary=./summary/pong_pg_summary_keep

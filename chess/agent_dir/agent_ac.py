@@ -120,13 +120,12 @@ class Agent_AC(Agent):
             print('train a new model')
 
         self.prev_x = None
-        score, win, lose, step,que = 0,0,0,0,deque()
+        score, win, lose, step,que = 0,0,0,0,deque(maxlen=30)
         episode = 0
 
         terminal = False 
         done = False
         state = env.reset()
-        c = ball_touch_bar =  0 # for counting timestamp when player controll bar to touch the ball
         while True:
             self.global_step += 1
             if args.do_render:
@@ -135,8 +134,20 @@ class Agent_AC(Agent):
                 self.epsilon -= self.epsilon_decay_step
             if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
                 if self.global_step % self.args.ac_train_frequency == 0:
-                    self.update_actor_critic(self.args.ac_batch_size)
+                    loss, actor_loss, critic_loss, entropy = self.update_actor_critic(self.args.ac_batch_size)
                     self.update_counter += 1
+
+                    p1,p2,p3 = self.prev_probs.tolist()
+                    
+                    #summary
+                    stats = [loss, actor_loss, critic_loss, entropy, p1, p2, p3]
+
+                    for i in range(len(stats)):
+                        self.sess.run(self.update_ops[i], feed_dict={
+                            self.summary_placeholders[i]: float(stats[i])
+                        })
+                    summary_str = self.sess.run(self.summary_op)
+                    self.summary_writer.add_summary(summary_str, self.update_counter)
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
@@ -150,15 +161,8 @@ class Agent_AC(Agent):
                 if episode > 1 and episode % args.ac_save_interval == 0:
                     print('save model to %s.' % args.ac_model)
                     self.save(args.ac_model)
-                #summary
-                stats = [score, win, step, lose, np.mean(que) ]
 
-                for i in range(len(stats)):
-                    self.sess.run(self.update_ops[i], feed_dict={
-                        self.summary_placeholders[i]: float(stats[i])
-                    })
-                summary_str = self.sess.run(self.summary_op)
-                self.summary_writer.add_summary(summary_str, episode + 1)
+
                 
                 score, win, lose, step = 0,0,0,0
                     
@@ -185,13 +189,9 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
-                self.update_reply_buffer(ball_touch_bar)
+                self.update_reply_buffer()
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
-                c = ball_touch_bar =  0 # for counting timestamp when player controll bar to touch the ball
-            img = cur_x.reshape([80,80])
-            ball_touch_bar = c if (img[:,68:70] == 1).any() else ball_touch_bar
             state = next_state
-            c += 1
     def real_act(self, action):
         if action == 0:
             return 0
@@ -239,12 +239,14 @@ class Agent_AC(Agent):
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
         x = Flatten(name='shared_flatten')(x)
         x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
-        x = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
+        shared_out = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
         #actor
+        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(shared_out)
         actor_output = Dense(self.action_size, activation='softmax')(x)
         actor = Model(inputs=pixel_input, outputs=actor_output)
         
         #critic
+        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(shared_out)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=pixel_input, outputs=critic_output)
 
@@ -254,9 +256,10 @@ class Agent_AC(Agent):
 
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
-        prob = self.actor_target.predict(state, batch_size=1).flatten()
+        probs = self.actor_target.predict(state, batch_size=1).flatten()
         #print(prob)
-        action = np.random.choice(self.action_size, 1, p=prob)[0]
+        self.prev_probs = probs
+        action = np.random.choice(self.action_size, 1, p=probs)[0]
         return action 
 
     #train funcfion
@@ -267,13 +270,12 @@ class Agent_AC(Agent):
         self.actions.append(action)
         self.done.append(done)
     
-    def update_reply_buffer(self, ball_touch_bar):
-        assert ball_touch_bar > 0
+    def update_reply_buffer(self, ):
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards)
         discounted_rewards = discount(rewards, self.gamma) 
         num = len(self.rewards)
-        for i in range(max(0,ball_touch_bar - 60), ball_touch_bar):
+        for i in range(num):
             buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], self.done[i], discounted_rewards[i:i+1]]
             self.reply_buffer.append(buf)
     def set_a2c_train_fn(self):
@@ -288,12 +290,12 @@ class Agent_AC(Agent):
         critic_value = self.critic([states,]) 
 
         actor_loss = -K.sum(K.sum(action_probs * one_hot_actions, axis=-1) * advantage_fn)
-        critic_loss = K.sum(K.square(target - critic_value), axis=-1)  
+        critic_loss = K.sum(K.square(target - critic_value))  
         
-        # 0.9*log(0.9)+0.1*log(0.1) > 0.4*log(0.4)+0.6*log(0.6)
+        # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
         entropy = K.sum(action_probs * K.log(action_probs))
        
-        loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
+        loss = actor_loss + critic_loss + 0.01 * entropy
         
         opt = Adam(lr=self.learning_rate)
         #trainable_weights
@@ -302,7 +304,7 @@ class Agent_AC(Agent):
                                 loss=loss)
         self.a2c_train_fn = K.function(
                 inputs=[states, one_hot_actions, target, advantage_fn],
-                outputs=[loss, actor_loss, critic_loss, entropy],
+                outputs=[loss, -actor_loss, critic_loss, entropy],
                 updates=updates)
         
     '''
@@ -330,24 +332,27 @@ class Agent_AC(Agent):
             rewards.append(b[2])
             actions.append(b[3])
             done.append(b[4])
-            discounted_rewards.append(b[5])
+            #discounted_rewards.append(b[5])
         states = np.vstack(states)
         next_states = np.vstack(next_states)
         actions = np.vstack(actions)
         rewards = np.vstack(rewards)
-        discounted_rewards = np.vstack(discounted_rewards)
+        #discounted_rewards = np.vstack(discounted_rewards)
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
         #state value
         state_values = self.critic_target.predict(states)       
-        #next_state_values = self.critic_target.predict(next_states)       
-        '''
+        next_state_values = self.critic_target.predict(next_states)       
         for i in range(batch_size):
             if done[i]:
                 next_state_values[i, 0] = 0. 
-        '''
-        advantage_fn = discounted_rewards - state_values
-        self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
+        #advantage_fn = discounted_rewards - state_values
+        advantage_fn = rewards - (state_values - self.gamma * next_state_values)
+        target = rewards + self.gamma * next_state_values
+        #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
+        loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([states, one_hot_actions, target, advantage_fn])
+        #print('loss : %4.4f  actor_loss : %4.4f critic_loss : %4.4f entropy : %4.4f'  % (loss, actor_loss, critic_loss, entropy))
         self.update_target_networks()
+        return loss, actor_loss, critic_loss, entropy
         
     def update_target_networks(self):
         #critic
@@ -367,20 +372,26 @@ class Agent_AC(Agent):
         #self.model.save_weights(name)
         self.model_target.save_weights(name)
     def setup_summary(self):
-        episode_total_reward = tf.Variable(0.)
-        episode_win = tf.Variable(0.)
-        episode_duration = tf.Variable(0.)
-        episode_lose = tf.Variable(0.)
-        episode_avg_score = tf.Variable(0.)
+        total_loss = tf.Variable(0.)
+        actor_loss = tf.Variable(0.)
+        critic_loss = tf.Variable(0.)
+        entropy = tf.Variable(0.)
+        p1 = tf.Variable(0.) #probs of acitons
+        p2 = tf.Variable(0.) #probs of acitons
+        p3 = tf.Variable(0.) #probs of acitons
+        #episode_avg_score = tf.Variable(0.)
 
-        tf.summary.scalar('Total Reward/Episode', episode_total_reward)
-        tf.summary.scalar('Win/Episode', episode_win)
-        tf.summary.scalar('Duration/Episode', episode_duration)
-        tf.summary.scalar('Lose/Episode', episode_lose)
-        tf.summary.scalar('Average Score/Episode', episode_avg_score)
+        tf.summary.scalar('Total Loss / Updates', total_loss)
+        tf.summary.scalar('Actor Loss / Updates', actor_loss)
+        tf.summary.scalar('Critic Loss / Updates', critic_loss)
+        tf.summary.scalar('Entropy / Updates', entropy)
+        tf.summary.scalar('Action1 / Updates', p1)
+        tf.summary.scalar('Action2 / Updates', p2)
+        tf.summary.scalar('Action3 / Updates', p3)
+        #tf.summary.scalar('Average Score/Episode', episode_avg_score)
 
-        summary_vars = [episode_total_reward, episode_win,
-                        episode_duration, episode_lose, episode_avg_score]
+        summary_vars = [total_loss, actor_loss,
+                        critic_loss, entropy,p1,p2,p3]#, episode_avg_score]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in
                                 range(len(summary_vars))]
         update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in

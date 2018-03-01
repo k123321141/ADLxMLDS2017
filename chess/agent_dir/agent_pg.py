@@ -227,7 +227,7 @@ class Agent_PG(Agent):
         probs = K.sum(action_probs * action_one_hot, axis=1)
         log_probs = K.log(probs)
         loss = -log_probs * discounted_rewards
-        loss = K.sum(loss) / 21.
+        loss = K.sum(loss) 
         
         opt = Adam(lr=self.learning_rate)
         updates = opt.get_updates(
