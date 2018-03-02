@@ -228,31 +228,36 @@ class Agent_DDPG(Agent):
     def build_model(self):
 
         pixel_input = Input(shape=(self.state_size,))
+        action_input = Input(shape=(self.action_size,))
 
-        #shared cnn
-        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+        #actor
+        x = Reshape((80, 80, 1))(pixel_input)
         x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
         x = Flatten(name='shared_flatten')(x)
         x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
-        shared_out = Dense(32, activation='relu', kernel_initializer='he_uniform')(x)
-        #actor
-        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(shared_out)
         actor_output = Dense(self.action_size, activation='softmax')(x)
         actor = Model(inputs=pixel_input, outputs=actor_output)
         
         #critic
-        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(shared_out)
-        critic_output = Dense(self.action_size, activation='linear')(x)
-        critic = Model(inputs=pixel_input, outputs=critic_output)
+        x = Reshape((80, 80, 1))(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Flatten()(x)
+        x1 = Dense(64, activation='linear', kernel_initializer='he_uniform')(x)
+        x2 = Dense(64, activation='linear', kernel_initializer='he_uniform')(action_input)
+        x = Add()([x1, x2])
+        x = Activation('relu')(x)
+        critic_output = Dense(1, activation='linear')(x)
+        critic = Model(inputs=[pixel_input, action_input], outputs=critic_output)
 
         #whole model
-        model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
+        model = Model(inputs=[pixel_input, action_input], outputs=[actor_output, critic_output])
         return actor, critic, model 
 
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
-        prob = self.actor_target.predict(state, batch_size=1).flatten()
+        prob = self.actor.predict(state, batch_size=1).flatten()
         #print(prob)
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         return action 
@@ -279,17 +284,15 @@ class Agent_DDPG(Agent):
         states = K.placeholder(shape=(None, 6400), dtype='float32')
         target = K.placeholder(shape=(None, 1), dtype='float32')
         one_hot_actions = K.placeholder(shape=(None, self.action_size), dtype='float32')
-
-        action_probs, critic_value = self.model([states,])
-
-        actor_loss = - K.sum(action_probs * critic_value)
-        critic_loss = K.sum(K.square(target - K.sum(critic_value * one_hot_actions, axis=-1)))  
         
-        # 0.9*log(0.9)+0.1*log(0.1) > 0.4*log(0.4)+0.6*log(0.6)
-        entropy = K.sum(action_probs * K.log(action_probs))
-       
+        q_value = self.critic([states, self.actor([states,])])
+        actor_loss = - K.mean(q_value)
+
+        q_value_2 = self.critic([states, one_hot_actions])
+        critic_loss = K.mean(K.square(target - q_value_2))  
         
-        opt = Adam(lr=self.learning_rate)
+        
+        opt = Adam(0.01)
         #trainable_weights
         updates = opt.get_updates(
                                 params=self.actor.trainable_weights, 
@@ -299,7 +302,7 @@ class Agent_DDPG(Agent):
                 outputs=[actor_loss,],
                 updates=updates)
         
-        opt = Adam(lr=self.learning_rate)
+        opt = Adam(0.002)
         updates = opt.get_updates(
                                 params=self.critic.trainable_weights, 
                                 loss=critic_loss)
@@ -308,20 +311,6 @@ class Agent_DDPG(Agent):
                 outputs=[critic_loss,],
                 updates=updates)
         
-    '''
-    def discount_rewards(self, rewards):
-        #summerize every trajectory discounted rewards
-        #[ 0  0  0 -1  0  0  0  0  1]
-        #[-0.97029901 -0.98009998 -0.99000001 -1.          0.96059602  0.970299010.98009998  0.99000001  1.        ]
-        discounted_rewards = np.zeros_like(rewards, dtype='float32')
-        running_add = 0
-        for t in reversed(range(0, rewards.size)):
-            if rewards[t] != 0:
-                running_add = 0
-            running_add = running_add * self.gamma + rewards[t]
-            discounted_rewards[t] = running_add
-        return discounted_rewards
-    '''
     #train funcfion
     def update_actor_critic(self, batch_size):
         
@@ -333,22 +322,23 @@ class Agent_DDPG(Agent):
             rewards.append(b[2])
             actions.append(b[3])
             done.append(b[4])
-            discounted_rewards.append(b[5])
+            #discounted_rewards.append(b[5])
         states = np.vstack(states)
         next_states = np.vstack(next_states)
         actions = np.vstack(actions)
         rewards = np.vstack(rewards)
         #discounted_rewards = np.vstack(discounted_rewards)
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
-        next_state_values = self.critic_target.predict(next_states)
+        next_state_actions = self.actor_target.predict(next_states)
+        next_state_values = self.critic_target.predict([next_states, next_state_actions])
         #state value
         action_probs = self.actor_target.predict(next_states)
         for i in range(len(done)):
             if done[i]:
                 next_state_values[i,0] = 0
-        target = rewards + np.sum(next_state_values * action_probs, axis=-1).reshape([-1,1]) 
-        self.critic_train_fn([states, one_hot_actions, target])
+        target = rewards + self.gamma*next_state_values
         self.actor_train_fn([states,])
+        self.critic_train_fn([states, one_hot_actions, target])
         self.update_target_networks()
         
     def update_target_networks(self):

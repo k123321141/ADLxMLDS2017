@@ -51,12 +51,12 @@ def add_arguments(parser):
     parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ac_save_interval', type=int, default=3, help='how many episodes per saving')
     parser.add_argument('--ac_update_target_frequency', type=int, default=1000, help='frequency of updating target network per episode')
-    parser.add_argument('--ac_train_start', type=int, default=1000, help='random action before start training')
+    parser.add_argument('--ac_train_start', type=int, default=10000, help='random action before start training')
     parser.add_argument('--ac_train_frequency', type=int, default=1, help='how many steps per update')
     parser.add_argument('--ac_batch_size', type=int, default=32, help='batch size per update')
-    parser.add_argument('--ac_epsilon', type=float, default=0.9, help='start epsilon')
+    parser.add_argument('--ac_epsilon', type=float, default=0.6, help='start epsilon')
     parser.add_argument('--ac_epsilon_end', type=float, default=0.1, help='end epsilon')
-    parser.add_argument('--ac_exploration_steps', type=float, default=1000000, help='how many step in env per epsilon decay')
+    parser.add_argument('--ac_exploration_steps', type=float, default=100000, help='how many step in env per epsilon decay')
     
     #a3c setting 
     parser.add_argument('--a3c_model', default=join('.','models','pong_a3c.h5'), help='path to save model for trainging')
@@ -69,20 +69,19 @@ def add_arguments(parser):
     #ddpg setting 
     parser.add_argument('--ddpg_model', default=join('.','models','pong_ddpg.h5'), help='path to save model for trainging')
     parser.add_argument('--ddpg_summary', default=join('.','summary','pong_ddpg'), help='path to save summary for training')
-    parser.add_argument('--ddpg_discount_factor', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--ddpg_discount_factor', type=float, default=0.9, help='discount factor')
     parser.add_argument('--ddpg_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ddpg_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ddpg_save_interval', type=int, default=4, help='how many episodes per saving')
-    parser.add_argument('--ddpg_train_start', type=int, default=30000, help='random action before start training')
+    parser.add_argument('--ddpg_train_start', type=int, default=10000, help='random action before start training')
     parser.add_argument('--ddpg_epsilon', type=float, default=0.9, help='start epsilon')
     parser.add_argument('--ddpg_epsilon_end', type=float, default=0.1, help='end epsilon')
-    parser.add_argument('--ddpg_exploration_steps', type=float, default=5000000, help='how many step in env per epsilon decay')
-    parser.add_argument('--ddpg_update_target_frequency', type=int, default=1000, help='frequency of updating target network per episode')
+    parser.add_argument('--ddpg_exploration_steps', type=float, default=500000, help='how many step in env per epsilon decay')
+    parser.add_argument('--ddpg_update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
     parser.add_argument('--ddpg_train_frequency', type=int, default=1, help='how many steps per update')
     parser.add_argument('--ddpg_batch_size', type=int, default=32, help='batch size per update')
 
-    parser.add_argument('--TAU', type=int, default=0.1, help='the rate of target networks updating')
-    parser.add_argument('--update_target_frequency', type=int, default=100, help='frequency of updating target network per episode')
+    parser.add_argument('--TAU', type=int, default=0.01, help='the rate of target networks updating')
     parser.add_argument('--reply_buffer', type=int, default=100000, help='memory size for reply experience')
     #bonus
     return parser
