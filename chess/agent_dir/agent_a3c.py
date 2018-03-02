@@ -22,14 +22,14 @@ def prepro(I):
 
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
-class Agent_AC(Agent):
+class Agent_A3C(Agent):
     def __init__(self, env, args):
         """
         Initialize every things you need here.
         For example: building your model
         """
 
-        super(Agent_AC,self).__init__(env)
+        super(Agent_A3C,self).__init__(env)
 
 
 
@@ -42,16 +42,16 @@ class Agent_AC(Agent):
         #0, 2, 3
         if args.test_ac:
             #you can load your model here
-            if os.path.isfile(args.ac_model): 
-                print('testing : load model from %s.' % args.ac_model)
+            if os.path.isfile(args.a3c_model): 
+                print('testing : load model from %s.' % args.a3c_model)
                 self.learning_rate = 0.
                 self.prev_x = None
                 self.action_size = 3
                 self.actor, self.critic, self.model = self.build_model()
 
-                self.load(args.ac_model)
+                self.load(args.a3c_model)
             else:
-                print('no model for testing!\nerror path %s' % args.ac_model)
+                print('no model for testing!\nerror path %s' % args.a3c_model)
                 sys.exit(1)
 
 
@@ -80,17 +80,17 @@ class Agent_AC(Agent):
         args = self.args
 
 
-        self.gamma = args.ac_discount_factor
+        self.gamma = args.a3c_discount_factor
         self.learning_rate = 0.0001
         self.actor, self.critic, self.model = self.build_model()
         self.actor_target, self.critic_target, self.model_target = self.build_model()
-        self.baseline = args.ac_baseline 
+        self.baseline = args.a3c_baseline 
         self.set_a2c_train_fn()
         
-        self.train_start = args.ac_train_start
-        self.epsilon = args.ac_epsilon
-        self.epsilon_end = args.ac_epsilon_end
-        self.exploration_steps = args.ac_exploration_steps
+        self.train_start = args.a3c_train_start
+        self.epsilon = args.a3c_epsilon
+        self.epsilon_end = args.a3c_epsilon_end
+        self.exploration_steps = args.a3c_exploration_steps
         self.epsilon_decay_step = (self.epsilon - self.epsilon_end) / self.exploration_steps
         #summary
         self.sess = tf.InteractiveSession()
@@ -100,7 +100,7 @@ class Agent_AC(Agent):
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
-            args.ac_summary  , self.sess.graph)
+            args.a3c_summary  , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
         self.states = []
@@ -113,9 +113,9 @@ class Agent_AC(Agent):
         self.update_target_counter = 0
         self.reply_buffer = deque(maxlen=args.reply_buffer)
         
-        if os.path.isfile(args.ac_model) and args.keep_train: 
-            print('load model from %s.' % args.ac_model)
-            self.load(args.ac_model)
+        if os.path.isfile(args.a3c_model) and args.keep_train: 
+            print('load model from %s.' % args.a3c_model)
+            self.load(args.a3c_model)
         else:
             print('train a new model')
 
@@ -132,9 +132,9 @@ class Agent_AC(Agent):
                 env.env.render()
             if self.epsilon > self.epsilon_end:
                 self.epsilon -= self.epsilon_decay_step
-            if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
-                if self.global_step % self.args.ac_train_frequency == 0:
-                    loss, actor_loss, critic_loss, entropy = self.update_actor_critic(self.args.ac_batch_size)
+            if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.a3c_batch_size:
+                if self.global_step % self.args.a3c_train_frequency == 0:
+                    loss, actor_loss, critic_loss, entropy = self.update_actor_critic(self.args.a3c_batch_size)
                     self.update_counter += 1
 
                     p1,p2,p3 = self.prev_probs.tolist()
@@ -158,9 +158,9 @@ class Agent_AC(Agent):
                 que.append(score)
                 print('Episode: %d - Score: %2.1f - Epsilon: %.4f - Update Counter: %5d - Replay Buffer : %5d' % (episode,score,self.epsilon, self.update_counter, len(self.reply_buffer)))
                 sys.stdout.flush()
-                if episode > 1 and episode % args.ac_save_interval == 0:
-                    print('save model to %s.' % args.ac_model)
-                    self.save(args.ac_model)
+                if episode > 1 and episode % args.a3c_save_interval == 0:
+                    print('save model to %s.' % args.a3c_model)
+                    self.save(args.a3c_model)
 
 
                 
@@ -362,7 +362,7 @@ class Agent_AC(Agent):
         
     def update_target_networks(self):
         #critic
-        if self.update_target_counter % self.args.ac_update_target_frequency == 0:
+        if self.update_target_counter % self.args.a3c_update_target_frequency == 0:
             weights = self.model.get_weights()
             target_weights = self.model_target.get_weights()
             for i in range(len(weights)):
