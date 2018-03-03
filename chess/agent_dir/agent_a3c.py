@@ -75,7 +75,7 @@ def set_train_fn(actor, critic, model, action_size):
     # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
     entropy = K.sum(action_probs * K.log(action_probs))
    
-    loss = actor_loss + critic_loss + 0.01 * entropy
+    loss = actor_loss + critic_loss #+ 0.01 * entropy
     
     #opt = RMSprop(lr=0.001)
     opt = tf.train.RMSPropOptimizer(learning_rate=0.001)
