@@ -4,7 +4,7 @@ import numpy as np
 
 from keras.models import *
 from keras.layers import * 
-from keras.optimizers import Adam
+from keras.optimizers import * 
 import scipy,keras
 import keras.backend as K
 import tensorflow as tf
@@ -19,9 +19,199 @@ def prepro(I):
     I[I == 109] = 0
     I[I != 0] = 1
     return I.astype(np.float).ravel()
-
+def real_act(action):
+    if action == 0:
+        return 0
+    elif action == 1:
+        return 2
+    elif action == 2:
+        return 3
+    else:
+        print('no such action', action)
+        sys.exit(1)
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+
+def build_model(state_size, action_size):
+
+    pixel_input = Input(shape=(state_size,))
+
+    #actor
+    x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+                            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+    x = Flatten(name='shared_flatten')(x)
+    x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
+    actor_output = Dense(action_size, activation='softmax')(x)
+    actor = Model(inputs=pixel_input, outputs=actor_output)
+    
+    #critic
+    x = Reshape((80, 80, 1))(pixel_input)
+    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+    x = Flatten()(x)
+    x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
+    critic_output = Dense(1, activation='linear')(x)
+    critic = Model(inputs=pixel_input, outputs=critic_output)
+
+    #whole model
+    model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
+    return actor, critic, model 
+
+def set_train_fn(actor, critic, model, action_size):
+    #polocy gradient loss 
+    #counting the loss of every trajectory with discounted reward, then summerize them. 
+    states = K.placeholder(shape=(None, 6400), dtype='float32')
+    one_hot_actions = K.placeholder(shape=(None, action_size), dtype='float32')
+    target = K.placeholder(shape=(None, 1), dtype='float32')
+    advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
+
+    action_probs = actor([states,])
+    critic_value = critic([states,]) 
+
+    actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
+    critic_loss = K.mean(K.square(target - critic_value))  
+    
+    # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
+    entropy = K.sum(action_probs * K.log(action_probs))
+   
+    loss = actor_loss + critic_loss + 0.01 * entropy
+    
+    #opt = RMSprop(lr=0.001)
+    opt = tf.train.RMSPropOptimizer(learning_rate=0.001)
+    '''
+    updates = opt.get_updates(
+                            params=model.trainable_weights, 
+                            loss=loss)
+    a2c_train_fn = K.function(
+            inputs=[states, one_hot_actions, target, advantage_fn],
+            outputs=[loss, -actor_loss, critic_loss, entropy],
+                updates=updates)
+    '''
+    return loss, opt
+class Worker():
+    def __init__(self, name, env_name, build_net, global_info, coord,args):
+        self.name = name
+        self.env = gym.make(env_name)
+        self.global_net, self.global_opt = global_info
+        self.coord = coord
+        self.learning_rate = 0.001
+        self.gamma = args.a3c_discount_factor
+        self.args = args
+        #self.loss, self.opt = set_train_fn()
+        actor, critic, self.model = build_net(6400,3) 
+        self.actor = actor
+        self.critic = critic
+        action_size = 3
+        self.action_size = 3
+        #polocy gradient loss 
+        #counting the loss of every trajectory with discounted reward, then summerize them. 
+        states = K.placeholder(shape=(None, 6400), dtype='float32')
+        one_hot_actions = K.placeholder(shape=(None, action_size), dtype='float32')
+        target = K.placeholder(shape=(None, 1), dtype='float32')
+        advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
+
+        action_probs = actor([states,])
+        critic_value = critic([states,]) 
+
+        actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
+        critic_loss = K.mean(K.square(target - critic_value))  
+        
+        # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
+        entropy = K.sum(action_probs * K.log(action_probs))
+       
+        self.loss = actor_loss + critic_loss + 0.01 * entropy
+    
+        self.grads = tf.gradients(self.loss, self.model.trainable_weights)
+        #print(dir(self.global_opt )) 
+        updates = self.global_opt.apply_gradients(zip(self.grads, self.global_net.trainable_weights))
+        self.update_fn = K.function(
+                inputs=[states, one_hot_actions, target, advantage_fn],
+                outputs=[self.loss,],
+                    updates=[updates,])
+    def train(self): 
+        args = self.args
+        env = self.env
+        self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+        
+
+        
+        self.prev_x = None
+        state = env.reset()
+        steps = 1
+        while not self.coord.should_stop():
+            #if args.do_render:
+            #    env.env.render()
+            cur_x = prepro(state)
+            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
+            self.prev_x = cur_x
+
+            action = self.act(x)
+            
+            state, reward, terminal, info = env.step(real_act(action))
+            next_x = prepro(state) - cur_x
+            
+            done = reward != 0  #someone get the point
+            self.remember(x, next_x, action, reward)
+            if done or steps % args.a3c_train_frequency == 0:
+                self.prev_x = None
+                #loss, actor_loss, critic_loss, entropy = self.update()
+                xx = x.reshape([1,-1])
+                #a1,v1 = self.global_net.predict(xx)
+                a1,v1 = self.model.predict(xx)
+                self.update(done)
+                #a2,v2 = self.global_net.predict(xx)
+                a2,v2 = self.model.predict(xx)
+                t1 = (a1==a2).all()
+                t2 = (v1 == v2).all()
+                print(t1,t2)
+                self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+            if terminal:    #game over
+                state = env.reset()
+                #every 21 point per update 
+            steps += 1
+    
+    def remember(self, state, next_state, action, reward):
+        self.states.append(state)
+        self.next_states.append(next_state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+    
+    def update(self, done):
+
+        states = np.vstack(self.states)
+        next_states = np.vstack(self.next_states)
+        actions = np.vstack(self.actions)
+        rewards = np.vstack(self.rewards)
+        one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
+
+        # td error, but eliminate the bias of one step
+        discounted_td_error = np.zeros_like(rewards)
+        if not done:
+            discounted_td_error[-1, 0] = self.critic.predict(states[-1:,:])[0]
+        discounted_td_error = discount(discounted_td_error, self.gamma)
+        target = discounted_td_error
+        one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
+        
+        # advantage function
+        advantage_fn = target
+
+        self.update_fn([states, one_hot_actions, target, advantage_fn])
+    def act(self, state):
+        state = state.reshape([1, state.shape[0]])
+        probs = self.actor.predict(state, batch_size=1).flatten()
+        action = np.random.choice(self.action_size, 1, p=probs)[0]
+        return action 
+
+                
+    #get weights from global net 
+    def pull(self):
+        self.net.set_weights(self.global_net.get_weights())
+    #push gradient from local network 
+    def push(self, feed_dict):
+        #self.global_actor_optimizer.apply_gradients(zip(self.a_grads, self.global_net.trainable_weights))
+        self.global_opt.apply_gradients(zip(self.grads, self.global_net.trainable_weights))
+
 class Agent_A3C(Agent):
     def __init__(self, env, args):
         """
@@ -79,129 +269,25 @@ class Agent_A3C(Agent):
         env = self.env
         args = self.args
 
+        actor, critic, model = build_model(6400, 3)
+        loss, opt = set_train_fn(actor, critic, model, 3)
+        #multi-threading
+        coord = tf.train.Coordinator()
+        worker_list = []
+        #for i in range(args.a3c_worker_count):
+        for i in range(1):
+            name = 'worker_%d' % i
+            info = [model, opt]
+            worker = Worker(name, 'Pong-v0',build_model, info, coord, args)
+            worker.train()
 
-        self.gamma = args.a3c_discount_factor
-        self.learning_rate = 0.0001
-        self.actor, self.critic, self.model = self.build_model()
-        self.actor_target, self.critic_target, self.model_target = self.build_model()
-        self.baseline = args.a3c_baseline 
-        self.set_a2c_train_fn()
-        
-        self.train_start = args.a3c_train_start
-        self.epsilon = args.a3c_epsilon
-        self.epsilon_end = args.a3c_epsilon_end
-        self.exploration_steps = args.a3c_exploration_steps
-        self.epsilon_decay_step = (self.epsilon - self.epsilon_end) / self.exploration_steps
-        #summary
-        self.sess = tf.InteractiveSession()
-        K.set_session(self.sess)
-
-
-        self.summary_placeholders, self.update_ops, self.summary_op = \
-            self.setup_summary()
-        self.summary_writer = tf.summary.FileWriter(
-            args.a3c_summary  , self.sess.graph)
-        self.sess.run(tf.global_variables_initializer())
-
-        self.states = []
-        self.next_states = []
-        self.actions = []
-        self.rewards = []
-        self.done = []
-        self.global_step = 0
-        self.update_counter = 0
-        self.update_target_counter = 0
-        self.reply_buffer = deque(maxlen=args.reply_buffer)
-        
+        '''
         if os.path.isfile(args.a3c_model) and args.keep_train: 
             print('load model from %s.' % args.a3c_model)
             self.load(args.a3c_model)
         else:
             print('train a new model')
-
-        self.prev_x = None
-        score, win, lose, step,que = 0,0,0,0,deque(maxlen=30)
-        episode = 0
-
-        terminal = False 
-        done = False
-        state = env.reset()
-        while True:
-            self.global_step += 1
-            if args.do_render:
-                env.env.render()
-            if self.epsilon > self.epsilon_end:
-                self.epsilon -= self.epsilon_decay_step
-            if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.a3c_batch_size:
-                if self.global_step % self.args.a3c_train_frequency == 0:
-                    loss, actor_loss, critic_loss, entropy = self.update_actor_critic(self.args.a3c_batch_size)
-                    self.update_counter += 1
-
-                    p1,p2,p3 = self.prev_probs.tolist()
-                    
-                    #summary
-                    stats = [loss, actor_loss, critic_loss, entropy, p1, p2, p3]
-
-                    for i in range(len(stats)):
-                        self.sess.run(self.update_ops[i], feed_dict={
-                            self.summary_placeholders[i]: float(stats[i])
-                        })
-                    summary_str = self.sess.run(self.summary_op)
-                    self.summary_writer.add_summary(summary_str, self.update_counter)
-            if terminal:    #game over
-                state = env.reset()
-                #every 21 point per update 
-
-
-                #for log
-                episode += 1
-                que.append(score)
-                print('Episode: %d - Score: %2.1f - Epsilon: %.4f - Update Counter: %5d - Replay Buffer : %5d' % (episode,score,self.epsilon, self.update_counter, len(self.reply_buffer)))
-                sys.stdout.flush()
-                if episode > 1 and episode % args.a3c_save_interval == 0:
-                    print('save model to %s.' % args.a3c_model)
-                    self.save(args.a3c_model)
-
-
-                
-                score, win, lose, step = 0,0,0,0
-                    
-            cur_x = prepro(state)
-            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
-            self.prev_x = cur_x
-
-            #random eploration action
-            if np.random.rand() <= self.epsilon:
-                action = random.randrange(self.action_size)
-            else:
-                action = self.act(x)
-            next_state, reward, terminal, info = env.step(self.real_act(action))
-            next_x = prepro(next_state)
-            next_x = next_x - cur_x
-            
-            score += reward
-            done = reward != 0  #someone get the point
-            self.remember(x, next_x, action, reward, done)
-            if reward == 1:
-                win += 1
-            elif reward == -1:
-                lose += 1
-            step += 1
-            if done:
-                self.prev_x = None
-                self.update_reply_buffer()
-                self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
-            state = next_state
-    def real_act(self, action):
-        if action == 0:
-            return 0
-        elif action == 1:
-            return 2
-        elif action == 2:
-            return 3
-        else:
-            print('no such action', action)
-            sys.exit(1)
+        '''
 
     def make_action(self, observation, test=True):
         """
@@ -229,6 +315,7 @@ class Agent_A3C(Agent):
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         #action = np.argmax(prob)
         return self.real_act(action)
+    '''
     def build_model(self):
 
         pixel_input = Input(shape=(self.state_size,))
@@ -239,20 +326,16 @@ class Agent_A3C(Agent):
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
         x = Flatten(name='shared_flatten')(x)
         x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
-        shared_out = Dense(32,name='shared_out', activation='relu', kernel_initializer='he_uniform')(x)
         #actor
-        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(shared_out)
         actor_output = Dense(self.action_size, activation='softmax')(x)
         actor = Model(inputs=pixel_input, outputs=actor_output)
         
         #critic
-        x = Reshape((80, 80, 1), name='shared_reshape_2')(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d_2',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Flatten(name='shared_flatten_2')(x)
-        x = Dense(64,name='shared_dense64_2', activation='relu', kernel_initializer='he_uniform')(x)
-        shared_out = Dense(32,name='shared_out_2', activation='relu', kernel_initializer='he_uniform')(x)
-        x = Dense(16, activation='relu', kernel_initializer='he_uniform')(shared_out)
+        x = Reshape((80, 80, 1))(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Flatten()(x)
+        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=pixel_input, outputs=critic_output)
 
@@ -313,20 +396,6 @@ class Agent_A3C(Agent):
                 outputs=[loss, -actor_loss, critic_loss, entropy],
                 updates=updates)
         
-    '''
-    def discount_rewards(self, rewards):
-        #summerize every trajectory discounted rewards
-        #[ 0  0  0 -1  0  0  0  0  1]
-        #[-0.97029901 -0.98009998 -0.99000001 -1.          0.96059602  0.970299010.98009998  0.99000001  1.        ]
-        discounted_rewards = np.zeros_like(rewards, dtype='float32')
-        running_add = 0
-        for t in reversed(range(0, rewards.size)):
-            if rewards[t] != 0:
-                running_add = 0
-            running_add = running_add * self.gamma + rewards[t]
-            discounted_rewards[t] = running_add
-        return discounted_rewards
-    '''
     #train funcfion
     def update_actor_critic(self, batch_size):
         
@@ -404,5 +473,5 @@ class Agent_A3C(Agent):
                       range(len(summary_vars))]
         summary_op = tf.summary.merge_all()
         return summary_placeholders, update_ops, summary_op
-
+    '''
 

@@ -263,8 +263,10 @@ class Agent_AC(Agent):
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
         probs = self.actor_target.predict(state, batch_size=1).flatten()
-        #print(prob)
+        #print(probs)
         self.prev_probs = probs
+        #if np.sum(probs) > 1:
+        #    sys.exit('error', probs)
         action = np.random.choice(self.action_size, 1, p=probs)[0]
         return action 
 
@@ -295,11 +297,11 @@ class Agent_AC(Agent):
         action_probs = self.actor([states,])
         critic_value = self.critic([states,]) 
 
-        actor_loss = -K.sum(K.sum(action_probs * one_hot_actions, axis=-1) * advantage_fn)
-        critic_loss = K.sum(K.square(target - critic_value))  
+        actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
+        critic_loss = K.mean(K.square(target - critic_value))  
         
         # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
-        entropy = K.sum(action_probs * K.log(action_probs))
+        entropy = K.mean(action_probs * K.log(action_probs))
        
         loss = actor_loss + 10.*critic_loss + 0.01 * entropy
         
@@ -343,7 +345,7 @@ class Agent_AC(Agent):
         next_states = np.vstack(next_states)
         actions = np.vstack(actions)
         rewards = np.vstack(rewards)
-        #discounted_rewards = np.vstack(discounted_rewards)
+        discounted_rewards = np.vstack(discounted_rewards)
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
         #state value
         state_values = self.critic_target.predict(states)       
@@ -351,8 +353,8 @@ class Agent_AC(Agent):
         for i in range(batch_size):
             if done[i]:
                 next_state_values[i, 0] = 0. 
-        #advantage_fn = discounted_rewards - state_values
-        advantage_fn = rewards - (state_values - self.gamma * next_state_values)
+        advantage_fn = discounted_rewards
+        #advantage_fn = rewards - (state_values - self.gamma * next_state_values)
         target = rewards + self.gamma * next_state_values
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
         loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([states, one_hot_actions, target, advantage_fn])

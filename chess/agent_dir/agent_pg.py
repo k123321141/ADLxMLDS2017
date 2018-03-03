@@ -201,8 +201,8 @@ class Agent_PG(Agent):
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last'))
         model.add(Flatten())
         model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
-        model.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
-        model.add(Dense(16, activation='relu', kernel_initializer='he_uniform'))
+        #model.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
+        #model.add(Dense(16, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(self.action_size, activation='softmax'))
         return model
 
@@ -259,7 +259,7 @@ class Agent_PG(Agent):
         actions = keras.utils.to_categorical(actions, self.action_size).astype(np.float32)
         rewards = np.array(self.rewards)
         rewards = self.discount_rewards(rewards)
-        rewards = rewards / np.std(rewards - np.mean(rewards))
+        #rewards = rewards / np.std(rewards - np.mean(rewards))
          
         X = np.vstack([self.states])
         self.train_fn([X, actions, rewards])

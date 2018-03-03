@@ -46,25 +46,28 @@ def add_arguments(parser):
     #ac setting 
     parser.add_argument('--ac_model', default=join('.','models','pong_ac.h5'), help='path to save model for trainging')
     parser.add_argument('--ac_summary', default=join('.','summary','pong_ac'), help='path to save summary for training')
-    parser.add_argument('--ac_discount_factor', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--ac_discount_factor', type=float, default=0.9, help='discount factor')
     parser.add_argument('--ac_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ac_save_interval', type=int, default=3, help='how many episodes per saving')
-    parser.add_argument('--ac_update_target_frequency', type=int, default=1000, help='frequency of updating target network per episode')
+    parser.add_argument('--ac_update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
     parser.add_argument('--ac_train_start', type=int, default=10000, help='random action before start training')
     parser.add_argument('--ac_train_frequency', type=int, default=1, help='how many steps per update')
     parser.add_argument('--ac_batch_size', type=int, default=32, help='batch size per update')
-    parser.add_argument('--ac_epsilon', type=float, default=0.6, help='start epsilon')
-    parser.add_argument('--ac_epsilon_end', type=float, default=0.1, help='end epsilon')
-    parser.add_argument('--ac_exploration_steps', type=float, default=100000, help='how many step in env per epsilon decay')
+    parser.add_argument('--ac_epsilon', type=float, default=0.3, help='start epsilon')
+    parser.add_argument('--ac_epsilon_end', type=float, default=0.01, help='end epsilon')
+    parser.add_argument('--ac_exploration_steps', type=float, default=3000000, help='how many step in env per epsilon decay')
     
     #a3c setting 
     parser.add_argument('--a3c_model', default=join('.','models','pong_a3c.h5'), help='path to save model for trainging')
+    parser.add_argument('--a3c_worker_count', type=int, default=16, help='due to cpu count')
     parser.add_argument('--a3c_summary', default=join('.','summary','pong_a3c'), help='path to save summary for training')
     parser.add_argument('--a3c_discount_factor', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--a3c_worker_num', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--a3c_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--a3c_save_interval', type=int, default=3, help='how many episodes per saving')
     parser.add_argument('--a3c_update_target_frequency', type=int, default=1000, help='frequency of updating target network per episode')
+    parser.add_argument('--a3c_train_frequency', type=int, default=10, help='how many steps per update')
     
     #ddpg setting 
     parser.add_argument('--ddpg_model', default=join('.','models','pong_ddpg.h5'), help='path to save model for trainging')
