@@ -1,5 +1,5 @@
 #!/bin/bash
-rm ./models/pong_ac*
+#rm ./models/pong_ac*
 rm -r ./summary/pong_ac/*
 python3 -u ./main.py --train_ac \
     --ac_model=./models/pong_ac.h5 \

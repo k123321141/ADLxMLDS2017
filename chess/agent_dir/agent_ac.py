@@ -79,6 +79,8 @@ class Agent_AC(Agent):
         env = self.env
         args = self.args
 
+        env.seed(1337)
+        np.random.seed(1337)
 
         self.gamma = args.ac_discount_factor
         self.learning_rate = 0.0001
@@ -87,11 +89,6 @@ class Agent_AC(Agent):
         self.baseline = args.ac_baseline 
         self.set_a2c_train_fn()
         
-        self.train_start = args.ac_train_start
-        self.epsilon = args.ac_epsilon
-        self.epsilon_end = args.ac_epsilon_end
-        self.exploration_steps = args.ac_exploration_steps
-        self.epsilon_decay_step = (self.epsilon - self.epsilon_end) / self.exploration_steps
         #summary
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -111,7 +108,6 @@ class Agent_AC(Agent):
         self.global_step = 0
         self.update_counter = 0
         self.update_target_counter = 0
-        self.reply_buffer = deque(maxlen=args.reply_buffer)
         
         if os.path.isfile(args.ac_model) and args.keep_train: 
             print('load model from %s.' % args.ac_model)
@@ -126,31 +122,12 @@ class Agent_AC(Agent):
         terminal = False 
         done = False
         state = env.reset()
-        self.actor.load_weights('./models/pong_pg.h5')
-
-        self.actor_target.load_weights('./models/pong_pg.h5')
+        #self.actor.load_weights('./models/pong_pg.h5')
+        #self.actor_target.load_weights('./models/pong_pg.h5')
         while True:
             self.global_step += 1
             if args.do_render:
                 env.env.render()
-            if self.epsilon > self.epsilon_end:
-                self.epsilon -= self.epsilon_decay_step
-            if len(self.reply_buffer) > self.train_start and len(self.reply_buffer) > self.args.ac_batch_size:
-                if self.global_step % self.args.ac_train_frequency == 0:
-                    loss, actor_loss, critic_loss, entropy = self.update_actor_critic(self.args.ac_batch_size)
-                    self.update_counter += 1
-
-                    p1,p2,p3 = self.prev_probs.tolist()
-                    
-                    #summary
-                    stats = [loss, actor_loss, critic_loss, entropy, p1, p2, p3]
-
-                    for i in range(len(stats)):
-                        self.sess.run(self.update_ops[i], feed_dict={
-                            self.summary_placeholders[i]: float(stats[i])
-                        })
-                    summary_str = self.sess.run(self.summary_op)
-                    self.summary_writer.add_summary(summary_str, self.update_counter)
             if terminal:    #game over
                 state = env.reset()
                 #every 21 point per update 
@@ -159,7 +136,7 @@ class Agent_AC(Agent):
                 #for log
                 episode += 1
                 que.append(score)
-                print('Episode: %d - Score: %2.1f - Epsilon: %.4f - Update Counter: %5d - Replay Buffer : %5d' % (episode,score,self.epsilon, self.update_counter, len(self.reply_buffer)))
+                print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_counter ))
                 sys.stdout.flush()
                 if episode > 1 and episode % args.ac_save_interval == 0:
                     print('save model to %s.' % args.ac_model)
@@ -174,10 +151,7 @@ class Agent_AC(Agent):
             self.prev_x = cur_x
 
             #random eploration action
-            if np.random.rand() <= self.epsilon:
-                action = random.randrange(self.action_size)
-            else:
-                action = self.act(x)
+            action = self.act(x)
             next_state, reward, terminal, info = env.step(self.real_act(action))
             next_x = prepro(next_state)
             next_x = next_x - cur_x
@@ -192,8 +166,22 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
-                self.update_reply_buffer()
+                loss, actor_loss, critic_loss, entropy = self.update_actor_critic()
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
+                
+                self.update_counter += 1
+
+                p1,p2,p3 = self.prev_probs.tolist()
+                
+                #summary
+                stats = [loss, actor_loss, critic_loss, entropy, p1, p2, p3]
+
+                for i in range(len(stats)):
+                    self.sess.run(self.update_ops[i], feed_dict={
+                        self.summary_placeholders[i]: float(stats[i])
+                    })
+                summary_str = self.sess.run(self.summary_op)
+                self.summary_writer.add_summary(summary_str, self.update_counter)
             state = next_state
     def real_act(self, action):
         if action == 0:
@@ -261,7 +249,7 @@ class Agent_AC(Agent):
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
         probs = self.actor_target.predict(state, batch_size=1).flatten()
-        print(probs)
+        #print(probs)
         self.prev_probs = probs
         #if np.sum(probs) > 1:
         #    sys.exit('error', probs)
@@ -301,7 +289,7 @@ class Agent_AC(Agent):
         # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
         entropy = K.mean(action_probs * K.log(action_probs))
        
-        loss = actor_loss + critic_loss #+ 0.01 * entropy
+        loss = actor_loss + 10.*critic_loss + 0.01 * entropy
         
         opt = Adam(lr=self.learning_rate)
         #trainable_weights
@@ -315,34 +303,22 @@ class Agent_AC(Agent):
         
 
     #train funcfion
-    def update_actor_critic(self, batch_size):
+    def update_actor_critic(self):
+        states = np.vstack(self.states)
+        next_states = np.vstack(self.next_states)
+        actions = np.vstack(self.actions)
+        rewards = np.array(self.rewards).reshape([-1,1])
+        discounted_rewards = discount(rewards, self.gamma).reshape([-1, 1]) 
         
-        batch = random.sample(self.reply_buffer, batch_size)
-        states, next_states, rewards, actions, done, discounted_rewards = [],[],[],[],[],[]
-        for b in batch:
-            states.append(b[0])
-            next_states.append(b[1])
-            rewards.append(b[2])
-            actions.append(b[3])
-            done.append(b[4])
-            discounted_rewards.append(b[5])
-        states = np.vstack(states)
-        next_states = np.vstack(next_states)
-        actions = np.vstack(actions)
-        rewards = np.vstack(rewards)
-        discounted_rewards = np.vstack(discounted_rewards)
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
         #state value
         
-        '''state_values = self.critic_target.predict(states)       
-        next_state_values = self.critic_target.predict(next_states)       
-        for i in range(batch_size):
-            if done[i]:
-                next_state_values[i, 0] = 0. 
-        '''
-        advantage_fn = discounted_rewards
+        state_values = self.critic_target.predict(states)       
+        next_state_values = self.critic_target.predict(next_states)  
+        next_state_values[-1, 0] = 0.
+        advantage_fn = discounted_rewards - (rewards + self.gamma*next_state_values)
+        #advantage_fn = discounted_rewards
         #advantage_fn = rewards - (state_values - self.gamma * next_state_values)
-        #target = rewards + self.gamma * next_state_values
         target = discounted_rewards
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
         loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([states, one_hot_actions, target, advantage_fn])
@@ -359,15 +335,13 @@ class Agent_AC(Agent):
                 target_weights[i] = self.args.TAU * weights[i] + (1. - self.args.TAU) * target_weights[i]
             self.model_target.set_weights(target_weights)
             #print('update target')
+        #print('update target')
         self.actor_target.set_weights(self.actor.get_weights())
-        print('update target')
         self.update_target_counter += 1
     def load(self, name):
         self.model.load_weights(name)
-        self.model_target.load_weights(name)
-    
+        self.model_target.set_weights(self.model.get_weights())
     def save(self, name):
-        #self.model.save_weights(name)
         self.model_target.save_weights(name)
     def setup_summary(self):
         total_loss = tf.Variable(0.)
