@@ -10,7 +10,7 @@ import keras.backend as K
 import tensorflow as tf
 import sys,os,random
 import scipy.signal
-import signal, threading
+import signal, threading, time
 from collections import deque
 graph = tf.get_default_graph()
 def prepro(I):
@@ -87,18 +87,17 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
             outputs=[loss,],
                 updates=[updates,])
     return update_fn
-def worker_thread(agent, name, env_name, build_net, global_info, coord):
+def worker_thread(agent, name, env_name, build_net, global_info):
     with graph.as_default():
-        worker = Worker(agent, name, env_name,build_net, global_info, coord)
+        worker = Worker(agent, name, env_name,build_net, global_info)
         worker.train()
 
 
 class Worker():
-    def __init__(self, agent, name, env_name, build_net, global_info, coord):
+    def __init__(self, agent, name, env_name, build_net, global_info):
         self.name = name 
         self.env = gym.make(env_name)
         self.global_net, self.global_opt = global_info
-        self.coord = coord
         self.agent = agent
         #self.loss, self.opt = set_train_fn()
 
@@ -118,7 +117,7 @@ class Worker():
         self.prev_x = None
         state = env.reset()
         steps = 1
-        while not self.coord.should_stop():
+        while not self.agent.stop:
             #if args.do_render:
             #    env.env.render()
             cur_x = prepro(state)
@@ -136,13 +135,14 @@ class Worker():
                 self.prev_x = None
                 self.update(done)
                 self.agent.update_count += 1
-                print(self.agent.update_count)
                 self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+                print(self.name, self.agent.update_count)
             if terminal:    #game over
                 state = env.reset()
                 self.pull()
                 #every 21 point per update 
             steps += 1
+        print('quit thread %s' % self.name)
     def remember(self, state, next_state, action, reward):
         self.states.append(state)
         self.next_states.append(next_state)
@@ -243,7 +243,6 @@ class Agent_A3C(Agent):
         self.global_actor, self.global_critic, self.global_net = build_model(self.action_size, self.state_size)
         opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
         global_info = [self.global_net, opt]
-        self.global_net._make_predict_function()
         if os.path.isfile(args.a3c_model) and args.keep_train: 
             print('load model from %s.' % args.a3c_model)
             self.load(args.a3c_model)
@@ -251,12 +250,13 @@ class Agent_A3C(Agent):
             print('train a new model')
         
         #multi-threading
-        coord = tf.train.Coordinator()
         thread_list = []
-        #for i in range(args.a3c_worker_count):
+        self.stop = False
+        with graph.as_default():
+            self.global_actor._make_predict_function()
         for i in range(args.a3c_worker_count):
             name = 'worker_%d' % i
-            worker_args = [self, name, 'Pong-v0',build_model, global_info, coord]
+            worker_args = [self, name, 'Pong-v0',build_model, global_info]
             t = threading.Thread(target=worker_thread, args=worker_args)
             t.start()
             thread_list.append(t)
@@ -266,27 +266,28 @@ class Agent_A3C(Agent):
             state = env.reset()
             score = 0
             episode = 1
-            '''
             while True:
-                action = self.make_action(state)
-                
-                state, reward, terminal, info = env.step(action)
-                score += reward 
-                if terminal:    #game over
-                    state = env.reset()
-                    #every 21 point per update 
-                    #print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_counter ))
-                    episode += 1
-                    score = 0
+                '''
+                    action = self.make_action(state)
+                    
+                    state, reward, terminal, info = env.step(action)
+                    score += reward 
+                    if terminal:    #game over
+                        state = env.reset()
+                        #every 21 point per update 
+                        print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_counter ))
+                        episode += 1
+                        score = 0
+                '''
+                print('main' , steps)
+                time.sleep(0.5)
                 steps += 1
-            '''
 
         except KeyboardInterrupt:
-            coord.request_stop()
-            print('coor', coord.should_stop())
+            self.stop = True
+            for t in thread_list:
+                t.join()
             print("Quitting Program.")
-            sys.exit(1)
-        coord.join(thread_list)
         print('Done')
     
     def make_action(self, observation, test=True):
@@ -305,7 +306,7 @@ class Agent_A3C(Agent):
         # YOUR CODE HERE #
         ##################
         cur_x = prepro(observation)
-        x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
+        x = cur_x - self.prev_x if self.prev_x is not None else cur_x 
         self.prev_x = cur_x
         
         cur_x = cur_x.reshape([1,-1])
