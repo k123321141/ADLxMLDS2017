@@ -1,14 +1,14 @@
 
+import numpy as np
 class my_render():
     def __init__(self):
         from gym.envs.classic_control import rendering
-        import numpy as np
         self.viewer = rendering.SimpleImageViewer()
     def render(self, rgb):
         #rgb render
-        upscaled=repeat_upsample(rgb,3, 3)
-        self.viewer.imshow(upscaled)
-        return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
+        #upscaled=self.repeat_upsample(rgb,3, 3)
+        #self.viewer.imshow(upscaled)
+        self.viewer.imshow(rgb)
 
     def repeat_upsample(self, rgb_array, k=1, l=1, err=[]):
         # repeat kinda crashes if k/l are zero
@@ -22,6 +22,3 @@ class my_render():
         # if the input image is of shape (m,n,3), the output image will be of shape (k*m, l*n, 3)
 
         return np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)
-    def render(self, rgb):
-        upscaled=self.repeat_upsample(rgb,3, 3)
-        self.viewer.imshow(upscaled)

@@ -316,9 +316,9 @@ class Agent_AC(Agent):
         state_values = self.critic_target.predict(states)       
         next_state_values = self.critic_target.predict(next_states)  
         next_state_values[-1, 0] = 0.
-        advantage_fn = discounted_rewards - (rewards + self.gamma*next_state_values)
+        #advantage_fn = discounted_rewards - (rewards + self.gamma*next_state_values)
         #advantage_fn = discounted_rewards
-        #advantage_fn = rewards - (state_values - self.gamma * next_state_values)
+        advantage_fn = rewards - (state_values - self.gamma * next_state_values)
         target = discounted_rewards
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
         loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([states, one_hot_actions, target, advantage_fn])
