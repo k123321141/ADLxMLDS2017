@@ -289,7 +289,7 @@ class Agent_AC(Agent):
         # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
         entropy = K.mean(action_probs * K.log(action_probs))
        
-        loss = actor_loss + 10.*critic_loss + 0.01 * entropy
+        loss = actor_loss + critic_loss + 0.01 * entropy
         
         opt = Adam(lr=self.learning_rate)
         #trainable_weights
@@ -317,8 +317,10 @@ class Agent_AC(Agent):
         next_state_values = self.critic_target.predict(next_states)  
         next_state_values[-1, 0] = 0.
         #advantage_fn = discounted_rewards - (rewards + self.gamma*next_state_values)
-        #advantage_fn = discounted_rewards
-        advantage_fn = rewards - (state_values - self.gamma * next_state_values)
+        advantage_fn = discounted_rewards
+        #advantage_fn = rewards - (state_values - self.gamma * next_state_values)
+        #advantage_fn = next_state_values - state_values
+        #advantage_fn[-1, 0] = state_values[-1, 0]
         target = discounted_rewards
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
         loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([states, one_hot_actions, target, advantage_fn])
