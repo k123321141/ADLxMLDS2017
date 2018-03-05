@@ -108,7 +108,7 @@ class Agent_AC(Agent):
         self.global_step = 0
         self.update_counter = 0
         self.update_target_counter = 0
-        
+        self.reply_buffer = deque(maxlen=args.reply_buffer)
         if os.path.isfile(args.ac_model) and args.keep_train: 
             print('load model from %s.' % args.ac_model)
             self.load(args.ac_model)
@@ -166,6 +166,7 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
+                self.update_reply_buffer()
                 loss, actor_loss, critic_loss, entropy = self.update_actor_critic()
                 self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
                 
@@ -264,7 +265,7 @@ class Agent_AC(Agent):
         self.actions.append(action)
         self.done.append(done)
     
-    def update_reply_buffer(self, ):
+    def update_reply_buffer(self ):
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards)
         discounted_rewards = discount(rewards, self.gamma) 
@@ -275,13 +276,14 @@ class Agent_AC(Agent):
     def set_a2c_train_fn(self):
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
-        states = K.placeholder(shape=(None, 6400), dtype='float32')
+        actor_states = K.placeholder(shape=(None, 6400), dtype='float32')
+        critic_states = K.placeholder(shape=(None, 6400), dtype='float32')
         target = K.placeholder(shape=(None, 1), dtype='float32')
         one_hot_actions = K.placeholder(shape=(None, self.action_size), dtype='float32')
         advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
-        action_probs = self.actor([states,])
-        critic_value = self.critic([states,]) 
+        action_probs = self.actor([actor_states,])
+        critic_value = self.critic([critic_states,]) 
 
         actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
         critic_loss = K.mean(K.square(target - critic_value))  
@@ -297,33 +299,48 @@ class Agent_AC(Agent):
                                 params=self.model.trainable_weights, 
                                 loss=loss)
         self.a2c_train_fn = K.function(
-                inputs=[states, one_hot_actions, target, advantage_fn],
+                inputs=[actor_states, critic_states, one_hot_actions, target, advantage_fn],
                 outputs=[loss, -actor_loss, critic_loss, entropy],
                 updates=updates)
         
 
     #train funcfion
     def update_actor_critic(self):
-        states = np.vstack(self.states)
-        next_states = np.vstack(self.next_states)
+        #for actor
+        a_states = np.vstack(self.states)
+        #next_states = np.vstack(self.next_states)
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards).reshape([-1,1])
-        discounted_rewards = discount(rewards, self.gamma).reshape([-1, 1]) 
         
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
-        #state value
-        
-        state_values = self.critic_target.predict(states)       
-        next_state_values = self.critic_target.predict(next_states)  
-        next_state_values[-1, 0] = 0.
+        discounted_rewards = discount(rewards, self.gamma).reshape([-1, 1]) 
+        advantage_fn = discounted_rewards - self.critic_target.predict(a_states)
         #advantage_fn = discounted_rewards - (rewards + self.gamma*next_state_values)
-        advantage_fn = discounted_rewards
+        #advantage_fn = discounted_rewards
         #advantage_fn = rewards - (state_values - self.gamma * next_state_values)
         #advantage_fn = next_state_values - state_values
         #advantage_fn[-1, 0] = state_values[-1, 0]
+        
+        #for critic
+        #state value
+        batch = random.sample(self.reply_buffer, min(len(self.rewards)*3, len(self.reply_buffer)))
+        states, next_states, rewards, actions, done, discounted_rewards = [],[],[],[],[],[]
+        for b in batch:
+            states.append(b[0])
+            #next_states.append(b[1])
+            #rewards.append(b[2])
+            #actions.append(b[3])
+            #done.append(b[4])
+            discounted_rewards.append(b[5])
+        c_states = np.vstack(states)
+        #next_states = np.vstack(next_states)
+        #actions = np.vstack(actions)
+        #rewards = np.vstack(rewards)
+        discounted_rewards = np.vstack(discounted_rewards)
+        
         target = discounted_rewards
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
-        loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([states, one_hot_actions, target, advantage_fn])
+        loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([a_states, c_states, one_hot_actions, target, advantage_fn])
         #print('loss : %4.4f  actor_loss : %4.4f critic_loss : %4.4f entropy : %4.4f'  % (loss, actor_loss, critic_loss, entropy))
         self.update_target_networks()
         return loss, actor_loss, critic_loss, entropy
