@@ -116,7 +116,7 @@ class Worker():
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         self.actor_predict_fn  = set_predict_fn(self.agent.state_size, self.actor)
-        self.critic_predict_fn  = set_predict_fn(self.agent.state_size, self.global_critic)
+        self.critic_predict_fn  = set_predict_fn(self.agent.state_size, self.critic)
     def train(self): 
         env = self.env
         self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
@@ -167,8 +167,8 @@ class Worker():
         rewards = np.vstack(self.rewards).reshape([-1,1])
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
         
-        state_values = get_discount_state_value(states)
-        next_state_values = get_discount_state_value(next_states)
+        state_values = self.get_discount_state_value(states)
+        next_state_values = self.get_discount_state_value(next_states)
         
         # td error, but eliminate the bias of one step
         if done:
@@ -176,7 +176,7 @@ class Worker():
             target = discounted_td_error
             advantage_fn = discounted_td_error - state_values 
         else:
-            target = rewards + self.gamma*next_state_values
+            target = rewards + self.agent.gamma*next_state_values
             advantage_fn = (rewards + self.agent.gamma*next_state_values) - state_values 
 
         self.update_fn([states, one_hot_actions, target, advantage_fn])
@@ -186,8 +186,8 @@ class Worker():
         action = np.random.choice(self.agent.action_size, 1, p=probs)[0]
         return action 
     def get_discount_state_value(self, states):
-        states = np.zeros([len(states), 1])
         inputs = [ states[-1:, :] ]
+        state_values = np.zeros([len(states), 1])
         state_values[-1, 0] = self.critic_predict_fn(inputs)[0][0,0]
         state_values = discount(state_values, self.agent.gamma)
         return state_values
