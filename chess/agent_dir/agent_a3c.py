@@ -38,19 +38,23 @@ def build_model(action_size, state_size, scope):
 
     #actor
     x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+    x = Conv2D(16, kernel_size=(8, 8), strides=(4, 4), padding='same', name='shared_conv2d',
+                            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+    x = Conv2D(32, kernel_size=(4, 4), strides=(2, 2), padding='same',
                             activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
     x = Flatten(name='shared_flatten')(x)
-    x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
+    x = Dense(256,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
     actor_output = Dense(action_size, activation='softmax')(x)
     actor = Model(inputs=pixel_input, outputs=actor_output)
     
     #critic
+    '''
     x = Reshape((80, 80, 1))(pixel_input)
     x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
             activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
     x = Flatten()(x)
     x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
+    '''
     critic_output = Dense(1, activation='linear')(x)
     critic = Model(inputs=pixel_input, outputs=critic_output)
 
@@ -69,8 +73,8 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
     action_probs = actor([states,])
     critic_value = critic([states,]) 
 
-    actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
-    critic_loss = K.mean(K.square(target - critic_value))  
+    actor_loss = -K.sum(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
+    critic_loss = K.sum(K.square(target - critic_value))  
     
     # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
     entropy = K.sum(action_probs * K.log(action_probs))
@@ -172,9 +176,11 @@ class Worker():
 
     
         # td error, but eliminate the bias of one step
-        discounted_error = discount(rewards.copy(), self.agent.gamma)
-        target = discounted_error
-        advantage_fn = discounted_error - state_values 
+        discounted_rewards = discount(rewards.copy(), self.agent.gamma)
+        target = discounted_rewards
+        #next_state_values[-1,0] = 0
+        #advantage_fn = rewards - ( state_values - next_state_values )
+        advantage_fn = discounted_rewards - state_values
 
         self.update_fn([states, one_hot_actions, target, advantage_fn])
     def act(self, state):

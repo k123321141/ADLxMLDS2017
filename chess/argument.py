@@ -56,7 +56,7 @@ def add_arguments(parser):
     parser.add_argument('--a3c_model', default=join('.','models','pong_a3c.h5'), help='path to save model for trainging')
     parser.add_argument('--a3c_worker_count', type=int, default=8, help='due to cpu count')
     parser.add_argument('--a3c_summary', default=join('.','summary','pong_a3c'), help='path to save summary for training')
-    parser.add_argument('--a3c_discount_factor', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--a3c_discount_factor', type=float, default=0.98, help='discount factor')
     parser.add_argument('--a3c_worker_num', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--a3c_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--a3c_save_interval', type=int, default=3, help='how many episodes per saving')
