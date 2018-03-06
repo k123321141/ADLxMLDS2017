@@ -143,11 +143,11 @@ class Worker():
             if done or steps % self.agent.args.a3c_train_frequency == 0:
                 self.prev_x = None
                 self.update(done)
+                self.agent.update_count += 1
                 self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
                 self.pull()
                 #print(self.name, self.agent.update_count)
             if terminal:    #game over
-                self.agent.update_count += 1
                 state = env.reset()
                 #sess.run(self.pull_op)
                 #every 21 point per update 
