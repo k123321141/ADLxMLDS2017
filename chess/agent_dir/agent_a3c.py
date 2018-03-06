@@ -140,15 +140,15 @@ class Worker():
             
             done = reward != 0  #someone get the point
             self.remember(x, next_x, action, reward)
-            if done or steps % self.agent.args.a3c_train_frequency == 0:
+            if done:
                 self.prev_x = None
                 self.update(done)
                 self.agent.update_count += 1
                 self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
-                self.pull()
                 #print(self.name, self.agent.update_count)
             if terminal:    #game over
                 state = env.reset()
+                self.pull()
                 #sess.run(self.pull_op)
                 #every 21 point per update 
             steps += 1
@@ -167,17 +167,14 @@ class Worker():
         rewards = np.vstack(self.rewards).reshape([-1,1])
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
         
-        state_values = self.get_discount_state_value(states)
-        next_state_values = self.get_discount_state_value(next_states)
-        
+        state_values = self.critic_predict_fn([states, ])[0]
+        #next_state_values = self.critic_predict_fn([next_states, ])[0]
+
+    
         # td error, but eliminate the bias of one step
-        if done:
-            discounted_td_error = discount(rewards.copy(), self.agent.gamma)
-            target = discounted_td_error
-            advantage_fn = discounted_td_error - state_values 
-        else:
-            target = rewards + self.agent.gamma*next_state_values
-            advantage_fn = (rewards + self.agent.gamma*next_state_values) - state_values 
+        discounted_error = discount(rewards.copy(), self.agent.gamma)
+        target = discounted_error
+        advantage_fn = discounted_error - state_values 
 
         self.update_fn([states, one_hot_actions, target, advantage_fn])
     def act(self, state):
