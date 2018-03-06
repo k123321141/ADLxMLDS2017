@@ -12,6 +12,7 @@ import sys,os,random
 import scipy.signal
 import signal, threading, time
 from collections import deque
+import multiprocessing
 def prepro(I):
     I = I[35:195]
     I = I[::2, ::2, 0]
@@ -33,29 +34,28 @@ def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 def build_model(action_size, state_size, scope):
-    with tf.variable_scope(scope):     
-        pixel_input = Input(shape=(state_size,))
+    pixel_input = Input(shape=(state_size,))
 
-        #actor
-        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Flatten(name='shared_flatten')(x)
-        x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
-        actor_output = Dense(action_size, activation='softmax')(x)
-        actor = Model(inputs=pixel_input, outputs=actor_output)
-        
-        #critic
-        x = Reshape((80, 80, 1))(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
-                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Flatten()(x)
-        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
-        critic_output = Dense(1, activation='linear')(x)
-        critic = Model(inputs=pixel_input, outputs=critic_output)
+    #actor
+    x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+                            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+    x = Flatten(name='shared_flatten')(x)
+    x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
+    actor_output = Dense(action_size, activation='softmax')(x)
+    actor = Model(inputs=pixel_input, outputs=actor_output)
+    
+    #critic
+    x = Reshape((80, 80, 1))(pixel_input)
+    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+    x = Flatten()(x)
+    x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
+    critic_output = Dense(1, activation='linear')(x)
+    critic = Model(inputs=pixel_input, outputs=critic_output)
 
-        #whole model
-        model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
+    #whole model
+    model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
     return actor, critic, model 
 
 def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
@@ -86,9 +86,17 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
             inputs=[states, one_hot_actions, target, advantage_fn],
             outputs=[loss,],
                 updates=[updates,])
-    return update_fn
-def worker_thread(worker, sess):
-    worker.train(sess)
+    return update_fn 
+def set_predict_fn(state_size, model):
+    states = K.placeholder(shape=(None, state_size), dtype='float32')
+    outputs = model([states,])
+    predict_fn  = K.function(
+        inputs=[states,],
+        outputs=[outputs,],
+            updates=[])
+    return predict_fn
+def worker_thread(worker):
+    worker.train()
 
 def pull_global_weights(to_scope):
     from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
@@ -108,10 +116,16 @@ class Worker():
         #self.loss, self.opt = set_train_fn()
 
         self.actor, self.critic, self.local_net = build_net(agent.action_size, agent.state_size, self.name)
-
+        #local_opt = tf.train.RMSPropOptimizer(learning_rate=self.agent.learning_rate)
+        self.pull()
+        global_info = [self.global_net, self.global_opt]
+        local_info = [self.actor, self.critic, self.local_net]
+        self.update_fn = set_train_fn(local_info, global_info)
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
-    def train(self, sess): 
+        self.actor_predict_fn  = set_predict_fn(self.agent.state_size, self.actor)
+        self.critic_predict_fn  = set_predict_fn(self.agent.state_size, self.critic)
+    def train(self): 
         env = self.env
         self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
         
@@ -120,37 +134,32 @@ class Worker():
         self.prev_x = None
         state = env.reset()
         steps = 1
-        with sess.as_default(), sess.graph.as_default():
-            global_info = [self.global_net, self.global_opt]
-            local_info = [self.actor, self.critic, self.local_net]
-            self.update_fn = set_train_fn(local_info, global_info)
-            self.pull_op = pull_global_weights(self.name)
-            sess.run(self.pull_op)
-            while not self.agent.stop:
-                #if args.do_render:
-                #    env.env.render()
-                cur_x = prepro(state)
-                x = cur_x - self.prev_x if self.prev_x is not None else cur_x
-                self.prev_x = cur_x
+        while not self.agent.stop:
+            #if args.do_render:
+            #    env.env.render()
+            cur_x = prepro(state)
+            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
+            self.prev_x = cur_x
 
-                action = self.act(x)
-                
-                state, reward, terminal, info = env.step(real_act(action))
-                next_x = prepro(state) - cur_x
-                
-                done = reward != 0  #someone get the point
-                self.remember(x, next_x, action, reward)
-                if done or steps % self.agent.args.a3c_train_frequency == 0:
-                    self.prev_x = None
-                    self.update(done)
-                    self.agent.update_count += 1
-                    self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
-                    print(self.name, self.agent.update_count)
-                if terminal:    #game over
-                    state = env.reset()
-                    sess.run(self.pull_op)
-                    #every 21 point per update 
-                steps += 1
+            action = self.act(x)
+            
+            state, reward, terminal, info = env.step(real_act(action))
+            next_x = prepro(state) - cur_x
+            
+            done = reward != 0  #someone get the point
+            self.remember(x, next_x, action, reward)
+            if done or steps % self.agent.args.a3c_train_frequency == 0:
+                self.prev_x = None
+                self.update(done)
+                self.agent.update_count += 1
+                self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+                self.pull()
+                #print(self.name, self.agent.update_count)
+            if terminal:    #game over
+                state = env.reset()
+                #sess.run(self.pull_op)
+                #every 21 point per update 
+            steps += 1
         print('quit thread %s' % self.name)
     def remember(self, state, next_state, action, reward):
         self.states.append(state)
@@ -165,23 +174,29 @@ class Worker():
         actions = np.vstack(self.actions)
         rewards = np.vstack(self.rewards).reshape([-1,1])
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
-
+        
         # td error, but eliminate the bias of one step
-        discounted_td_error = np.zeros_like(rewards)
-        if not done:
-            discounted_td_error[-1, 0] = self.critic.predict(states[-1:,:])[0]
-        discounted_td_error = discount(discounted_td_error, self.agent.gamma)
+        if done:
+            discounted_td_error = discount(rewards.copy(), self.agent.gamma)
+        else:
+            discounted_td_error = np.zeros_like(rewards)
+            inputs = [ next_states[-1:, :] ]
+            discounted_td_error[-1, 0] = self.critic_predict_fn(inputs)[0][0,0]
+            discounted_td_error = discount(discounted_td_error, self.agent.gamma)
         target = discounted_td_error
-        one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
+
         
         # advantage function
-        advantage_fn = target
-        #advantage_fn = rewards + target
+        next_state_values = np.zeros_like(rewards)
+        inputs = [ next_states[-1:, :] ]
+        next_state_values[-1, 0] = self.critic_predict_fn(inputs)[0][0,0]
+        next_td = discount(next_state_values, self.agent.gamma)
+        advantage_fn = (rewards + self.agent.gamma*next_state_values) -  discounted_td_error
 
         self.update_fn([states, one_hot_actions, target, advantage_fn])
     def act(self, state):
         state = state.reshape([1, state.shape[0]])
-        probs = self.actor.predict(state, batch_size=1).flatten()
+        probs = self.actor_predict_fn([state,])[0].flatten()
         action = np.random.choice(self.agent.action_size, 1, p=probs)[0]
         return action 
 
@@ -244,72 +259,68 @@ class Agent_A3C(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        tf.reset_default_graph()
         env = self.env
         args = self.args
         self.learning_rate = 0.001
         self.gamma = args.a3c_discount_factor        
         self.update_count = 0
-        with tf.device("/cpu:0"):
-            self.global_actor, self.global_critic, self.global_net = build_model(self.action_size, self.state_size, 'global')
-            opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
-            global_info = [self.global_net, opt]
-            if os.path.isfile(args.a3c_model) and args.keep_train: 
-                print('load model from %s.' % args.a3c_model)
-                self.load(args.a3c_model)
-            else:
-                print('train a new model')
-            
-            states = K.placeholder(shape=(None, self.state_size), dtype='float32')
-            action_probs = self.global_actor([states,])
-            self.predict_fn  = K.function(
-                inputs=[states,],
-                outputs=[action_probs,],
-                    updates=[])
+        self.global_actor, self.global_critic, self.global_net = build_model(self.action_size, self.state_size, 'global')
+        opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
+        global_info = [self.global_net, opt]
+        if os.path.isfile(args.a3c_model) and args.keep_train: 
+            print('load model from %s.' % args.a3c_model)
+            self.load(args.a3c_model)
+        else:
+            print('train a new model')
+        
+        self.predict_fn  = set_predict_fn(self.state_size, self.global_actor)
 
-            #multi-threading
-            thread_list = []
-            self.stop = False
-        with tf.Session() as sess:
-            for i in range(args.a3c_worker_count):
-                name = 'worker_%d' % i
-                worker = Worker(self, name, 'Pong-v0',build_model, global_info)
-                t = threading.Thread(target=worker_thread, args=[worker, sess])
-                thread_list.append(t)
-            sess.run(tf.global_variables_initializer())
+        #multi-threading
+        thread_list = []
+        self.stop = False
+        num_workers = multiprocessing.cpu_count()
+        #for i in range(args.a3c_worker_count):
+        print('work on %d cpu' % num_workers)
+        for i in range(num_workers):
+            name = 'worker_%d' % i
+            worker = Worker(self, name, 'Pong-v0',build_model, global_info)
+            t = threading.Thread(target=worker_thread, args=[worker, ])
+            thread_list.append(t)
+
+        try:
             for t in thread_list:
                 t.start()
+            steps = 1
+            self.prev_x = None
+            state = env.reset()
+            score = 0
+            episode = 1
+            while True:
+                action = self.make_action(state)
+                
+                state, reward, terminal, info = env.step(action)
+                score += reward 
+                if terminal:    #game over
+                    state = env.reset()
+                    #every 21 point per update 
+                    print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_count ))
+                    episode += 1
+                    score = 0
+                    if episode > 0 and episode % args.a3c_save_interval == 0:
+                        print('save model to %s' % args.a3c_model)
+                        self.save(args.a3c_model)
 
-            try:
-                steps = 1
-                self.prev_x = None
-                state = env.reset()
-                score = 0
-                episode = 1
-                time.sleep(5)
-                while True:
-                    action = self.make_action(state)
-                    
-                    state, reward, terminal, info = env.step(action)
-                    score += reward 
-                    if terminal:    #game over
-                        state = env.reset()
-                        #every 21 point per update 
-                        print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_counter ))
-                        episode += 1
-                        score = 0
-                        self.pull_weights()
-                        time.sleep(1)
-                    print('main' , steps)
-                    steps += 1
+                    time.sleep(1)
+                steps += 1
 
-            except Exception :
-                self.stop = True
-                for t in thread_list:
-                    t.join()
-                print("Quitting Program.")
-            print('Done')
-    
+        except (KeyboardInterrupt, Exception) as e:
+            print('stop program',e)
+            self.stop = True
+            for t in thread_list:
+                t.join()
+            print("Quitting Program.")
+        print('Done')
+
     def make_action(self, observation, test=True):
         """
         Return predicted action of your agent
