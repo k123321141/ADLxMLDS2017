@@ -133,14 +133,17 @@ class Worker():
         while not self.agent.stop:
             #if args.do_render:
             #    env.env.render()
+            x = prepro(state)
+            '''
             cur_x = prepro(state)
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
-
+            '''
             action = self.act(x)
             
             state, reward, terminal, info = env.step(real_act(action))
-            next_x = prepro(state) - cur_x
+            #next_x = prepro(state) - cur_x
+            next_x = prepro(state)
             
             done = reward != 0  #someone get the point
             self.remember(x, next_x, action, reward)
@@ -333,8 +336,11 @@ class Agent_A3C(Agent):
         # YOUR CODE HERE #
         ##################
         cur_x = prepro(observation)
+        '''
+        cur_x = prepro(observation)
         x = cur_x - self.prev_x if self.prev_x is not None else cur_x 
         self.prev_x = cur_x
+        '''
         
         cur_x = cur_x.reshape([1,-1])
         #prob = self.global_actor.predict(cur_x, batch_size=1).flatten()
