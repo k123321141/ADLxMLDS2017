@@ -230,13 +230,16 @@ class Agent_AC(Agent):
         x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
         x = Flatten(name='shared_flatten')(x)
-        shared_out = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
-        x = Dense(16, activation='relu')(shared_out)
+        x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
         actor_output = Dense(self.action_size, activation='softmax')(x)
         actor = Model(inputs=pixel_input, outputs=actor_output)
         
         #critic
-        x = Dense(16, activation='relu')(shared_out)
+        x = Reshape((80, 80, 1))(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Flatten()(x)
+        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
         critic = Model(inputs=pixel_input, outputs=critic_output)
 
