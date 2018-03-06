@@ -1,0 +1,101 @@
+rm: 無法移除 './summary/pong_a3c/*': 沒有此一檔案或目錄
+/usr/local/lib/python3.5/dist-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+train a new model
+work on 8 cpu
+2018-03-06 15:19:38.366971: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 15:19:38.367009: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 15:19:38.367029: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 15:19:38.367033: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 15:19:38.367037: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 15:19:38.450190: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-03-06 15:19:38.450422: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+name: GeForce GTX 970
+major: 5 minor: 2 memoryClockRate (GHz) 1.253
+pciBusID 0000:01:00.0
+Total memory: 3.94GiB
+Free memory: 2.62GiB
+2018-03-06 15:19:38.450434: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2018-03-06 15:19:38.450439: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2018-03-06 15:19:38.450445: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+Episode: 1 - Score: -21.0 - Update Counter:   681 - Spent Time   8.39
+Episode: 2 - Score: -21.0 - Update Counter:  1468 - Spent Time  17.11
+save model to ./models/pong_a3c.h5
+Episode: 3 - Score: -21.0 - Update Counter:  2260 - Spent Time  25.96
+Episode: 4 - Score: -21.0 - Update Counter:  3140 - Spent Time  35.84
+Episode: 5 - Score: -21.0 - Update Counter:  3969 - Spent Time  45.16
+save model to ./models/pong_a3c.h5
+Episode: 6 - Score: -20.0 - Update Counter:  4941 - Spent Time  56.01
+Episode: 7 - Score: -21.0 - Update Counter:  5776 - Spent Time  65.26
+Episode: 8 - Score: -21.0 - Update Counter:  6612 - Spent Time  74.62
+save model to ./models/pong_a3c.h5
+Episode: 9 - Score: -21.0 - Update Counter:  7424 - Spent Time  83.91
+Episode: 10 - Score: -20.0 - Update Counter:  8480 - Spent Time  95.74
+Episode: 11 - Score: -21.0 - Update Counter:  9205 - Spent Time 103.85
+save model to ./models/pong_a3c.h5
+Episode: 12 - Score: -21.0 - Update Counter:  9958 - Spent Time 112.27
+/home/k123/ADLxMLDS2017/chess/agent_dir/agent_a3c.py:350: RuntimeWarning: invalid value encountered in less
+  action = np.random.choice(self.action_size, 1, p=prob)[0]
+/home/k123/ADLxMLDS2017/chess/agent_dir/agent_a3c.py:200: RuntimeWarning: invalid value encountered in less
+  action = np.random.choice(self.agent.action_size, 1, p=probs)[0]
+Episode: 13 - Score: -21.0 - Update Counter: 10737 - Spent Time 121.08
+Episode: 14 - Score: -21.0 - Update Counter: 11510 - Spent Time 129.55
+save model to ./models/pong_a3c.h5
+Episode: 15 - Score: -21.0 - Update Counter: 12274 - Spent Time 137.96
+Episode: 16 - Score: -21.0 - Update Counter: 13041 - Spent Time 146.44
+Episode: 17 - Score: -21.0 - Update Counter: 13802 - Spent Time 154.90
+save model to ./models/pong_a3c.h5
+Episode: 18 - Score: -21.0 - Update Counter: 14548 - Spent Time 163.12
+Episode: 19 - Score: -21.0 - Update Counter: 15307 - Spent Time 171.51
+Episode: 20 - Score: -21.0 - Update Counter: 16038 - Spent Time 179.51
+save model to ./models/pong_a3c.h5
+Episode: 21 - Score: -21.0 - Update Counter: 16769 - Spent Time 187.60
+Episode: 22 - Score: -21.0 - Update Counter: 17508 - Spent Time 195.84
+Episode: 23 - Score: -21.0 - Update Counter: 18269 - Spent Time 204.17
+save model to ./models/pong_a3c.h5
+Episode: 24 - Score: -21.0 - Update Counter: 19022 - Spent Time 212.54
+Episode: 25 - Score: -21.0 - Update Counter: 19762 - Spent Time 220.65
+Episode: 26 - Score: -21.0 - Update Counter: 20483 - Spent Time 228.74
+save model to ./models/pong_a3c.h5
+Episode: 27 - Score: -21.0 - Update Counter: 21229 - Spent Time 236.90
+Episode: 28 - Score: -21.0 - Update Counter: 21987 - Spent Time 245.31
+Episode: 29 - Score: -21.0 - Update Counter: 22723 - Spent Time 253.50
+save model to ./models/pong_a3c.h5
+Episode: 30 - Score: -21.0 - Update Counter: 23461 - Spent Time 261.62
+Episode: 31 - Score: -21.0 - Update Counter: 24217 - Spent Time 269.97
+Episode: 32 - Score: -21.0 - Update Counter: 24978 - Spent Time 278.31
+save model to ./models/pong_a3c.h5
+Episode: 33 - Score: -21.0 - Update Counter: 25714 - Spent Time 286.53
+Episode: 34 - Score: -21.0 - Update Counter: 26462 - Spent Time 294.84
+Episode: 35 - Score: -21.0 - Update Counter: 27218 - Spent Time 303.12
+save model to ./models/pong_a3c.h5
+Episode: 36 - Score: -21.0 - Update Counter: 27971 - Spent Time 311.41
+Episode: 37 - Score: -21.0 - Update Counter: 28715 - Spent Time 319.55
+Episode: 38 - Score: -21.0 - Update Counter: 29455 - Spent Time 327.65
+save model to ./models/pong_a3c.h5
+Episode: 39 - Score: -21.0 - Update Counter: 30198 - Spent Time 335.84
+Episode: 40 - Score: -21.0 - Update Counter: 30956 - Spent Time 344.13
+Episode: 41 - Score: -21.0 - Update Counter: 31709 - Spent Time 352.38
+save model to ./models/pong_a3c.h5
+Episode: 42 - Score: -21.0 - Update Counter: 32458 - Spent Time 360.58
+Episode: 43 - Score: -21.0 - Update Counter: 33212 - Spent Time 368.88
+Episode: 44 - Score: -21.0 - Update Counter: 33959 - Spent Time 377.09
+save model to ./models/pong_a3c.h5
+Episode: 45 - Score: -21.0 - Update Counter: 34703 - Spent Time 385.30
+Episode: 46 - Score: -21.0 - Update Counter: 35445 - Spent Time 393.52
+Episode: 47 - Score: -21.0 - Update Counter: 36189 - Spent Time 401.70
+save model to ./models/pong_a3c.h5
+Episode: 48 - Score: -21.0 - Update Counter: 36924 - Spent Time 409.80
+Episode: 49 - Score: -21.0 - Update Counter: 37667 - Spent Time 418.01
+Episode: 50 - Score: -21.0 - Update Counter: 38412 - Spent Time 426.28
+save model to ./models/pong_a3c.h5
+Episode: 51 - Score: -21.0 - Update Counter: 39164 - Spent Time 434.51
+Episode: 52 - Score: -21.0 - Update Counter: 39907 - Spent Time 442.75
+Episode: 53 - Score: -21.0 - Update Counter: 40656 - Spent Time 451.02
+save model to ./models/pong_a3c.h5
+Episode: 54 - Score: -21.0 - Update Counter: 41428 - Spent Time 459.54
+Episode: 55 - Score: -21.0 - Update Counter: 42180 - Spent Time 467.78
+Episode: 56 - Score: -21.0 - Update Counter: 42941 - Spent Time 476.11
+save model to ./models/pong_a3c.h5
+./a3c.sh: line 6: 10996 終止                  python3 -u ./main.py --train_a3c --a3c_model=./models/pong_a3c.h5 --a3c_summary=./summary/pong_a3c/summary

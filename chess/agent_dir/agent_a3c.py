@@ -98,14 +98,6 @@ def set_predict_fn(state_size, model):
 def worker_thread(worker):
     worker.train()
 
-def pull_global_weights(to_scope):
-    from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
-    to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, to_scope)
-
-    op_holder = []
-    for from_var,to_var in zip(from_vars,to_vars):
-        op_holder.append(to_var.assign(from_var))
-    return op_holder
 
 class Worker():
     def __init__(self, agent, name, env_name, build_net, global_info):
@@ -124,7 +116,7 @@ class Worker():
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         self.actor_predict_fn  = set_predict_fn(self.agent.state_size, self.actor)
-        self.critic_predict_fn  = set_predict_fn(self.agent.state_size, self.critic)
+        self.critic_predict_fn  = set_predict_fn(self.agent.state_size, self.global_critic)
     def train(self): 
         env = self.env
         self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
@@ -175,23 +167,17 @@ class Worker():
         rewards = np.vstack(self.rewards).reshape([-1,1])
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
         
+        state_values = get_discount_state_value(states)
+        next_state_values = get_discount_state_value(next_states)
+        
         # td error, but eliminate the bias of one step
         if done:
             discounted_td_error = discount(rewards.copy(), self.agent.gamma)
+            target = discounted_td_error
+            advantage_fn = discounted_td_error - state_values 
         else:
-            discounted_td_error = np.zeros_like(rewards)
-            inputs = [ next_states[-1:, :] ]
-            discounted_td_error[-1, 0] = self.critic_predict_fn(inputs)[0][0,0]
-            discounted_td_error = discount(discounted_td_error, self.agent.gamma)
-        target = discounted_td_error
-
-        
-        # advantage function
-        next_state_values = np.zeros_like(rewards)
-        inputs = [ next_states[-1:, :] ]
-        next_state_values[-1, 0] = self.critic_predict_fn(inputs)[0][0,0]
-        next_td = discount(next_state_values, self.agent.gamma)
-        advantage_fn = (rewards + self.agent.gamma*next_state_values) -  discounted_td_error
+            target = rewards + self.gamma*next_state_values
+            advantage_fn = (rewards + self.agent.gamma*next_state_values) - state_values 
 
         self.update_fn([states, one_hot_actions, target, advantage_fn])
     def act(self, state):
@@ -199,8 +185,13 @@ class Worker():
         probs = self.actor_predict_fn([state,])[0].flatten()
         action = np.random.choice(self.agent.action_size, 1, p=probs)[0]
         return action 
-
-                
+    def get_discount_state_value(self, states):
+        states = np.zeros([len(states), 1])
+        inputs = [ states[-1:, :] ]
+        state_values[-1, 0] = self.critic_predict_fn(inputs)[0][0,0]
+        state_values = discount(state_values, self.agent.gamma)
+        return state_values
+     
     #get weights from global net 
     def pull(self):
         self.local_net.set_weights(self.global_net.get_weights())
@@ -295,6 +286,7 @@ class Agent_A3C(Agent):
             state = env.reset()
             score = 0
             episode = 1
+            start_time = time.time()
             while True:
                 action = self.make_action(state)
                 
@@ -303,7 +295,8 @@ class Agent_A3C(Agent):
                 if terminal:    #game over
                     state = env.reset()
                     #every 21 point per update 
-                    print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_count ))
+                    print('Episode: %d - Score: %2.1f - Update Counter: %5d - Spent Time %6.2f' % (episode, score, self.update_count, time.time()-start_time ))
+
                     episode += 1
                     score = 0
                     if episode > 0 and episode % args.a3c_save_interval == 0:
