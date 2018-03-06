@@ -291,7 +291,7 @@ class Agent_AC(Agent):
         # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
         entropy = K.mean(action_probs * K.log(action_probs))
        
-        loss = actor_loss + critic_loss + 0.01 * entropy
+        loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy
         
         opt = Adam(lr=self.learning_rate)
         #trainable_weights

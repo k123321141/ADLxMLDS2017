@@ -3,60 +3,19 @@ rm: 無法移除 './summary/pong_a3c/*': 沒有此一檔案或目錄
   from ._conv import register_converters as _register_converters
 Using TensorFlow backend.
 load model from ./models/pong_a3c.h5.
-2018-03-06 15:53:05.897155: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
-2018-03-06 15:53:05.897187: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
-2018-03-06 15:53:05.897196: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
-2018-03-06 15:53:05.897203: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
-2018-03-06 15:53:05.897210: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
-2018-03-06 15:53:05.980436: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2018-03-06 15:53:05.980668: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+2018-03-06 16:08:19.850739: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 16:08:19.850793: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 16:08:19.850798: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 16:08:19.850803: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 16:08:19.850807: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-06 16:08:19.928873: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-03-06 16:08:19.929110: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
 name: GeForce GTX 970
 major: 5 minor: 2 memoryClockRate (GHz) 1.253
 pciBusID 0000:01:00.0
 Total memory: 3.94GiB
-Free memory: 2.62GiB
-2018-03-06 15:53:05.980680: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
-2018-03-06 15:53:05.980685: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
-2018-03-06 15:53:05.980690: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+Free memory: 3.12GiB
+2018-03-06 16:08:19.929122: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2018-03-06 16:08:19.929127: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2018-03-06 16:08:19.929133: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
 work on 8 cpu
-Episode: 1 - Score: -20.0 - Update Counter:   807 - Spent Time   9.87
-Episode: 2 - Score: -21.0 - Update Counter:  1649 - Spent Time  19.33
-save model to ./models/pong_a3c.h5
-Episode: 3 - Score: -21.0 - Update Counter:  2713 - Spent Time  31.43
-Episode: 4 - Score: -21.0 - Update Counter:  3676 - Spent Time  42.24
-Episode: 5 - Score: -20.0 - Update Counter:  4732 - Spent Time  54.16
-save model to ./models/pong_a3c.h5
-Episode: 6 - Score: -20.0 - Update Counter:  5641 - Spent Time  64.41
-Episode: 7 - Score: -21.0 - Update Counter:  6631 - Spent Time  75.50
-Episode: 8 - Score: -18.0 - Update Counter:  7785 - Spent Time  88.59
-save model to ./models/pong_a3c.h5
-Episode: 9 - Score: -21.0 - Update Counter:  8671 - Spent Time  98.58
-Episode: 10 - Score: -21.0 - Update Counter:  9492 - Spent Time 107.82
-Episode: 11 - Score: -20.0 - Update Counter: 10337 - Spent Time 117.40
-save model to ./models/pong_a3c.h5
-Episode: 12 - Score: -20.0 - Update Counter: 11186 - Spent Time 126.98
-Episode: 13 - Score: -21.0 - Update Counter: 11968 - Spent Time 135.71
-Episode: 14 - Score: -21.0 - Update Counter: 12753 - Spent Time 144.61
-save model to ./models/pong_a3c.h5
-Episode: 15 - Score: -21.0 - Update Counter: 13534 - Spent Time 153.34
-Episode: 16 - Score: -20.0 - Update Counter: 14421 - Spent Time 163.34
-Episode: 17 - Score: -20.0 - Update Counter: 15429 - Spent Time 174.71
-save model to ./models/pong_a3c.h5
-Episode: 18 - Score: -21.0 - Update Counter: 16210 - Spent Time 183.47
-Episode: 19 - Score: -20.0 - Update Counter: 17160 - Spent Time 194.23
-Episode: 20 - Score: -20.0 - Update Counter: 18008 - Spent Time 203.76
-save model to ./models/pong_a3c.h5
-Episode: 21 - Score: -20.0 - Update Counter: 18983 - Spent Time 213.67
-Episode: 22 - Score: -21.0 - Update Counter: 19832 - Spent Time 221.39
-Episode: 23 - Score: -21.0 - Update Counter: 20791 - Spent Time 230.39
-save model to ./models/pong_a3c.h5
-Episode: 24 - Score: -21.0 - Update Counter: 21522 - Spent Time 237.20
-Episode: 25 - Score: -20.0 - Update Counter: 22507 - Spent Time 246.15
-Episode: 26 - Score: -20.0 - Update Counter: 23475 - Spent Time 254.97
-save model to ./models/pong_a3c.h5
-Episode: 27 - Score: -21.0 - Update Counter: 24382 - Spent Time 263.22
-Episode: 28 - Score: -20.0 - Update Counter: 25365 - Spent Time 272.13
-Episode: 29 - Score: -21.0 - Update Counter: 26394 - Spent Time 281.74
-save model to ./models/pong_a3c.h5
-Episode: 30 - Score: -21.0 - Update Counter: 27233 - Spent Time 291.07
-Episode: 31 - Score: -20.0 - Update Counter: 28136 - Spent Time 299.43

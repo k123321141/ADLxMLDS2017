@@ -75,7 +75,7 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
     # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
     entropy = K.sum(action_probs * K.log(action_probs))
    
-    loss = actor_loss + critic_loss + 0.01 * entropy
+    loss = actor_loss + 0.5*critic_loss + 0.01 * entropy
 
     grads = tf.gradients(loss, local_net.trainable_weights)
     
@@ -143,11 +143,11 @@ class Worker():
             if done or steps % self.agent.args.a3c_train_frequency == 0:
                 self.prev_x = None
                 self.update(done)
-                self.agent.update_count += 1
                 self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
                 self.pull()
                 #print(self.name, self.agent.update_count)
             if terminal:    #game over
+                self.agent.update_count += 1
                 state = env.reset()
                 #sess.run(self.pull_op)
                 #every 21 point per update 
