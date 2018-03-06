@@ -12,7 +12,6 @@ import sys,os,random
 import scipy.signal
 import signal, threading, time
 from collections import deque
-graph = tf.get_default_graph()
 def prepro(I):
     I = I[35:195]
     I = I[::2, ::2, 0]
@@ -33,29 +32,30 @@ def real_act(action):
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
-def build_model(action_size, state_size):
-    pixel_input = Input(shape=(state_size,))
+def build_model(action_size, state_size, scope):
+    with tf.variable_scope(scope):     
+        pixel_input = Input(shape=(state_size,))
 
-    #actor
-    x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
-                            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-    x = Flatten(name='shared_flatten')(x)
-    x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
-    actor_output = Dense(action_size, activation='softmax')(x)
-    actor = Model(inputs=pixel_input, outputs=actor_output)
-    
-    #critic
-    x = Reshape((80, 80, 1))(pixel_input)
-    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
-            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-    x = Flatten()(x)
-    x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
-    critic_output = Dense(1, activation='linear')(x)
-    critic = Model(inputs=pixel_input, outputs=critic_output)
+        #actor
+        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Flatten(name='shared_flatten')(x)
+        x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
+        actor_output = Dense(action_size, activation='softmax')(x)
+        actor = Model(inputs=pixel_input, outputs=actor_output)
+        
+        #critic
+        x = Reshape((80, 80, 1))(pixel_input)
+        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
+                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Flatten()(x)
+        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
+        critic_output = Dense(1, activation='linear')(x)
+        critic = Model(inputs=pixel_input, outputs=critic_output)
 
-    #whole model
-    model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
+        #whole model
+        model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
     return actor, critic, model 
 
 def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
@@ -87,11 +87,17 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
             outputs=[loss,],
                 updates=[updates,])
     return update_fn
-def worker_thread(agent, name, env_name, build_net, global_info):
-    with graph.as_default():
-        worker = Worker(agent, name, env_name,build_net, global_info)
-        worker.train()
+def worker_thread(worker, sess):
+    worker.train(sess)
 
+def pull_global_weights(to_scope):
+    from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
+    to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, to_scope)
+
+    op_holder = []
+    for from_var,to_var in zip(from_vars,to_vars):
+        op_holder.append(to_var.assign(from_var))
+    return op_holder
 
 class Worker():
     def __init__(self, agent, name, env_name, build_net, global_info):
@@ -101,14 +107,11 @@ class Worker():
         self.agent = agent
         #self.loss, self.opt = set_train_fn()
 
-        self.actor, self.critic, self.local_net = build_net(agent.action_size, agent.state_size)
-        self.local_net.set_weights(self.global_net.get_weights())
+        self.actor, self.critic, self.local_net = build_net(agent.action_size, agent.state_size, self.name)
 
-        local_info = [self.actor, self.critic, self.local_net]
-        self.update_fn = set_train_fn(local_info, global_info)
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
-    def train(self): 
+    def train(self, sess): 
         env = self.env
         self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
         
@@ -117,31 +120,37 @@ class Worker():
         self.prev_x = None
         state = env.reset()
         steps = 1
-        while not self.agent.stop:
-            #if args.do_render:
-            #    env.env.render()
-            cur_x = prepro(state)
-            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
-            self.prev_x = cur_x
+        with sess.as_default(), sess.graph.as_default():
+            global_info = [self.global_net, self.global_opt]
+            local_info = [self.actor, self.critic, self.local_net]
+            self.update_fn = set_train_fn(local_info, global_info)
+            self.pull_op = pull_global_weights(self.name)
+            sess.run(self.pull_op)
+            while not self.agent.stop:
+                #if args.do_render:
+                #    env.env.render()
+                cur_x = prepro(state)
+                x = cur_x - self.prev_x if self.prev_x is not None else cur_x
+                self.prev_x = cur_x
 
-            action = self.act(x)
-            
-            state, reward, terminal, info = env.step(real_act(action))
-            next_x = prepro(state) - cur_x
-            
-            done = reward != 0  #someone get the point
-            self.remember(x, next_x, action, reward)
-            if done or steps % self.agent.args.a3c_train_frequency == 0:
-                self.prev_x = None
-                self.update(done)
-                self.agent.update_count += 1
-                self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
-                print(self.name, self.agent.update_count)
-            if terminal:    #game over
-                state = env.reset()
-                self.pull()
-                #every 21 point per update 
-            steps += 1
+                action = self.act(x)
+                
+                state, reward, terminal, info = env.step(real_act(action))
+                next_x = prepro(state) - cur_x
+                
+                done = reward != 0  #someone get the point
+                self.remember(x, next_x, action, reward)
+                if done or steps % self.agent.args.a3c_train_frequency == 0:
+                    self.prev_x = None
+                    self.update(done)
+                    self.agent.update_count += 1
+                    self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+                    print(self.name, self.agent.update_count)
+                if terminal:    #game over
+                    state = env.reset()
+                    sess.run(self.pull_op)
+                    #every 21 point per update 
+                steps += 1
         print('quit thread %s' % self.name)
     def remember(self, state, next_state, action, reward):
         self.states.append(state)
@@ -206,7 +215,7 @@ class Agent_A3C(Agent):
                 self.learning_rate = 0.
                 self.prev_x = None
                 self.action_size = 3
-                self.actor, self.critic, self.model = self.build_model()
+                self.actor, self.critic, self.model = self.build_model('global')
 
                 self.load(args.a3c_model)
             else:
@@ -235,39 +244,50 @@ class Agent_A3C(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
+        tf.reset_default_graph()
         env = self.env
         args = self.args
         self.learning_rate = 0.001
         self.gamma = args.a3c_discount_factor        
         self.update_count = 0
-        self.global_actor, self.global_critic, self.global_net = build_model(self.action_size, self.state_size)
-        opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
-        global_info = [self.global_net, opt]
-        if os.path.isfile(args.a3c_model) and args.keep_train: 
-            print('load model from %s.' % args.a3c_model)
-            self.load(args.a3c_model)
-        else:
-            print('train a new model')
-        
-        #multi-threading
-        thread_list = []
-        self.stop = False
-        with graph.as_default():
-            self.global_actor._make_predict_function()
-        for i in range(args.a3c_worker_count):
-            name = 'worker_%d' % i
-            worker_args = [self, name, 'Pong-v0',build_model, global_info]
-            t = threading.Thread(target=worker_thread, args=worker_args)
-            t.start()
-            thread_list.append(t)
-        try:
-            steps = 1
-            self.prev_x = None
-            state = env.reset()
-            score = 0
-            episode = 1
-            while True:
-                '''
+        with tf.device("/cpu:0"):
+            self.global_actor, self.global_critic, self.global_net = build_model(self.action_size, self.state_size, 'global')
+            opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
+            global_info = [self.global_net, opt]
+            if os.path.isfile(args.a3c_model) and args.keep_train: 
+                print('load model from %s.' % args.a3c_model)
+                self.load(args.a3c_model)
+            else:
+                print('train a new model')
+            
+            states = K.placeholder(shape=(None, self.state_size), dtype='float32')
+            action_probs = self.global_actor([states,])
+            self.predict_fn  = K.function(
+                inputs=[states,],
+                outputs=[action_probs,],
+                    updates=[])
+
+            #multi-threading
+            thread_list = []
+            self.stop = False
+        with tf.Session() as sess:
+            for i in range(args.a3c_worker_count):
+                name = 'worker_%d' % i
+                worker = Worker(self, name, 'Pong-v0',build_model, global_info)
+                t = threading.Thread(target=worker_thread, args=[worker, sess])
+                thread_list.append(t)
+            sess.run(tf.global_variables_initializer())
+            for t in thread_list:
+                t.start()
+
+            try:
+                steps = 1
+                self.prev_x = None
+                state = env.reset()
+                score = 0
+                episode = 1
+                time.sleep(5)
+                while True:
                     action = self.make_action(state)
                     
                     state, reward, terminal, info = env.step(action)
@@ -278,17 +298,17 @@ class Agent_A3C(Agent):
                         print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_counter ))
                         episode += 1
                         score = 0
-                '''
-                print('main' , steps)
-                time.sleep(0.5)
-                steps += 1
+                        self.pull_weights()
+                        time.sleep(1)
+                    print('main' , steps)
+                    steps += 1
 
-        except KeyboardInterrupt:
-            self.stop = True
-            for t in thread_list:
-                t.join()
-            print("Quitting Program.")
-        print('Done')
+            except Exception :
+                self.stop = True
+                for t in thread_list:
+                    t.join()
+                print("Quitting Program.")
+            print('Done')
     
     def make_action(self, observation, test=True):
         """
@@ -310,7 +330,8 @@ class Agent_A3C(Agent):
         self.prev_x = cur_x
         
         cur_x = cur_x.reshape([1,-1])
-        prob = self.global_actor.predict(cur_x, batch_size=1).flatten()
+        #prob = self.global_actor.predict(cur_x, batch_size=1).flatten()
+        prob = self.predict_fn([cur_x,])[0].flatten()
         
         #stochastic
         action = np.random.choice(self.action_size, 1, p=prob)[0]
@@ -321,4 +342,6 @@ class Agent_A3C(Agent):
     
     def save(self, name):
         self.global_net.save_weights(name)
+    def pull_weights(self):
+        self.global_weights = self.global_net.get_weights()
 
