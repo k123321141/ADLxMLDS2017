@@ -48,7 +48,7 @@ def run(args):
         agent = Agent_AC(env, args)
         agent.train()
     if args.train_a3c:
-        env_name = args.env_name or 'Pong-v0'
+        env_name = args.env_name or 'PongDeterministic-v4'
         env = Environment(env_name, args)
         from agent_dir.agent_a3c import Agent_A3C
         agent = Agent_A3C(env, args)
@@ -80,7 +80,7 @@ def run(args):
         agent = Agent_AC(env, args)
         test(agent, env)
     if args.test_a3c:
-        env = Environment('Pong-v0', args, test=True)
+        env = Environment('PongDeterministic-v4', args, test=True)
         from agent_dir.agent_a3c import Agent_A3C
         agent = Agent_A3C(env, args)
         test(agent, env)

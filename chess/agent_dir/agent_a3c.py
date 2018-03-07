@@ -153,9 +153,9 @@ class Worker():
                 self.agent.update_count += 1
                 self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
                 #print(self.name, self.agent.update_count)
+                self.pull()
             if terminal:    #game over
                 state = env.reset()
-                self.pull()
                 #sess.run(self.pull_op)
                 #every 21 point per update 
             steps += 1
@@ -175,15 +175,16 @@ class Worker():
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
         
         state_values = self.critic_predict_fn([states, ])[0]
-        #next_state_values = self.critic_predict_fn([next_states, ])[0]
+        next_state_values = self.critic_predict_fn([next_states, ])[0]
 
     
         # td error, but eliminate the bias of one step
         discounted_rewards = discount(rewards.copy(), self.agent.gamma)
         target = discounted_rewards
-        #next_state_values[-1,0] = 0
-        #advantage_fn = rewards - ( state_values - next_state_values )
-        advantage_fn = discounted_rewards - state_values
+        next_state_values[-1,0] = 0
+        #target = rewards + self.agent.gamma*next_state_values
+        advantage_fn = (rewards + next_state_values) - state_values 
+        #advantage_fn = discounted_rewards - state_values
 
         self.update_fn([states, one_hot_actions, target, advantage_fn])
     def act(self, state):
