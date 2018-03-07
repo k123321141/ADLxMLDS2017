@@ -14,12 +14,16 @@ import signal, threading, time
 from collections import deque
 import multiprocessing
 def prepro(I):
+    '''
     I = I[35:195]
     I = I[::2, ::2, 0]
     I[I == 144] = 0
     I[I == 109] = 0
     I[I != 0] = 1
+    
     return I.astype(np.float).ravel()
+    '''
+    return I
 def real_act(action):
     if action == 0:
         return 0
@@ -34,7 +38,7 @@ def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 def build_model(action_size, state_size, scope):
-
+    '''
     pixel_input = Input(shape=(state_size,))
     hi_st = Input(shape=(64,))
     #actor
@@ -57,17 +61,35 @@ def build_model(action_size, state_size, scope):
     critic_output = Dense(1, activation='linear')(x)
     critic = Model(inputs=[pixel_input, hi_st], outputs=critic_output)
 
-
     #whole model
     model = Model(inputs=[pixel_input, hi_st], outputs=[actor_output, critic_output, hi_st])
+    '''
+    ram_input = Input(shape=(128,))
+    hi_st = Input(shape=(16,))
+    #actor
+    
+    x = Dense(64, activation='relu')(ram_input)
+    x = Dense(32, activation='relu')(ram_input)
+    x = Reshape([1,-1])(x)
+    x, st = GRU(16, activation='relu',return_state=True)(x, hi_st)
+    
+    actor_output = Dense(action_size, activation='softmax')(x)
+    actor = Model(inputs=[ram_input, hi_st], outputs=actor_output)
 
+    
+    #critic
+    critic_output = Dense(1, activation='linear')(x)
+    critic = Model(inputs=[ram_input, hi_st], outputs=critic_output)
+
+    #whole model
+    model = Model(inputs=[ram_input, hi_st], outputs=[actor_output, critic_output, hi_st])
     return actor, critic, model 
 
-def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
+def set_train_fn(local_info, global_info, action_size=3, state_size=128):
     actor, critic, local_net = local_info 
     
     states = K.placeholder(shape=(None, state_size), dtype='float32')
-    hi_st = K.placeholder(shape=(None, 64), dtype='float32')
+    hi_st = K.placeholder(shape=(None, 16), dtype='float32')
     one_hot_actions = K.placeholder(shape=(None, action_size), dtype='float32')
     target = K.placeholder(shape=(None, 1), dtype='float32')
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
@@ -82,6 +104,7 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
     entropy = K.mean(action_probs * K.log(action_probs))
    
     loss = actor_loss + 0.5*critic_loss + 0.01 * entropy
+    #loss =  + 0.5*critic_loss + 0.01 * entropy
 
     grads = tf.gradients(loss, local_net.trainable_weights)
     
@@ -95,7 +118,7 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
     return update_fn 
 def set_predict_fn(state_size, model):
     states = K.placeholder(shape=(None, state_size), dtype='float32')
-    hi_st = K.placeholder(shape=(None, 64), dtype='float32')
+    hi_st = K.placeholder(shape=(None, 16), dtype='float32')
     outputs = model([states, hi_st])
     predict_fn  = K.function(
         inputs=[states, hi_st],
@@ -130,7 +153,7 @@ class Worker():
 
         
         self.prev_x = None
-        hi_st = np.zeros([1, 64], dtype=np.float32)
+        hi_st = np.zeros([1, 16], dtype=np.float32)
         state = env.reset()
         steps = 1
         while not self.agent.stop:
@@ -154,7 +177,7 @@ class Worker():
                 #Noop iteration
                 for i in range(17):
                     env.step(0)
-                hi_st = np.zeros([1, 64], dtype=np.float32)
+                hi_st = np.zeros([1, 16], dtype=np.float32)
                 #
                 #print(self.name, self.agent.update_count)
                 self.pull()
@@ -189,7 +212,7 @@ class Worker():
         for i in reversed(range(len(self.rewards))):
             ri = rewards[i,0]
             vi = next_state_values[i,0]
-            R = self.gamma*R + ri 
+            R = self.agent.gamma*R + ri 
             target[i,0] = R - state_values[i,0]
             advantage_fn[i,0] = R - state_values[i,0]
 
@@ -230,7 +253,7 @@ class Agent_A3C(Agent):
 
 
 
-        self.state_size = 80 * 80 
+        self.state_size = 128 
         self.env = env
         self.args = args
         
@@ -298,7 +321,7 @@ class Agent_A3C(Agent):
         print('work on %d cpu' % num_workers)
         for i in range(num_workers):
             name = 'worker_%d' % i
-            worker = Worker(self, name, 'Pong-v0',build_model, global_info)
+            worker = Worker(self, name, 'Pong-ramDeterministic-v4',build_model, global_info)
             t = threading.Thread(target=worker_thread, args=[worker, ])
             thread_list.append(t)
 
@@ -311,7 +334,7 @@ class Agent_A3C(Agent):
             score = 0
             episode = 1
             start_time = time.time()
-            self.hi_st = np.zeros([1,64], dtype=np.float32)
+            self.hi_st = np.zeros([1,16], dtype=np.float32)
             while True:
                 action = self.make_action(state)
                 
@@ -319,7 +342,7 @@ class Agent_A3C(Agent):
                 score += reward 
                 done = reward != 0
                 if done:
-                    self.hi_st = np.zeros([1,64], dtype=np.float32)
+                    self.hi_st = np.zeros([1,16], dtype=np.float32)
                 if terminal:    #game over
                     state = env.reset()
                     #every 21 point per update 
