@@ -34,50 +34,52 @@ def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 def build_model(action_size, state_size, scope):
-    pixel_input = Input(shape=(state_size,))
 
+    pixel_input = Input(shape=(state_size,))
+    hi_st = Input(shape=(64,))
     #actor
-    x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-    x = Conv2D(16, kernel_size=(8, 8), strides=(4, 4), padding='same', name='shared_conv2d',
+    x = Reshape((80, 80, 1))(pixel_input)
+    x = Conv2D(16, kernel_size=(5, 5), strides=(2, 2), padding='same',
                             activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-    x = Conv2D(32, kernel_size=(4, 4), strides=(2, 2), padding='same',
+    x = Conv2D(32, kernel_size=(5, 5), strides=(2, 2), padding='same',
                             activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-    x = Flatten(name='shared_flatten')(x)
-    x = Dense(256,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
+    x = Conv2D(64, kernel_size=(5, 5), strides=(2, 2), padding='same',
+                            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+    cnn_out = Reshape([1,-1])(x)
+    
+    x, st = GRU(64, activation='relu',return_state=True)(cnn_out, hi_st)
+    
     actor_output = Dense(action_size, activation='softmax')(x)
-    actor = Model(inputs=pixel_input, outputs=actor_output)
+    actor = Model(inputs=[pixel_input, hi_st], outputs=actor_output)
+
     
     #critic
-    '''
-    x = Reshape((80, 80, 1))(pixel_input)
-    x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
-            activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-    x = Flatten()(x)
-    x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
-    '''
     critic_output = Dense(1, activation='linear')(x)
-    critic = Model(inputs=pixel_input, outputs=critic_output)
+    critic = Model(inputs=[pixel_input, hi_st], outputs=critic_output)
+
 
     #whole model
-    model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
+    model = Model(inputs=[pixel_input, hi_st], outputs=[actor_output, critic_output, hi_st])
+
     return actor, critic, model 
 
 def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
     actor, critic, local_net = local_info 
     
     states = K.placeholder(shape=(None, state_size), dtype='float32')
+    hi_st = K.placeholder(shape=(None, 64), dtype='float32')
     one_hot_actions = K.placeholder(shape=(None, action_size), dtype='float32')
     target = K.placeholder(shape=(None, 1), dtype='float32')
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
-    action_probs = actor([states,])
-    critic_value = critic([states,]) 
+    action_probs = actor([states,hi_st])
+    critic_value = critic([states,hi_st]) 
 
-    actor_loss = -K.sum(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
-    critic_loss = K.sum(K.square(target - critic_value))  
+    actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
+    critic_loss = K.mean(K.square(target - critic_value))  
     
     # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
-    entropy = K.sum(action_probs * K.log(action_probs))
+    entropy = K.mean(action_probs * K.log(action_probs))
    
     loss = actor_loss + 0.5*critic_loss + 0.01 * entropy
 
@@ -87,16 +89,17 @@ def set_train_fn(local_info, global_info, action_size=3, state_size=6400):
     global_net, global_opt = global_info
     updates = global_opt.apply_gradients(zip(grads, global_net.trainable_weights))
     update_fn = K.function(
-            inputs=[states, one_hot_actions, target, advantage_fn],
+            inputs=[states, hi_st, one_hot_actions, target, advantage_fn],
             outputs=[loss,],
                 updates=[updates,])
     return update_fn 
 def set_predict_fn(state_size, model):
     states = K.placeholder(shape=(None, state_size), dtype='float32')
-    outputs = model([states,])
+    hi_st = K.placeholder(shape=(None, 64), dtype='float32')
+    outputs = model([states, hi_st])
     predict_fn  = K.function(
-        inputs=[states,],
-        outputs=[outputs,],
+        inputs=[states, hi_st],
+        outputs=outputs,
             updates=[])
     return predict_fn
 def worker_thread(worker):
@@ -119,39 +122,40 @@ class Worker():
         self.update_fn = set_train_fn(local_info, global_info)
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
-        self.actor_predict_fn  = set_predict_fn(self.agent.state_size, self.actor)
-        self.critic_predict_fn  = set_predict_fn(self.agent.state_size, self.critic)
+        self.predict_fn  = set_predict_fn(self.agent.state_size, self.local_net)
     def train(self): 
         env = self.env
-        self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+        self.states, self.next_states, self.actions, self.rewards, self.hi_sts = [],[],[],[],[]
         
 
         
         self.prev_x = None
+        hi_st = np.zeros([1, 64], dtype=np.float32)
         state = env.reset()
         steps = 1
         while not self.agent.stop:
             #if args.do_render:
             #    env.env.render()
             x = prepro(state)
-            '''
-            cur_x = prepro(state)
-            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
-            self.prev_x = cur_x
-            '''
-            action = self.act(x)
+            action, next_hi_st = self.act([x, hi_st])
             
             state, reward, terminal, info = env.step(real_act(action))
-            #next_x = prepro(state) - cur_x
             next_x = prepro(state)
             
             done = reward != 0  #someone get the point
-            self.remember(x, next_x, action, reward)
+            self.remember(x, next_x, action, reward, hi_st)
             if done:
                 self.prev_x = None
-                self.update(done)
+                self.update()
                 self.agent.update_count += 1
-                self.states, self.next_states, self.actions, self.rewards = [],[],[],[]
+                self.states, self.next_states, self.actions, self.rewards, self.hi_sts = [],[],[],[],[]
+
+
+                #Noop iteration
+                for i in range(17):
+                    env.step(0)
+                hi_st = np.zeros([1, 64], dtype=np.float32)
+                #
                 #print(self.name, self.agent.update_count)
                 self.pull()
             if terminal:    #game over
@@ -160,22 +164,23 @@ class Worker():
                 #every 21 point per update 
             steps += 1
         print('quit thread %s' % self.name)
-    def remember(self, state, next_state, action, reward):
+    def remember(self, state, next_state, action, reward, hi_st):
         self.states.append(state)
         self.next_states.append(next_state)
         self.actions.append(action)
         self.rewards.append(reward)
-    
-    def update(self, done):
+        self.hi_sts.append(hi_st)
+    def update(self):
 
         states = np.vstack(self.states)
         next_states = np.vstack(self.next_states)
         actions = np.vstack(self.actions)
         rewards = np.vstack(self.rewards).reshape([-1,1])
+        hi_sts = np.vstack(self.hi_sts)
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
         
-        state_values = self.critic_predict_fn([states, ])[0]
-        next_state_values = self.critic_predict_fn([next_states, ])[0]
+        _, state_values, _ = self.predict_fn([states, hi_sts])
+        _, next_state_values, _ = self.predict_fn([next_states, hi_sts])
 
     
         # td error, but eliminate the bias of one step
@@ -184,14 +189,18 @@ class Worker():
         next_state_values[-1,0] = 0
         #target = rewards + self.agent.gamma*next_state_values
         advantage_fn = (rewards + next_state_values) - state_values 
+        #advantage_fn = next_state_values - state_values 
         #advantage_fn = discounted_rewards - state_values
 
-        self.update_fn([states, one_hot_actions, target, advantage_fn])
-    def act(self, state):
+        self.update_fn([states, hi_sts, one_hot_actions, target, advantage_fn])
+    def act(self, inputs):
+        state, hi_st = inputs
         state = state.reshape([1, state.shape[0]])
-        probs = self.actor_predict_fn([state,])[0].flatten()
+        probs, _, hi_sts = self.predict_fn([state, hi_st]) 
+        
+        probs = probs.flatten()
         action = np.random.choice(self.agent.action_size, 1, p=probs)[0]
-        return action 
+        return action, hi_sts 
     def get_discount_state_value(self, states):
         inputs = [ states[-1:, :] ]
         state_values = np.zeros([len(states), 1])
@@ -271,12 +280,13 @@ class Agent_A3C(Agent):
         else:
             print('train a new model')
         
-        self.predict_fn  = set_predict_fn(self.state_size, self.global_actor)
+        self.predict_fn  = set_predict_fn(self.state_size, self.global_net)
 
         #multi-threading
         thread_list = []
         self.stop = False
         num_workers = multiprocessing.cpu_count()
+        num_workers = args.a3c_worker_count
         #for i in range(args.a3c_worker_count):
         print('work on %d cpu' % num_workers)
         for i in range(num_workers):
@@ -294,11 +304,15 @@ class Agent_A3C(Agent):
             score = 0
             episode = 1
             start_time = time.time()
+            self.hi_st = np.zeros([1,64], dtype=np.float32)
             while True:
                 action = self.make_action(state)
                 
                 state, reward, terminal, info = env.step(action)
                 score += reward 
+                done = reward != 0
+                if done:
+                    self.hi_st = np.zeros([1,64], dtype=np.float32)
                 if terminal:    #game over
                     state = env.reset()
                     #every 21 point per update 
@@ -337,18 +351,13 @@ class Agent_A3C(Agent):
         # YOUR CODE HERE #
         ##################
         cur_x = prepro(observation)
-        '''
-        cur_x = prepro(observation)
-        x = cur_x - self.prev_x if self.prev_x is not None else cur_x 
-        self.prev_x = cur_x
-        '''
         
         cur_x = cur_x.reshape([1,-1])
-        #prob = self.global_actor.predict(cur_x, batch_size=1).flatten()
-        prob = self.predict_fn([cur_x,])[0].flatten()
+        probs, _, self.hi_st = self.predict_fn([cur_x, self.hi_st])
+        probs = probs.flatten()
         
         #stochastic
-        action = np.random.choice(self.action_size, 1, p=prob)[0]
+        action = np.random.choice(self.action_size, 1, p=probs)[0]
         #action = np.argmax(prob)
         return real_act(action)
     def load(self, name):
