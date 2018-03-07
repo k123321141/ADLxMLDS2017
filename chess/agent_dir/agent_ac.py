@@ -13,13 +13,15 @@ import scipy.signal
 from collections import deque
 
 def prepro(I):
+    '''
     I = I[35:195]
     I = I[::2, ::2, 0]
     I[I == 144] = 0
     I[I == 109] = 0
     I[I != 0] = 1
     return I.astype(np.float).ravel()
-
+    '''
+    return I
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 class Agent_AC(Agent):
@@ -33,7 +35,7 @@ class Agent_AC(Agent):
 
 
 
-        self.state_size = 80 * 80 
+        self.state_size = 128 
         self.env = env
         self.args = args
         
@@ -118,7 +120,7 @@ class Agent_AC(Agent):
         done = False
         state = env.reset()
         self.states, self.next_states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], [], []
-        hi_st = np.zeros([1, 64], dtype=np.float32)
+        hi_st = np.zeros([1, 16], dtype=np.float32)
         #self.actor.load_weights('./models/pong_pg.h5')
         #self.actor_target.load_weights('./models/pong_pg.h5')
         while True:
@@ -162,9 +164,6 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
-                for i in range(17):
-                    env.step(0)
-                hi_st = np.zeros([1, 64], dtype=np.float32)
                 self.update_reply_buffer()
                 loss, actor_loss, critic_loss, entropy = self.update_actor_critic()
                 self.states, self.next_states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], [], []
@@ -184,6 +183,9 @@ class Agent_AC(Agent):
                 summary_str = self.sess.run(self.summary_op)
                 self.summary_writer.add_summary(summary_str, self.update_counter)
                 '''
+            if terminal:
+                hi_st = np.zeros([1, 16], dtype=np.float32)
+
     def real_act(self, action):
         if action == 0:
             return 0
@@ -223,31 +225,25 @@ class Agent_AC(Agent):
         return self.real_act(action)
     def build_model(self):
 
-        pixel_input = Input(shape=(self.state_size,))
-        hi_st = Input(shape=(64,))
+        ram_input = Input(shape=(128,))
+        hi_st = Input(shape=(16,))
         #actor
-        x = Reshape((80, 80, 1))(pixel_input)
-        x = Conv2D(16, kernel_size=(5, 5), strides=(2, 2), padding='same',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Conv2D(32, kernel_size=(5, 5), strides=(2, 2), padding='same',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Conv2D(64, kernel_size=(5, 5), strides=(2, 2), padding='same',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        cnn_out = Reshape([1,-1])(x)
         
-        x, st = GRU(64, activation='relu',return_state=True)(cnn_out, hi_st)
+        x = Dense(64, activation='relu')(ram_input)
+        x = Dense(32, activation='relu')(ram_input)
+        x = Reshape([1,-1])(x)
+        x, st = GRU(16, activation='relu',return_state=True)(x, hi_st)
         
         actor_output = Dense(self.action_size, activation='softmax')(x)
-        actor = Model(inputs=[pixel_input, hi_st], outputs=actor_output)
+        actor = Model(inputs=[ram_input, hi_st], outputs=actor_output)
 
         
         #critic
         critic_output = Dense(1, activation='linear')(x)
-        critic = Model(inputs=[pixel_input, hi_st], outputs=critic_output)
-
+        critic = Model(inputs=[ram_input, hi_st], outputs=critic_output)
 
         #whole model
-        model = Model(inputs=[pixel_input, hi_st], outputs=[actor_output, critic_output, hi_st])
+        model = Model(inputs=[ram_input, hi_st], outputs=[actor_output, critic_output, hi_st])
 
         return actor, critic, model 
 
@@ -282,10 +278,10 @@ class Agent_AC(Agent):
     def set_a2c_train_fn(self):
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
-        actor_states = K.placeholder(shape=(None, 6400), dtype='float32')
-        critic_states = K.placeholder(shape=(None, 6400), dtype='float32')
-        actor_hi_st = K.placeholder(shape=(None, 64), dtype='float32')
-        critic_hi_st = K.placeholder(shape=(None, 64), dtype='float32')
+        actor_states = K.placeholder(shape=(None, 128), dtype='float32')
+        critic_states = K.placeholder(shape=(None, 128), dtype='float32')
+        actor_hi_st = K.placeholder(shape=(None, 16), dtype='float32')
+        critic_hi_st = K.placeholder(shape=(None, 16), dtype='float32')
         target = K.placeholder(shape=(None, 1), dtype='float32')
         one_hot_actions = K.placeholder(shape=(None, self.action_size), dtype='float32')
         advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
