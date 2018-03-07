@@ -273,7 +273,7 @@ class Agent_AC(Agent):
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards)
         hi_sts = np.vstack(self.hi_sts)
-        discounted_rewards = discount(rewards, self.gamma) 
+        discounted_rewards = discount(rewards*20., self.gamma) 
         num = len(self.rewards)
         for i in range(num):
             buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], \
@@ -326,7 +326,7 @@ class Agent_AC(Agent):
         next_state_values[-1,0] = 0
 
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
-        advantage_fn = rewards + next_state_values - state_values 
+        advantage_fn = rewards*20. + next_state_values - state_values 
         #advantage_fn = next_state_values - state_values
         #advantage_fn[-1, 0] = state_values[-1, 0]
         
