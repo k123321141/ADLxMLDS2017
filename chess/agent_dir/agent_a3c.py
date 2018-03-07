@@ -144,9 +144,9 @@ class Worker():
             
             done = reward != 0  #someone get the point
             self.remember(x, next_x, action, reward, hi_st)
-            if done:
+            if done or steps % 20 == 0:
                 self.prev_x = None
-                self.update()
+                self.update(done)
                 self.agent.update_count += 1
                 self.states, self.next_states, self.actions, self.rewards, self.hi_sts = [],[],[],[],[]
 
@@ -170,7 +170,7 @@ class Worker():
         self.actions.append(action)
         self.rewards.append(reward)
         self.hi_sts.append(hi_st)
-    def update(self):
+    def update(self, done):
 
         states = np.vstack(self.states)
         next_states = np.vstack(self.next_states)
@@ -181,14 +181,21 @@ class Worker():
         
         _, state_values, _ = self.predict_fn([states, hi_sts])
         _, next_state_values, _ = self.predict_fn([next_states, hi_sts])
+        advantage_fn = np.zeros_like(rewards)
+        target = np.zeros_like(rewards)
+        if done:
+            next_state_values[-1,0] = 0.
+        R = next_state_values[-1,0]
+        for i in reversed(range(len(self.rewards))):
+            ri = rewards[i,0]
+            vi = next_state_values[i,0]
+            R = self.gamma*R + ri 
+            target[i,0] = R - state_values[i,0]
+            advantage_fn[i,0] = R - state_values[i,0]
 
-    
         # td error, but eliminate the bias of one step
-        discounted_rewards = discount(rewards.copy(), self.agent.gamma)
-        target = discounted_rewards
-        next_state_values[-1,0] = 0
+        #discounted_rewards = discount(rewards.copy(), self.agent.gamma)
         #target = rewards + self.agent.gamma*next_state_values
-        advantage_fn = (rewards + next_state_values) - state_values 
         #advantage_fn = next_state_values - state_values 
         #advantage_fn = discounted_rewards - state_values
 

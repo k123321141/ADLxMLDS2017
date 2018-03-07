@@ -100,11 +100,6 @@ class Agent_AC(Agent):
             args.ac_summary  , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
-        self.states = []
-        self.next_states = []
-        self.actions = []
-        self.rewards = []
-        self.done = []
         self.global_step = 0
         self.update_counter = 0
         self.update_target_counter = 0
@@ -122,6 +117,8 @@ class Agent_AC(Agent):
         terminal = False 
         done = False
         state = env.reset()
+        self.states, self.next_states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], [], []
+        hi_st = np.zeros([1, 64], dtype=np.float32)
         #self.actor.load_weights('./models/pong_pg.h5')
         #self.actor_target.load_weights('./models/pong_pg.h5')
         while True:
@@ -146,19 +143,18 @@ class Agent_AC(Agent):
                 
                 score, win, lose, step = 0,0,0,0
                     
-            cur_x = prepro(state)
-            x = cur_x - self.prev_x if self.prev_x is not None else cur_x
-            self.prev_x = cur_x
+            x = prepro(state)
+            #self.prev_x = x
 
             #random eploration action
-            action = self.act(x)
-            next_state, reward, terminal, info = env.step(self.real_act(action))
-            next_x = prepro(next_state)
-            next_x = next_x - cur_x
+            action, next_hi_st = self.act([x, hi_st])
+            state, reward, terminal, info = env.step(self.real_act(action))
+            next_x = prepro(state)
             
             score += reward
             done = reward != 0  #someone get the point
-            self.remember(x, next_x, action, reward, done)
+            self.remember(x, next_x, action, reward, done, hi_st)
+            hi_st = next_hi_st
             if reward == 1:
                 win += 1
             elif reward == -1:
@@ -166,12 +162,16 @@ class Agent_AC(Agent):
             step += 1
             if done:
                 self.prev_x = None
+                for i in range(17):
+                    env.step(0)
+                hi_st = np.zeros([1, 64], dtype=np.float32)
                 self.update_reply_buffer()
                 loss, actor_loss, critic_loss, entropy = self.update_actor_critic()
-                self.states, self.next_states, self.actions, self.rewards, self.done = [], [], [], [], []
+                self.states, self.next_states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], [], []
+                
                 
                 self.update_counter += 1
-
+                '''
                 p1,p2,p3 = self.prev_probs.tolist()
                 
                 #summary
@@ -183,7 +183,7 @@ class Agent_AC(Agent):
                     })
                 summary_str = self.sess.run(self.summary_op)
                 self.summary_writer.add_summary(summary_str, self.update_counter)
-            state = next_state
+                '''
     def real_act(self, action):
         if action == 0:
             return 0
@@ -224,66 +224,74 @@ class Agent_AC(Agent):
     def build_model(self):
 
         pixel_input = Input(shape=(self.state_size,))
-
+        hi_st = Input(shape=(64,))
         #actor
-        x = Reshape((80, 80, 1), name='shared_reshape')(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same', name='shared_conv2d',
+        x = Reshape((80, 80, 1))(pixel_input)
+        x = Conv2D(16, kernel_size=(5, 5), strides=(2, 2), padding='same',
                                 activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Flatten(name='shared_flatten')(x)
-        x = Dense(64,name='shared_dense64', activation='relu', kernel_initializer='he_uniform')(x)
+        x = Conv2D(32, kernel_size=(5, 5), strides=(2, 2), padding='same',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Conv2D(64, kernel_size=(5, 5), strides=(2, 2), padding='same',
+                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        cnn_out = Reshape([1,-1])(x)
+        
+        x, st = GRU(64, activation='relu',return_state=True)(cnn_out, hi_st)
+        
         actor_output = Dense(self.action_size, activation='softmax')(x)
-        actor = Model(inputs=pixel_input, outputs=actor_output)
+        actor = Model(inputs=[pixel_input, hi_st], outputs=actor_output)
+
         
         #critic
-        x = Reshape((80, 80, 1))(pixel_input)
-        x = Conv2D(32, kernel_size=(6, 6), strides=(3, 3), padding='same',
-                                activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-        x = Flatten()(x)
-        x = Dense(64, activation='relu', kernel_initializer='he_uniform')(x)
         critic_output = Dense(1, activation='linear')(x)
-        critic = Model(inputs=pixel_input, outputs=critic_output)
+        critic = Model(inputs=[pixel_input, hi_st], outputs=critic_output)
+
 
         #whole model
-        model = Model(inputs=pixel_input, outputs=[actor_output, critic_output])
+        model = Model(inputs=[pixel_input, hi_st], outputs=[actor_output, critic_output, hi_st])
+
         return actor, critic, model 
 
-    def act(self, state):
+    def act(self, inputs):
+        state, hi_st = inputs
         state = state.reshape([1, state.shape[0]])
-        probs = self.actor_target.predict(state, batch_size=1).flatten()
-        #print(probs)
-        self.prev_probs = probs
-        #if np.sum(probs) > 1:
-        #    sys.exit('error', probs)
+        probs, _, hi_sts = self.model.predict([state, hi_st]) 
+        
+        probs = probs.flatten()
         action = np.random.choice(self.action_size, 1, p=probs)[0]
-        return action 
+        return action, hi_sts 
 
     #train funcfion
-    def remember(self, state, next_state, action, reward, done):
+    def remember(self, state, next_state, action, reward, done, hi_st):
         self.states.append(state)
         self.next_states.append(next_state)
         self.rewards.append(reward)
         self.actions.append(action)
         self.done.append(done)
+        self.hi_sts.append(hi_st)
     
     def update_reply_buffer(self ):
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards)
+        hi_sts = np.vstack(self.hi_sts)
         discounted_rewards = discount(rewards, self.gamma) 
         num = len(self.rewards)
         for i in range(num):
-            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], self.done[i], discounted_rewards[i:i+1]]
+            buf = [self.states[i:i+1], self.next_states[i:i+1], rewards[i:i+1], actions[i:i+1,:], \
+                    self.done[i], discounted_rewards[i:i+1], hi_sts[i:i+1,:]]
             self.reply_buffer.append(buf)
     def set_a2c_train_fn(self):
         #polocy gradient loss 
         #counting the loss of every trajectory with discounted reward, then summerize them. 
         actor_states = K.placeholder(shape=(None, 6400), dtype='float32')
         critic_states = K.placeholder(shape=(None, 6400), dtype='float32')
+        actor_hi_st = K.placeholder(shape=(None, 64), dtype='float32')
+        critic_hi_st = K.placeholder(shape=(None, 64), dtype='float32')
         target = K.placeholder(shape=(None, 1), dtype='float32')
         one_hot_actions = K.placeholder(shape=(None, self.action_size), dtype='float32')
         advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
-        action_probs = self.actor([actor_states,])
-        critic_value = self.critic([critic_states,]) 
+        action_probs = self.actor([actor_states, actor_hi_st])
+        critic_value = self.critic([critic_states, critic_hi_st]) 
 
         actor_loss = -K.mean(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
         critic_loss = K.mean(K.square(target - critic_value))  
@@ -299,7 +307,7 @@ class Agent_AC(Agent):
                                 params=self.model.trainable_weights, 
                                 loss=loss)
         self.a2c_train_fn = K.function(
-                inputs=[actor_states, critic_states, one_hot_actions, target, advantage_fn],
+                inputs=[actor_states, actor_hi_st, critic_states, critic_hi_st, one_hot_actions, target, advantage_fn],
                 outputs=[loss, -actor_loss, critic_loss, entropy],
                 updates=updates)
         
@@ -308,23 +316,24 @@ class Agent_AC(Agent):
     def update_actor_critic(self):
         #for actor
         a_states = np.vstack(self.states)
-        #next_states = np.vstack(self.next_states)
+        next_states = np.vstack(self.next_states)
+        a_hi_sts = np.vstack(self.hi_sts)
         actions = np.vstack(self.actions)
         rewards = np.array(self.rewards).reshape([-1,1])
         
+        state_values = self.critic_target.predict([a_states, a_hi_sts]) 
+        next_state_values = self.critic_target.predict([a_states, a_hi_sts])
+        next_state_values[-1,0] = 0
+
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
-        discounted_rewards = discount(rewards, self.gamma).reshape([-1, 1]) 
-        advantage_fn = discounted_rewards - self.critic_target.predict(a_states)
-        #advantage_fn = discounted_rewards - (rewards + self.gamma*next_state_values)
-        #advantage_fn = discounted_rewards
-        #advantage_fn = rewards - (state_values - self.gamma * next_state_values)
+        advantage_fn = rewards + next_state_values - state_values 
         #advantage_fn = next_state_values - state_values
         #advantage_fn[-1, 0] = state_values[-1, 0]
         
         #for critic
         #state value
         batch = random.sample(self.reply_buffer, min(len(self.rewards)*3, len(self.reply_buffer)))
-        states, next_states, rewards, actions, done, discounted_rewards = [],[],[],[],[],[]
+        states, next_states, rewards, actions, done, discounted_rewards, c_hi_sts = [],[],[],[],[],[],[]
         for b in batch:
             states.append(b[0])
             #next_states.append(b[1])
@@ -332,7 +341,9 @@ class Agent_AC(Agent):
             #actions.append(b[3])
             #done.append(b[4])
             discounted_rewards.append(b[5])
+            c_hi_sts.append(b[6])
         c_states = np.vstack(states)
+        c_hi_sts = np.vstack(c_hi_sts)
         #next_states = np.vstack(next_states)
         #actions = np.vstack(actions)
         #rewards = np.vstack(rewards)
@@ -340,7 +351,7 @@ class Agent_AC(Agent):
         
         target = discounted_rewards
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
-        loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([a_states, c_states, one_hot_actions, target, advantage_fn])
+        loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([a_states, a_hi_sts, c_states, c_hi_sts, one_hot_actions, target, advantage_fn])
         #print('loss : %4.4f  actor_loss : %4.4f critic_loss : %4.4f entropy : %4.4f'  % (loss, actor_loss, critic_loss, entropy))
         self.update_target_networks()
         return loss, actor_loss, critic_loss, entropy

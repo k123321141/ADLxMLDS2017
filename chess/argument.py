@@ -54,7 +54,7 @@ def add_arguments(parser):
     
     #a3c setting 
     parser.add_argument('--a3c_model', default=join('.','models','pong_a3c.h5'), help='path to save model for trainging')
-    parser.add_argument('--a3c_worker_count', type=int, default=16, help='due to cpu count')
+    parser.add_argument('--a3c_worker_count', type=int, default=8, help='due to cpu count')
     parser.add_argument('--a3c_summary', default=join('.','summary','pong_a3c'), help='path to save summary for training')
     parser.add_argument('--a3c_discount_factor', type=float, default=0.98, help='discount factor')
     parser.add_argument('--a3c_worker_num', type=int, default=1, help='maximum iteration')
@@ -78,7 +78,7 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_train_frequency', type=int, default=1, help='how many steps per update')
     parser.add_argument('--ddpg_batch_size', type=int, default=32, help='batch size per update')
 
-    parser.add_argument('--TAU', type=int, default=0.1, help='the rate of target networks updating')
+    parser.add_argument('--TAU', type=int, default=0.5, help='the rate of target networks updating')
     parser.add_argument('--reply_buffer', type=int, default=100000, help='memory size for reply experience')
     #bonus
     return parser
