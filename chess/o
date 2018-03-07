@@ -91,3 +91,50 @@ Episode: 53 - Score: -20.0 - Update Counter: 17341 - Spent Time 239.24
 save model to ./models/pong_a3c.h5
 Episode: 54 - Score: -21.0 - Update Counter: 17640 - Spent Time 243.69
 Episode: 55 - Score: -20.0 - Update Counter: 17994 - Spent Time 248.53
+Episode: 56 - Score: -21.0 - Update Counter: 18276 - Spent Time 252.70
+save model to ./models/pong_a3c.h5
+Episode: 57 - Score: -21.0 - Update Counter: 18577 - Spent Time 257.13
+Episode: 58 - Score: -21.0 - Update Counter: 18875 - Spent Time 261.51
+Episode: 59 - Score: -21.0 - Update Counter: 19180 - Spent Time 265.93
+save model to ./models/pong_a3c.h5
+Episode: 60 - Score: -21.0 - Update Counter: 19496 - Spent Time 270.59
+Episode: 61 - Score: -21.0 - Update Counter: 19784 - Spent Time 274.82
+Episode: 62 - Score: -21.0 - Update Counter: 20082 - Spent Time 279.22
+save model to ./models/pong_a3c.h5
+Episode: 63 - Score: -21.0 - Update Counter: 20387 - Spent Time 283.64
+Episode: 64 - Score: -21.0 - Update Counter: 20722 - Spent Time 288.57
+Episode: 65 - Score: -20.0 - Update Counter: 21028 - Spent Time 293.08
+save model to ./models/pong_a3c.h5
+Episode: 66 - Score: -19.0 - Update Counter: 21360 - Spent Time 297.77
+Episode: 67 - Score: -21.0 - Update Counter: 21688 - Spent Time 301.86
+Episode: 68 - Score: -20.0 - Update Counter: 22014 - Spent Time 306.51
+save model to ./models/pong_a3c.h5
+Episode: 69 - Score: -21.0 - Update Counter: 22305 - Spent Time 310.69
+Episode: 70 - Score: -21.0 - Update Counter: 22590 - Spent Time 314.85
+Episode: 71 - Score: -21.0 - Update Counter: 22892 - Spent Time 319.23
+save model to ./models/pong_a3c.h5
+Episode: 72 - Score: -20.0 - Update Counter: 23195 - Spent Time 323.74
+Episode: 73 - Score: -21.0 - Update Counter: 23538 - Spent Time 328.76
+Episode: 74 - Score: -21.0 - Update Counter: 23822 - Spent Time 332.97
+save model to ./models/pong_a3c.h5
+Episode: 75 - Score: -21.0 - Update Counter: 24119 - Spent Time 337.29
+Episode: 76 - Score: -21.0 - Update Counter: 24434 - Spent Time 341.86
+Episode: 77 - Score: -21.0 - Update Counter: 24751 - Spent Time 346.46
+save model to ./models/pong_a3c.h5
+Episode: 78 - Score: -20.0 - Update Counter: 25128 - Spent Time 351.95
+Episode: 79 - Score: -20.0 - Update Counter: 25511 - Spent Time 357.58
+Episode: 80 - Score: -21.0 - Update Counter: 25813 - Spent Time 362.02
+save model to ./models/pong_a3c.h5
+Episode: 81 - Score: -20.0 - Update Counter: 26142 - Spent Time 366.83
+Episode: 82 - Score: -21.0 - Update Counter: 26431 - Spent Time 371.11
+Episode: 83 - Score: -18.0 - Update Counter: 26795 - Spent Time 376.40
+save model to ./models/pong_a3c.h5
+Episode: 84 - Score: -20.0 - Update Counter: 27167 - Spent Time 381.85
+Episode: 85 - Score: -19.0 - Update Counter: 27534 - Spent Time 387.21
+Episode: 86 - Score: -20.0 - Update Counter: 27853 - Spent Time 391.95
+save model to ./models/pong_a3c.h5
+Episode: 87 - Score: -21.0 - Update Counter: 28218 - Spent Time 397.24
+Episode: 88 - Score: -20.0 - Update Counter: 28545 - Spent Time 402.07
+Episode: 89 - Score: -21.0 - Update Counter: 28858 - Spent Time 406.62
+save model to ./models/pong_a3c.h5
+Episode: 90 - Score: -21.0 - Update Counter: 29199 - Spent Time 411.58

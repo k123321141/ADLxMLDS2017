@@ -167,9 +167,9 @@ class Worker():
             
             done = reward != 0  #someone get the point
             self.remember(x, next_x, action, reward, hi_st)
-            if done or steps % 20 == 0:
+            if terminal or steps % 20 == 0:
                 self.prev_x = None
-                self.update(done)
+                self.update(terminal)
                 self.agent.update_count += 1
                 self.states, self.next_states, self.actions, self.rewards, self.hi_sts = [],[],[],[],[]
 
