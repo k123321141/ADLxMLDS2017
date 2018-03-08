@@ -26,9 +26,10 @@ def atari_env(env_id, env_conf, args):
 
 def process_frame(frame, conf):
     frame = frame[conf["crop1"]:conf["crop2"] + 160, :160]
-    frame = frame.mean(2)
+    #frame = frame.mean(2)
+    frame = frame[:,:,0]
     frame = frame.astype(np.float32)
-    frame *= (1.0 / 255.0)
+    #frame *= (1.0 / 255.0)
     frame = resize(frame, (80, conf["dimension2"]))
     frame = resize(frame, (80, 80))
     frame = np.reshape(frame, [1, 80, 80])
@@ -67,7 +68,8 @@ class NormalizedEnv(gym.ObservationWrapper):
 
         return (observation - unbiased_mean) / (unbiased_std + 1e-8)
         '''
-        I = observation
+        I = observation.astype(np.uint8) 
+        #print I
         I[I == 144] = 0
         I[I == 109] = 0
         I[I != 0] = 1

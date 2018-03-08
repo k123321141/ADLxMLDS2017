@@ -2,8 +2,7 @@ from __future__ import division
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-from my_render import my_render
-
+import scipy.misc
 
 class Agent(object):
     def __init__(self, model, env, args, state):
@@ -24,8 +23,7 @@ class Agent(object):
         self.reward = 0
         self.gpu_id = -1
         self.max_length = False
-        self.my_render = my_render()
-
+        self.c = 0
     def action_train(self):
         value, logit, (self.hx, self.cx) = self.model(
             (Variable(self.state.unsqueeze(0)), (self.hx, self.cx)))
@@ -37,12 +35,16 @@ class Agent(object):
         log_prob = log_prob.gather(1, Variable(action))
         state, self.reward, self.done, self.info = self.env.step(
             action.cpu().numpy())
-
+        '''
         import numpy as np
+        print np.min(state), np.max(state)
         rgb = state.reshape([80,80,1]).astype(np.uint8)
+        
         rgb = np.repeat(rgb,3,axis=-1)
-        self.my_render.render(rgb)
-
+        
+        scipy.misc.imsave('/Users/payo_mac/Desktop/buf/%d.png' % self.c , rgb)
+        self.c += 1
+        '''
         self.state = torch.from_numpy(state).float()
         if self.gpu_id >= 0:
             with torch.cuda.device(self.gpu_id):
