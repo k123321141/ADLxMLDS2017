@@ -1,21 +1,35 @@
-2018-03-08 11:25:32,114 : load: False
-2018-03-08 11:25:32,114 : tau: 1.0
-2018-03-08 11:25:32,114 : optimizer: Adam
-2018-03-08 11:25:32,115 : gpu_ids: [-1]
-2018-03-08 11:25:32,115 : amsgrad: True
-2018-03-08 11:25:32,115 : max_episode_length: 10000
-2018-03-08 11:25:32,116 : workers: 1
-2018-03-08 11:25:32,116 : save_model_dir: trained_models/
-2018-03-08 11:25:32,116 : num_steps: 20
-2018-03-08 11:25:32,116 : skip_rate: 4
-2018-03-08 11:25:32,116 : env_config: config.json
-2018-03-08 11:25:32,117 : seed: 1
-2018-03-08 11:25:32,117 : lr: 0.0001
-2018-03-08 11:25:32,117 : log_dir: logs/
-2018-03-08 11:25:32,117 : env: PongDeterministic-v4
-2018-03-08 11:25:32,117 : shared_optimizer: True
-2018-03-08 11:25:32,117 : load_model_dir: trained_models/
-2018-03-08 11:25:32,118 : save_max: True
-2018-03-08 11:25:32,118 : count_lives: False
-2018-03-08 11:25:32,118 : gamma: 0.99
-2018-03-08 11:25:38,684 : Time 00h 00m 06s, episode reward -21.0, episode length 884, reward mean -21.0000
+2018-03-08 12:53:53,428 : load: False
+2018-03-08 12:53:53,428 : tau: 1.0
+2018-03-08 12:53:53,428 : optimizer: Adam
+2018-03-08 12:53:53,428 : gpu_ids: [-1]
+2018-03-08 12:53:53,428 : amsgrad: True
+2018-03-08 12:53:53,428 : max_episode_length: 10000
+2018-03-08 12:53:53,428 : workers: 32
+2018-03-08 12:53:53,428 : save_model_dir: trained_models/
+2018-03-08 12:53:53,428 : num_steps: 20
+2018-03-08 12:53:53,428 : skip_rate: 4
+2018-03-08 12:53:53,428 : env_config: config.json
+2018-03-08 12:53:53,428 : seed: 1337
+2018-03-08 12:53:53,428 : lr: 0.0001
+2018-03-08 12:53:53,428 : log_dir: logs/
+2018-03-08 12:53:53,428 : env: PongDeterministic-v4
+2018-03-08 12:53:53,428 : shared_optimizer: True
+2018-03-08 12:53:53,428 : load_model_dir: trained_models/
+2018-03-08 12:53:53,428 : save_max: True
+2018-03-08 12:53:53,429 : count_lives: False
+2018-03-08 12:53:53,429 : gamma: 0.99
+2018-03-08 12:54:10,680 : Time 00h 00m 14s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:54:28,494 : Time 00h 00m 34s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:54:48,360 : Time 00h 00m 53s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:55:10,194 : Time 00h 01m 16s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:55:25,963 : Time 00h 01m 32s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:55:42,692 : Time 00h 01m 49s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:56:02,376 : Time 00h 02m 08s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:56:21,532 : Time 00h 02m 27s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:56:35,362 : Time 00h 02m 41s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:56:53,462 : Time 00h 02m 59s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:57:14,752 : Time 00h 03m 21s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:57:37,608 : Time 00h 03m 42s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:57:59,628 : Time 00h 04m 05s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:58:19,028 : Time 00h 04m 25s, episode reward -21.0, episode length 764, reward mean -21.0000
+2018-03-08 12:58:42,446 : Time 00h 04m 48s, episode reward -21.0, episode length 764, reward mean -21.0000

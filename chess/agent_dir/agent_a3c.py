@@ -25,6 +25,7 @@ def prepro(I):
     '''
     return I
 def real_act(action):
+    '''
     if action == 0:
         return 0
     elif action == 1:
@@ -34,6 +35,8 @@ def real_act(action):
     else:
         print('no such action', action)
         sys.exit(1)
+    '''
+    return action
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
@@ -85,7 +88,7 @@ def build_model(action_size, state_size, scope):
     model = Model(inputs=[ram_input, hi_st], outputs=[actor_output, critic_output, hi_st])
     return actor, critic, model 
 
-def set_train_fn(local_info, global_info, action_size=3, state_size=128):
+def set_train_fn(local_info, global_info, action_size, state_size=128):
     actor, critic, local_net = local_info 
     
     states = K.placeholder(shape=(None, state_size), dtype='float32')
@@ -257,7 +260,7 @@ class Agent_A3C(Agent):
         self.env = env
         self.args = args
         
-        self.action_size = 3
+        self.action_size = self.env.action_space.n
         #['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'RIGHTFIRE', 'LEFTFIRE']
         #0, 2, 3
         if args.test_ac:
@@ -266,7 +269,6 @@ class Agent_A3C(Agent):
                 print('testing : load model from %s.' % args.a3c_model)
                 self.learning_rate = 0.
                 self.prev_x = None
-                self.action_size = 3
                 self.actor, self.critic, self.model = self.build_model('global')
 
                 self.load(args.a3c_model)
