@@ -139,6 +139,9 @@ class PongActionResetEnv(gym.Wrapper):
             sys.exit()
         return self.env.step(ac)
 
+    def reset(self):
+        return self.env.reset()
+
 
 class EpisodicLifeEnv(gym.Wrapper):
     def __init__(self, env):
