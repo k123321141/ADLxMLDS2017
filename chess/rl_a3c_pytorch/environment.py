@@ -19,6 +19,8 @@ def atari_env(env_id, env_conf, args):
     env = EpisodicLifeEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
+    if 'Pong' in env_id:
+        env = PongActionResetEnv(env)
     env = AtariRescale(env, env_conf)
     env = NormalizedEnv(env)
     return env
@@ -117,6 +119,24 @@ class FireResetEnv(gym.Wrapper):
         return obs
 
     def step(self, ac):
+        return self.env.step(ac)
+
+class PongActionResetEnv(gym.Wrapper):
+    def __init__(self, env):
+        """Take action on reset for environments that are fixed until firing."""
+        gym.Wrapper.__init__(self, env)
+        self.env.action_space.n = 3
+    def step(self, ac):
+        if ac == 0:
+            ac = 0
+        elif ac == 1:
+            ac = 2
+        elif ac == 2:
+            ac = 3
+        else:
+            print 'error'
+            import sys
+            sys.exit()
         return self.env.step(ac)
 
 
