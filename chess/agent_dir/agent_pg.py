@@ -10,14 +10,6 @@ import tensorflow as tf
 import sys,os
 from collections import deque
 
-def prepro(I):
-    I = I[35:195]
-    I = I[::2, ::2, 0]
-    I[I == 144] = 0
-    I[I == 109] = 0
-    I[I != 0] = 1
-    return I.astype(np.float).ravel()
-
 class Agent_PG(Agent):
     def __init__(self, env, args):
         """
@@ -33,7 +25,7 @@ class Agent_PG(Agent):
         self.env = env
         self.args = args
         
-        self.action_size = 3
+        self.action_size = self.env.action_space.n
         #['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'RIGHTFIRE', 'LEFTFIRE']
         #0, 2, 3
         if args.test_pg:
@@ -42,7 +34,6 @@ class Agent_PG(Agent):
                 print('testing : load model from %s.' % args.pg_model)
                 self.learning_rate = 0.
                 self.prev_x = None
-                self.action_size = 3
                 self.model = self.build_model()
                 self.load(args.pg_model)
             else:
@@ -140,12 +131,12 @@ class Agent_PG(Agent):
                 if len(que) > 30:
                     que.popleft()
                     
-            cur_x = prepro(state)
+            cur_x = state
             x = cur_x - self.prev_x if self.prev_x is not None else cur_x
             self.prev_x = cur_x
 
             action = self.act(x)
-            state, reward, terminal, info = env.step(self.real_act(action))
+            state, reward, terminal, info = env.step(action)
             score += reward
             self.remember(x, action, reward)
             done = reward != 0  #someone get the point
@@ -157,16 +148,6 @@ class Agent_PG(Agent):
             if done:
                 self.prev_x = None
     
-    def real_act(self, action):
-        if action == 0:
-            return 0
-        elif action == 1:
-            return 2
-        elif action == 2:
-            return 3
-        else:
-            print('no such action', action)
-            sys.exit(1)
 
     def make_action(self, observation, test=True):
         """
@@ -183,7 +164,7 @@ class Agent_PG(Agent):
         ##################
         # YOUR CODE HERE #
         ##################
-        cur_x = prepro(observation)
+        cur_x = observation
         x = cur_x - self.prev_x if self.prev_x is not None else np.zeros(self.state_size)
         self.prev_x = cur_x
         
@@ -193,7 +174,7 @@ class Agent_PG(Agent):
         #stochastic
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         #action = np.argmax(prob)
-        return self.real_act(action)
+        return action
     def build_model(self):
         model = Sequential()
         model.add(Reshape((80, 80, 1), input_shape=(self.state_size,)))
@@ -207,13 +188,14 @@ class Agent_PG(Agent):
         return model
 
     def act(self, state):
-        state = state.reshape([1, state.shape[0]])
+        state = state.reshape([1, -1])
         prob = self.model.predict(state, batch_size=1).flatten()
         action = np.random.choice(self.action_size, 1, p=prob)[0]
         return action 
 
     #train funcfion
     def remember(self, state, action, reward):
+        state = state.reshape([1,-1])
         self.actions.append(action)
         self.states.append(state)
         self.rewards.append(reward)
@@ -261,7 +243,7 @@ class Agent_PG(Agent):
         rewards = self.discount_rewards(rewards)
         #rewards = rewards / np.std(rewards - np.mean(rewards))
          
-        X = np.vstack([self.states])
+        X = np.vstack(self.states)
         self.train_fn([X, actions, rewards])
         
         

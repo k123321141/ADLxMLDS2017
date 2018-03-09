@@ -36,7 +36,7 @@ def parse():
 
 def run(args):
     if args.train_pg:
-        env_name = args.env_name or 'Pong-v0'
+        env_name = args.env_name or 'PongDeterministic-v4'
         env = Environment(env_name, args)
         from agent_dir.agent_pg import Agent_PG
         agent = Agent_PG(env, args)
@@ -48,7 +48,7 @@ def run(args):
         agent = Agent_AC(env, args)
         agent.train()
     if args.train_a3c:
-        env_name = args.env_name or 'Pong-ramDeterministic-v4'
+        env_name = args.env_name or 'PongDeterministic-v4'
         env = Environment(env_name, args)
         from agent_dir.agent_a3c import Agent_A3C
         agent = Agent_A3C(env, args)
@@ -95,7 +95,6 @@ def run(args):
         from agent_dir.agent_dqn import Agent_DQN
         agent = Agent_DQN(env, args)
         test(agent, env, total_episodes=100)
-
 
 if __name__ == '__main__':
     args = parse()

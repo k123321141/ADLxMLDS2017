@@ -19,8 +19,8 @@ def atari_env(env_id, env_conf, args):
     env = EpisodicLifeEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
-    if 'Pong' in env_id:
-        env = PongActionResetEnv(env)
+    #if 'Pong' in env_id:
+    #    env = PongActionResetEnv(env)
     env = AtariRescale(env, env_conf)
     env = NormalizedEnv(env)
     return env

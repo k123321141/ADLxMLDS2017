@@ -90,6 +90,7 @@ def train(rank, args, shared_model, optimizer, env_conf):
         R = Variable(R)
         for i in reversed(range(len(player.rewards))):
             R = args.gamma * R + player.rewards[i]
+            print R
             advantage = R - player.values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 

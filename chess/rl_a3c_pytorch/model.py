@@ -42,6 +42,9 @@ class A3Clstm(torch.nn.Module):
 
     def forward(self, inputs):
         inputs, (hx, cx) = inputs
+        #print inputs #1,1,80
+        #print hx #1*512
+        #print cx #1*512
         x = F.relu(self.maxp1(self.conv1(inputs)))
         x = F.relu(self.maxp2(self.conv2(x)))
         x = F.relu(self.maxp3(self.conv3(x)))
