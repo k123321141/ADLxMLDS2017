@@ -16,8 +16,10 @@ import multiprocessing
 from environment import getPongEnv
 
 #hidden_state_units = 256
-hidden_state_units = 128
+hidden_state_units = 64
 graph = tf.get_default_graph()
+#opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
+
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
@@ -27,7 +29,7 @@ def build_model(action_size, state_size, scope):
         hi_st = Input(shape=(hidden_state_units,))
         #actor
         x = Reshape((80, 80, 1))(pixel_input)
-        for i in range(4):
+        for i in range(3):
             x = Conv2D(16 * 2**i, kernel_size=(3, 3), strides=(2, 2), padding='same',
             #x = Conv2D(32, kernel_size=(3, 3), strides=(2, 2), padding='same', \
                                     activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
@@ -75,7 +77,8 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
     action_probs, critic_value, next_hi_st = local_net([states,hi_st])
-    action_probs = tf.clip_by_value(action_probs,1e-15,1.0 - 1e-15)
+    #action_probs = tf.clip_by_value(action_probs,1e-15,1.0 - 1e-15)
+    #action_probs = tf.clip_by_value(action_probs,1e-15,1.0)
     actor_loss = -K.sum(K.sum(K.log(action_probs) * one_hot_actions, axis=-1) * advantage_fn)
     critic_loss = K.sum(K.square(target - critic_value))  
     
@@ -86,7 +89,7 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     #loss =  + 0.5*critic_loss + 0.01 * entropy
 
     grads = tf.gradients(loss, local_net.trainable_weights)
-    grads,_ = tf.clip_by_global_norm(grads, 40.)
+    #grads,_ = tf.clip_by_global_norm(grads, 40.)
 
     #each worker has own optimizer to update global network
     #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
