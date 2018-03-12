@@ -256,7 +256,7 @@ class Worker():
         #adv = r + gamma*next_v - v 
         #print(rewards.shape, state_values[1:,:].shape, state_values[:-1,:].shape)
         advantage_fn = rewards + self.agent.gamma * state_values[1:,:] - state_values[:-1,:]
-        advantage_fn = discount(advantage_fn, self.agent.gamma)
+        #advantage_fn = discount(advantage_fn, self.agent.gamma)
 
         loss, actor_loss, critic_loss, entropy = self.update_fn([states[:-1,:], hi_sts[:-1,:], one_hot_actions, target, advantage_fn])
         return loss, actor_loss, critic_loss, entropy 
