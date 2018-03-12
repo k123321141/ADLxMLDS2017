@@ -77,14 +77,16 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
     action_probs, critic_value, next_hi_st = local_net([states,hi_st])
+    action_probs = tf.clip_by_value(action_probs, 1e-10,1.0 - (1e-10))
+    log_probs = K.log(action_probs)
     #action_probs = tf.clip_by_value(action_probs,1e-15,1.0 - 1e-15)
     #action_probs = tf.clip_by_value(action_probs,1e-15,1.0)
-    actor_loss = -K.sum(K.sum(K.log(action_probs) * one_hot_actions, axis=-1) * advantage_fn)
+    actor_loss = -K.sum(K.sum(log_probs * one_hot_actions, axis=-1) * advantage_fn)
     critic_loss = K.sum(K.square(target - critic_value))  
     
     # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
-    entropy = K.sum(action_probs * K.log(action_probs))
-   
+    entropy = K.sum( K.sum(action_probs * log_probs, axis=-1) )
+    #entropy = tf.clip_by_value(entropy, -0.47,  -0.02)
     loss = actor_loss + 0.5*critic_loss + 0.01 * entropy
     #loss =  + 0.5*critic_loss + 0.01 * entropy
 
@@ -93,13 +95,14 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
 
     #each worker has own optimizer to update global network
     #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
-    opt = tf.train.AdamOptimizer(1e-4)
+    opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
+    #opt = tf.train.AdamOptimizer(1e-4)
     #global
     global_net = global_info
     update_op = opt.apply_gradients(zip(grads, global_net.trainable_weights))
     update_fn = K.function(
             inputs=[states, hi_st, one_hot_actions, target, advantage_fn],
-            outputs=[loss,],
+            outputs=[loss, actor_loss, critic_loss, entropy],
                 updates=[update_op,])
     predict_fn = K.function(
             inputs=[states, hi_st],
@@ -107,6 +110,7 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
             updates=[])
     #return update_fn, sync_fn, predict_fn 
     return update_fn, predict_fn 
+
 
 def set_predict_fn(state_size, net):
     states = K.placeholder(shape=(None, state_size), dtype='float32')
@@ -119,6 +123,36 @@ def set_predict_fn(state_size, net):
             outputs=[action_probs, critic_value, next_hi_st],
             updates=[])
     return predict_fn
+    
+def setup_summary():
+    total_loss = tf.Variable(0.)
+    actor_loss = tf.Variable(0.)
+    critic_loss = tf.Variable(0.)
+    entropy = tf.Variable(0.)
+    p1 = tf.Variable(0.) #probs of acitons
+    p2 = tf.Variable(0.) #probs of acitons
+    p3 = tf.Variable(0.) #probs of acitons
+    #episode_avg_score = tf.Variable(0.)
+
+    tf.summary.scalar('Total Loss / Updates', total_loss)
+    tf.summary.scalar('Actor Loss / Updates', actor_loss)
+    tf.summary.scalar('Critic Loss / Updates', critic_loss)
+    tf.summary.scalar('Entropy / Updates', entropy)
+    tf.summary.scalar('Action1 / Updates', p1)
+    tf.summary.scalar('Action2 / Updates', p2)
+    tf.summary.scalar('Action3 / Updates', p3)
+    #tf.summary.scalar('Average Score/Episode', episode_avg_score)
+
+    summary_vars = [total_loss, actor_loss,
+                    critic_loss, entropy,p1,p2,p3]#, episode_avg_score]
+    summary_placeholders = [tf.placeholder(tf.float32) for _ in
+                            range(len(summary_vars))]
+    update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
+                  range(len(summary_vars))]
+    summary_op = tf.summary.merge_all()
+    return summary_placeholders, update_ops, summary_op
+
+
 
 def worker_thread(worker):
     with graph.as_default():
@@ -147,6 +181,10 @@ class Worker():
         state = env.reset()
         steps = 1
         self.pull()
+        if 'Worker_0' in self.name:
+            summary_placeholders, update_ops, summary_op = setup_summary()
+            summary_writer = tf.summary.FileWriter(
+                self.agent.args.a3c_summary  , graph)
         while not self.agent.stop:
             #if args.do_render:
             #    env.env.render()
@@ -159,11 +197,12 @@ class Worker():
             #done = reward != 0  #someone get the point
 
             if terminal or steps % 20 == 0:
-                self.update(terminal, next_state, next_hi_st)
+                loss, actor_loss, critic_loss, entropy = self.update(terminal, next_state, next_hi_st)
                 self.agent.update_count += 1
                 self.states,self.actions, self.rewards, self.hi_sts = [],[],[],[],
 
                 self.pull()
+                #print('en', entropy)
                 '''
                 #Noop iteration
                 for i in range(17):
@@ -172,6 +211,21 @@ class Worker():
                 #
                 #print(self.name, self.agent.update_count)
                 '''
+                #summary
+                if 'Worker_0' in self.name and steps > 2000:
+                    s = state.reshape([1, -1])
+                    h = hi_st
+                    probs, _, _ = self.predict_fn([s, h]) 
+                    p1,p2,p3 = probs.flatten().tolist()
+                    
+                    status = [loss, actor_loss, critic_loss, entropy, p1, p2, p3]
+
+                    for i in range(len(status)):
+                        K.get_session().run(update_ops[i], feed_dict={
+                            summary_placeholders[i]: float(status[i])
+                        })
+                    summary_str = K.get_session().run(summary_op)
+                    summary_writer.add_summary(summary_str, self.agent.update_count)
             if terminal:    #game over
                 state = env.reset()
             steps += 1
@@ -204,8 +258,8 @@ class Worker():
         advantage_fn = rewards + self.agent.gamma * state_values[1:,:] - state_values[:-1,:]
         advantage_fn = discount(advantage_fn, self.agent.gamma)
 
-        self.update_fn([states[:-1,:], hi_sts[:-1,:], one_hot_actions, target, advantage_fn])
-    
+        loss, actor_loss, critic_loss, entropy = self.update_fn([states[:-1,:], hi_sts[:-1,:], one_hot_actions, target, advantage_fn])
+        return loss, actor_loss, critic_loss, entropy 
     def act(self, inputs):
         state, hi_st = inputs
         state = state.reshape([1, -1])
@@ -302,7 +356,7 @@ class Agent_A3C(Agent):
         #for i in range(args.a3c_worker_count):
         print('work on %d cpu with env %s' % (num_workers, env.env.spec.id))
         for i in range(num_workers):
-            name = 'worker_%d' % i
+            name = 'Worker_%d' % i
             worker = Worker(self, name, env.env.spec.id, build_model, global_info)
             t = threading.Thread(target=worker_thread, args=[worker, ])
             thread_list.append(t)
@@ -316,6 +370,7 @@ class Agent_A3C(Agent):
             self.hi_st = np.zeros([1, hidden_state_units], dtype=np.float32)
             mean_score = 0.
             threshold = -21.1
+            que = deque([threshold, ],maxlen=3)
             while True:
                 action = self.make_action(state)
                 state, reward, terminal, info = env.step(action)
@@ -324,7 +379,8 @@ class Agent_A3C(Agent):
                 if terminal:    #game over
                     state = env.reset()
                     self.hi_st = np.zeros([1, hidden_state_units], dtype=np.float32)
-                    mean_score = (mean_score * (episode-1) + score) / episode
+                    mean_score = np.mean(que) 
+                    que.append(score)
                     #every 21 point per update 
                     print('Episode: %4d - Score: %2.0f - Update Counter: %7d - Spent Time %8.2f - Mean Score %2.4f'  % \
                             (episode, score, self.update_count, time.time()-start_time , mean_score))
