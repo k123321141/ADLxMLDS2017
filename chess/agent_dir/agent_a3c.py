@@ -19,8 +19,20 @@ from environment import getPongEnv
 hidden_state_units = 64
 graph = tf.get_default_graph()
 #opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
-
+np.random.seed(1337)
+tf.set_random_seed(1337)
 def discount(x, gamma):
+    '''
+    buf = x.flatten().tolist()
+    assert buf[-1] != 0
+    for a in buf[:-1]:
+        if a != 0.:
+            print(buf)
+            ss = scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+            print(ss.flatten().tolist())
+        assert a == 0.
+    '''
+
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 def build_model(action_size, state_size, scope):
@@ -29,11 +41,16 @@ def build_model(action_size, state_size, scope):
         hi_st = Input(shape=(hidden_state_units,))
         #actor
         x = Reshape((80, 80, 1))(pixel_input)
-        for i in range(3):
-            x = Conv2D(16 * 2**i, kernel_size=(3, 3), strides=(2, 2), padding='same',
+        '''
+        x = Conv2D(32, kernel_size=(5, 5), strides=(3, 3), padding='same',
+                                    activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        x = Conv2D(64, kernel_size=(5, 5), strides=(3, 3), padding='same',
+                                    activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
+        '''
+        for i in range(2):
+            x = Conv2D(32 * 2**i, kernel_size=(5, 5), strides=(3, 3), padding='same',
             #x = Conv2D(32, kernel_size=(3, 3), strides=(2, 2), padding='same', \
                                     activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
-            x = BatchNormalization()(x)
         cnn_out = Reshape([1,-1])(x)
         
         x, st = GRU(hidden_state_units, activation='relu',return_state=True)(cnn_out, hi_st)
@@ -77,25 +94,21 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
     action_probs, critic_value, next_hi_st = local_net([states,hi_st])
-    action_probs = tf.clip_by_value(action_probs, 1e-10,1.0 - (1e-10))
+    action_probs = tf.clip_by_value(action_probs, 1e-20, 1.0)
     log_probs = K.log(action_probs)
-    #action_probs = tf.clip_by_value(action_probs,1e-15,1.0 - 1e-15)
-    #action_probs = tf.clip_by_value(action_probs,1e-15,1.0)
     actor_loss = -K.sum(K.sum(log_probs * one_hot_actions, axis=-1) * advantage_fn)
     critic_loss = K.sum(K.square(target - critic_value))  
     
     # 0.9*log(0.9)+0.1*log(0.1) = -0.14 > 0.4*log(0.4)+0.6*log(0.6) = -0.29
     entropy = K.sum( K.sum(action_probs * log_probs, axis=-1) )
-    #entropy = tf.clip_by_value(entropy, -0.47,  -0.02)
     loss = actor_loss + 0.5*critic_loss + 0.01 * entropy
-    #loss =  + 0.5*critic_loss + 0.01 * entropy
 
     grads = tf.gradients(loss, local_net.trainable_weights)
-    #grads,_ = tf.clip_by_global_norm(grads, 40.)
+    grads,_ = tf.clip_by_global_norm(grads, 40.)
 
     #each worker has own optimizer to update global network
-    #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
-    opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
+    opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
+    #opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
     #opt = tf.train.AdamOptimizer(1e-4)
     #global
     global_net = global_info

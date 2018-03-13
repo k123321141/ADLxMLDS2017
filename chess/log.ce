@@ -1,0 +1,238 @@
+rm: 無法移除 './models/pong_a3c*': 沒有此一檔案或目錄
+/usr/local/lib/python3.5/dist-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+2018-03-13 16:59:54.892021: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-13 16:59:54.892045: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-13 16:59:54.892050: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-13 16:59:54.892054: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-13 16:59:54.892057: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2018-03-13 16:59:54.989983: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-03-13 16:59:54.990215: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+name: GeForce GTX 970
+major: 5 minor: 2 memoryClockRate (GHz) 1.253
+pciBusID 0000:01:00.0
+Total memory: 3.94GiB
+Free memory: 3.81GiB
+2018-03-13 16:59:54.990226: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2018-03-13 16:59:54.990230: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2018-03-13 16:59:54.990236: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+train a new model
+work on 16 cpu with env PongDeterministic-v4
+Episode:    1 - Score: -20 - Update Counter:     714 - Spent Time    23.04 - Mean Score -21.1000
+Episode:    2 - Score: -21 - Update Counter:    1470 - Spent Time    41.48 - Mean Score -20.5500
+save model to ./models/pong_a3c.h5
+Episode:    3 - Score: -19 - Update Counter:    2229 - Spent Time    60.66 - Mean Score -20.7000
+Episode:    4 - Score: -19 - Update Counter:    3229 - Spent Time    85.06 - Mean Score -20.0000
+save model to ./models/pong_a3c.h5
+Episode:    5 - Score: -21 - Update Counter:    4489 - Spent Time   116.08 - Mean Score -19.6667
+save model to ./models/pong_a3c.h5
+Episode:    6 - Score: -19 - Update Counter:    5797 - Spent Time   148.12 - Mean Score -19.6667
+Episode:    7 - Score: -19 - Update Counter:    7823 - Spent Time   198.48 - Mean Score -19.6667
+Episode:    8 - Score: -18 - Update Counter:    9777 - Spent Time   246.54 - Mean Score -19.6667
+Episode:    9 - Score: -16 - Update Counter:   11875 - Spent Time   298.39 - Mean Score -18.6667
+save model to ./models/pong_a3c.h5
+Episode:   10 - Score: -18 - Update Counter:   13658 - Spent Time   341.80 - Mean Score -17.6667
+save model to ./models/pong_a3c.h5
+Episode:   11 - Score: -15 - Update Counter:   15998 - Spent Time   399.50 - Mean Score -17.3333
+save model to ./models/pong_a3c.h5
+Episode:   12 - Score: -14 - Update Counter:   18577 - Spent Time   463.29 - Mean Score -16.3333
+save model to ./models/pong_a3c.h5
+Episode:   13 - Score: -8 - Update Counter:   21522 - Spent Time   535.54 - Mean Score -15.6667
+save model to ./models/pong_a3c.h5
+Episode:   14 - Score: -12 - Update Counter:   24851 - Spent Time   618.15 - Mean Score -12.3333
+save model to ./models/pong_a3c.h5
+Episode:   15 - Score: -9 - Update Counter:   27863 - Spent Time   693.79 - Mean Score -11.3333
+save model to ./models/pong_a3c.h5
+Episode:   16 - Score: -7 - Update Counter:   31743 - Spent Time   791.58 - Mean Score -9.6667
+save model to ./models/pong_a3c.h5
+Episode:   17 - Score: -4 - Update Counter:   36285 - Spent Time   905.77 - Mean Score -9.3333
+save model to ./models/pong_a3c.h5
+Episode:   18 - Score: -3 - Update Counter:   40392 - Spent Time  1009.56 - Mean Score -6.6667
+save model to ./models/pong_a3c.h5
+Episode:   19 - Score:  2 - Update Counter:   44287 - Spent Time  1107.92 - Mean Score -4.6667
+save model to ./models/pong_a3c.h5
+Episode:   20 - Score:  7 - Update Counter:   48405 - Spent Time  1211.88 - Mean Score -1.6667
+save model to ./models/pong_a3c.h5
+Episode:   21 - Score: -4 - Update Counter:   52052 - Spent Time  1303.14 - Mean Score 2.0000
+save model to ./models/pong_a3c.h5
+Episode:   22 - Score:  9 - Update Counter:   56119 - Spent Time  1405.02 - Mean Score 1.6667
+Episode:   23 - Score: 10 - Update Counter:   59245 - Spent Time  1484.09 - Mean Score 4.0000
+save model to ./models/pong_a3c.h5
+Episode:   24 - Score: 16 - Update Counter:   61139 - Spent Time  1531.89 - Mean Score 5.0000
+save model to ./models/pong_a3c.h5
+Episode:   25 - Score: 18 - Update Counter:   62841 - Spent Time  1574.67 - Mean Score 11.6667
+save model to ./models/pong_a3c.h5
+Episode:   26 - Score: 11 - Update Counter:   65680 - Spent Time  1646.44 - Mean Score 14.6667
+save model to ./models/pong_a3c.h5
+Episode:   27 - Score: 13 - Update Counter:   69024 - Spent Time  1730.53 - Mean Score 15.0000
+save model to ./models/pong_a3c.h5
+Episode:   28 - Score: 19 - Update Counter:   70740 - Spent Time  1773.88 - Mean Score 14.0000
+Episode:   29 - Score: 17 - Update Counter:   72640 - Spent Time  1822.41 - Mean Score 14.3333
+Episode:   30 - Score: 19 - Update Counter:   74272 - Spent Time  1863.90 - Mean Score 16.3333
+save model to ./models/pong_a3c.h5
+Episode:   31 - Score: 20 - Update Counter:   75950 - Spent Time  1906.87 - Mean Score 18.3333
+save model to ./models/pong_a3c.h5
+Episode:   32 - Score:  8 - Update Counter:   79314 - Spent Time  1992.28 - Mean Score 18.6667
+save model to ./models/pong_a3c.h5
+Episode:   33 - Score: 19 - Update Counter:   81079 - Spent Time  2037.14 - Mean Score 15.6667
+Episode:   34 - Score: 16 - Update Counter:   83840 - Spent Time  2107.51 - Mean Score 15.6667
+Episode:   35 - Score: 16 - Update Counter:   86876 - Spent Time  2184.74 - Mean Score 14.3333
+Episode:   36 - Score: 13 - Update Counter:   89956 - Spent Time  2263.13 - Mean Score 17.0000
+Episode:   37 - Score: 13 - Update Counter:   92583 - Spent Time  2329.52 - Mean Score 15.0000
+Episode:   38 - Score: 14 - Update Counter:   95947 - Spent Time  2415.28 - Mean Score 14.0000
+Episode:   39 - Score: 21 - Update Counter:   97495 - Spent Time  2454.81 - Mean Score 13.3333
+Episode:   40 - Score:  2 - Update Counter:  101966 - Spent Time  2569.07 - Mean Score 16.0000
+Episode:   41 - Score: 13 - Update Counter:  104239 - Spent Time  2626.78 - Mean Score 12.3333
+Episode:   42 - Score: 14 - Update Counter:  107008 - Spent Time  2696.93 - Mean Score 12.0000
+Episode:   43 - Score: 14 - Update Counter:  109638 - Spent Time  2764.07 - Mean Score 9.6667
+Episode:   44 - Score: 17 - Update Counter:  112029 - Spent Time  2824.99 - Mean Score 13.6667
+Episode:   45 - Score:  6 - Update Counter:  115560 - Spent Time  2915.23 - Mean Score 15.0000
+Episode:   46 - Score: 17 - Update Counter:  117237 - Spent Time  2957.96 - Mean Score 12.3333
+Episode:   47 - Score: 21 - Update Counter:  118858 - Spent Time  2999.06 - Mean Score 13.3333
+Episode:   48 - Score: 16 - Update Counter:  121453 - Spent Time  3065.28 - Mean Score 14.6667
+Episode:   49 - Score: 18 - Update Counter:  123330 - Spent Time  3113.15 - Mean Score 18.0000
+Episode:   50 - Score: 17 - Update Counter:  125714 - Spent Time  3173.92 - Mean Score 18.3333
+Episode:   51 - Score: 21 - Update Counter:  127502 - Spent Time  3219.31 - Mean Score 17.0000
+Episode:   52 - Score: 20 - Update Counter:  129199 - Spent Time  3262.48 - Mean Score 18.6667
+Episode:   53 - Score: 19 - Update Counter:  131343 - Spent Time  3317.40 - Mean Score 19.3333
+save model to ./models/pong_a3c.h5
+Episode:   54 - Score: 14 - Update Counter:  133611 - Spent Time  3374.77 - Mean Score 20.0000
+save model to ./models/pong_a3c.h5
+Episode:   55 - Score: 21 - Update Counter:  135346 - Spent Time  3418.77 - Mean Score 17.6667
+Episode:   56 - Score: 20 - Update Counter:  137032 - Spent Time  3461.66 - Mean Score 18.0000
+Episode:   57 - Score: 20 - Update Counter:  138863 - Spent Time  3508.07 - Mean Score 18.3333
+Episode:   58 - Score: 21 - Update Counter:  140400 - Spent Time  3547.14 - Mean Score 20.3333
+save model to ./models/pong_a3c.h5
+Episode:   59 - Score: 21 - Update Counter:  142187 - Spent Time  3592.98 - Mean Score 20.3333
+Episode:   60 - Score: 20 - Update Counter:  144052 - Spent Time  3640.72 - Mean Score 20.6667
+save model to ./models/pong_a3c.h5
+Episode:   61 - Score: 21 - Update Counter:  145833 - Spent Time  3686.46 - Mean Score 20.6667
+Episode:   62 - Score: 21 - Update Counter:  147594 - Spent Time  3731.28 - Mean Score 20.6667
+Episode:   63 - Score: 21 - Update Counter:  149385 - Spent Time  3777.01 - Mean Score 20.6667
+Episode:   64 - Score: 20 - Update Counter:  151247 - Spent Time  3824.50 - Mean Score 21.0000
+save model to ./models/pong_a3c.h5
+Episode:   65 - Score: 21 - Update Counter:  152703 - Spent Time  3861.52 - Mean Score 20.6667
+Episode:   66 - Score: 19 - Update Counter:  154672 - Spent Time  3911.76 - Mean Score 20.6667
+Episode:   67 - Score: 20 - Update Counter:  156443 - Spent Time  3957.04 - Mean Score 20.0000
+Episode:   68 - Score: 14 - Update Counter:  159500 - Spent Time  4035.19 - Mean Score 20.0000
+Episode:   69 - Score: 20 - Update Counter:  161323 - Spent Time  4081.36 - Mean Score 17.6667
+Episode:   70 - Score: 17 - Update Counter:  163448 - Spent Time  4135.19 - Mean Score 18.0000
+Episode:   71 - Score: 15 - Update Counter:  165975 - Spent Time  4199.55 - Mean Score 17.0000
+Episode:   72 - Score: 21 - Update Counter:  167780 - Spent Time  4245.85 - Mean Score 17.3333
+Episode:   73 - Score: 21 - Update Counter:  169571 - Spent Time  4291.39 - Mean Score 17.6667
+Episode:   74 - Score: 20 - Update Counter:  171735 - Spent Time  4346.00 - Mean Score 19.0000
+Episode:   75 - Score: 19 - Update Counter:  173962 - Spent Time  4402.53 - Mean Score 20.6667
+Episode:   76 - Score: 21 - Update Counter:  175879 - Spent Time  4451.24 - Mean Score 20.0000
+Episode:   77 - Score: 21 - Update Counter:  177683 - Spent Time  4497.10 - Mean Score 20.0000
+Episode:   78 - Score: 21 - Update Counter:  179486 - Spent Time  4542.92 - Mean Score 20.3333
+Episode:   79 - Score: 17 - Update Counter:  181640 - Spent Time  4597.75 - Mean Score 21.0000
+Episode:   80 - Score: 19 - Update Counter:  183706 - Spent Time  4650.71 - Mean Score 19.6667
+Episode:   81 - Score: 18 - Update Counter:  185772 - Spent Time  4703.61 - Mean Score 19.0000
+Episode:   82 - Score: 17 - Update Counter:  188168 - Spent Time  4764.56 - Mean Score 18.0000
+Episode:   83 - Score: 21 - Update Counter:  189584 - Spent Time  4800.87 - Mean Score 18.0000
+Episode:   84 - Score: 21 - Update Counter:  191370 - Spent Time  4846.62 - Mean Score 18.6667
+Episode:   85 - Score: 21 - Update Counter:  193177 - Spent Time  4892.87 - Mean Score 19.6667
+Episode:   86 - Score: 21 - Update Counter:  194967 - Spent Time  4938.56 - Mean Score 21.0000
+Episode:   87 - Score: 20 - Update Counter:  196582 - Spent Time  4980.09 - Mean Score 21.0000
+Episode:   88 - Score: 18 - Update Counter:  198457 - Spent Time  5028.00 - Mean Score 20.6667
+Episode:   89 - Score: 21 - Update Counter:  199994 - Spent Time  5067.27 - Mean Score 19.6667
+Episode:   90 - Score: 17 - Update Counter:  202148 - Spent Time  5122.19 - Mean Score 19.6667
+Episode:   91 - Score: 14 - Update Counter:  205071 - Spent Time  5196.55 - Mean Score 18.6667
+Episode:   92 - Score: 21 - Update Counter:  206872 - Spent Time  5242.02 - Mean Score 17.3333
+Episode:   93 - Score: 21 - Update Counter:  208655 - Spent Time  5287.35 - Mean Score 17.3333
+Episode:   94 - Score: 20 - Update Counter:  210302 - Spent Time  5329.33 - Mean Score 18.6667
+Episode:   95 - Score: 21 - Update Counter:  212108 - Spent Time  5375.02 - Mean Score 20.6667
+Episode:   96 - Score: 19 - Update Counter:  214213 - Spent Time  5428.47 - Mean Score 20.6667
+Episode:   97 - Score: 17 - Update Counter:  215977 - Spent Time  5473.40 - Mean Score 20.0000
+Episode:   98 - Score: 17 - Update Counter:  218298 - Spent Time  5532.26 - Mean Score 19.0000
+Episode:   99 - Score: 21 - Update Counter:  220090 - Spent Time  5578.02 - Mean Score 17.6667
+Episode:  100 - Score: 18 - Update Counter:  222224 - Spent Time  5632.34 - Mean Score 18.3333
+Episode:  101 - Score: 21 - Update Counter:  224018 - Spent Time  5678.32 - Mean Score 18.6667
+Episode:  102 - Score: 18 - Update Counter:  226321 - Spent Time  5736.95 - Mean Score 20.0000
+Episode:  103 - Score: 21 - Update Counter:  228116 - Spent Time  5782.71 - Mean Score 19.0000
+Episode:  104 - Score: 19 - Update Counter:  230073 - Spent Time  5832.78 - Mean Score 20.0000
+Episode:  105 - Score: 21 - Update Counter:  231871 - Spent Time  5878.51 - Mean Score 19.3333
+Episode:  106 - Score: 21 - Update Counter:  233663 - Spent Time  5924.20 - Mean Score 20.3333
+Episode:  107 - Score: 21 - Update Counter:  235447 - Spent Time  5969.79 - Mean Score 20.3333
+Episode:  108 - Score: 17 - Update Counter:  237577 - Spent Time  6023.74 - Mean Score 21.0000
+Episode:  109 - Score: 21 - Update Counter:  239081 - Spent Time  6062.17 - Mean Score 19.6667
+Episode:  110 - Score: 17 - Update Counter:  241471 - Spent Time  6123.32 - Mean Score 19.6667
+Episode:  111 - Score: 19 - Update Counter:  243322 - Spent Time  6170.29 - Mean Score 18.3333
+Episode:  112 - Score: 21 - Update Counter:  245129 - Spent Time  6216.38 - Mean Score 19.0000
+Episode:  113 - Score: 21 - Update Counter:  246927 - Spent Time  6261.93 - Mean Score 19.0000
+Episode:  114 - Score: 17 - Update Counter:  249123 - Spent Time  6317.78 - Mean Score 20.3333
+Episode:  115 - Score: 19 - Update Counter:  251395 - Spent Time  6375.81 - Mean Score 19.6667
+Episode:  116 - Score: 21 - Update Counter:  253201 - Spent Time  6421.70 - Mean Score 19.0000
+Episode:  117 - Score: 19 - Update Counter:  255502 - Spent Time  6479.97 - Mean Score 19.0000
+Episode:  118 - Score: 16 - Update Counter:  257937 - Spent Time  6541.96 - Mean Score 19.6667
+Episode:  119 - Score: 17 - Update Counter:  260424 - Spent Time  6605.42 - Mean Score 18.6667
+Episode:  120 - Score: 20 - Update Counter:  262198 - Spent Time  6650.83 - Mean Score 17.3333
+Episode:  121 - Score: 18 - Update Counter:  264069 - Spent Time  6698.45 - Mean Score 17.6667
+Episode:  122 - Score: 18 - Update Counter:  266063 - Spent Time  6749.06 - Mean Score 18.3333
+Episode:  123 - Score: 16 - Update Counter:  268335 - Spent Time  6807.13 - Mean Score 18.6667
+Episode:  124 - Score: 17 - Update Counter:  270586 - Spent Time  6864.10 - Mean Score 17.3333
+Episode:  125 - Score: 20 - Update Counter:  272349 - Spent Time  6909.38 - Mean Score 17.0000
+Episode:  126 - Score: 21 - Update Counter:  274144 - Spent Time  6955.21 - Mean Score 17.6667
+Episode:  127 - Score: 16 - Update Counter:  276339 - Spent Time  7011.28 - Mean Score 19.3333
+Episode:  128 - Score: 21 - Update Counter:  278132 - Spent Time  7057.26 - Mean Score 19.0000
+Episode:  129 - Score: 20 - Update Counter:  279700 - Spent Time  7097.02 - Mean Score 19.3333
+Episode:  130 - Score: 16 - Update Counter:  282801 - Spent Time  7176.33 - Mean Score 19.0000
+Episode:  131 - Score: 20 - Update Counter:  284452 - Spent Time  7218.54 - Mean Score 19.0000
+Episode:  132 - Score: 20 - Update Counter:  286028 - Spent Time  7258.50 - Mean Score 18.6667
+Episode:  133 - Score: 19 - Update Counter:  287674 - Spent Time  7300.24 - Mean Score 18.6667
+Episode:  134 - Score: 21 - Update Counter:  289470 - Spent Time  7346.08 - Mean Score 19.6667
+Episode:  135 - Score: 21 - Update Counter:  291280 - Spent Time  7391.97 - Mean Score 20.0000
+Episode:  136 - Score: 20 - Update Counter:  293061 - Spent Time  7437.38 - Mean Score 20.3333
+Episode:  137 - Score: 21 - Update Counter:  294847 - Spent Time  7482.65 - Mean Score 20.6667
+Episode:  138 - Score: 21 - Update Counter:  296639 - Spent Time  7528.25 - Mean Score 20.6667
+Episode:  139 - Score: 21 - Update Counter:  298474 - Spent Time  7574.93 - Mean Score 20.6667
+Episode:  140 - Score: 21 - Update Counter:  300277 - Spent Time  7620.93 - Mean Score 21.0000
+Episode:  141 - Score: 21 - Update Counter:  302067 - Spent Time  7666.33 - Mean Score 21.0000
+Episode:  142 - Score: 20 - Update Counter:  303897 - Spent Time  7712.94 - Mean Score 21.0000
+Episode:  143 - Score: 20 - Update Counter:  305462 - Spent Time  7752.85 - Mean Score 20.6667
+Episode:  144 - Score: 19 - Update Counter:  307521 - Spent Time  7804.75 - Mean Score 20.3333
+Episode:  145 - Score: 17 - Update Counter:  309612 - Spent Time  7858.52 - Mean Score 19.6667
+Episode:  146 - Score: 16 - Update Counter:  312040 - Spent Time  7920.23 - Mean Score 18.6667
+Episode:  147 - Score: 17 - Update Counter:  314281 - Spent Time  7977.34 - Mean Score 17.3333
+Episode:  148 - Score: 19 - Update Counter:  316126 - Spent Time  8023.96 - Mean Score 16.6667
+Episode:  149 - Score: 19 - Update Counter:  317892 - Spent Time  8069.33 - Mean Score 17.3333
+Episode:  150 - Score: 21 - Update Counter:  319682 - Spent Time  8115.03 - Mean Score 18.3333
+Episode:  151 - Score: 20 - Update Counter:  321670 - Spent Time  8165.38 - Mean Score 19.6667
+Episode:  152 - Score: 21 - Update Counter:  323463 - Spent Time  8211.10 - Mean Score 20.0000
+Episode:  153 - Score: 21 - Update Counter:  325252 - Spent Time  8256.89 - Mean Score 20.6667
+Episode:  154 - Score: 19 - Update Counter:  327134 - Spent Time  8304.57 - Mean Score 20.6667
+Episode:  155 - Score: 21 - Update Counter:  329088 - Spent Time  8354.44 - Mean Score 20.3333
+Episode:  156 - Score: 20 - Update Counter:  330999 - Spent Time  8403.23 - Mean Score 20.3333
+Episode:  157 - Score: 21 - Update Counter:  332785 - Spent Time  8448.30 - Mean Score 20.0000
+Episode:  158 - Score: 21 - Update Counter:  334574 - Spent Time  8494.00 - Mean Score 20.6667
+Episode:  159 - Score: 20 - Update Counter:  336404 - Spent Time  8540.84 - Mean Score 20.6667
+Episode:  160 - Score: 20 - Update Counter:  338296 - Spent Time  8589.35 - Mean Score 20.6667
+Episode:  161 - Score: 19 - Update Counter:  340098 - Spent Time  8635.15 - Mean Score 20.3333
+Episode:  162 - Score: 20 - Update Counter:  341837 - Spent Time  8679.54 - Mean Score 19.6667
+Episode:  163 - Score: 19 - Update Counter:  343692 - Spent Time  8726.69 - Mean Score 19.6667
+Episode:  164 - Score: 20 - Update Counter:  345480 - Spent Time  8772.37 - Mean Score 19.3333
+Episode:  165 - Score: 20 - Update Counter:  347431 - Spent Time  8822.15 - Mean Score 19.6667
+Episode:  166 - Score: 19 - Update Counter:  349358 - Spent Time  8871.47 - Mean Score 19.6667
+Episode:  167 - Score: 20 - Update Counter:  351308 - Spent Time  8921.14 - Mean Score 19.6667
+Episode:  168 - Score: 19 - Update Counter:  352951 - Spent Time  8962.74 - Mean Score 19.6667
+Episode:  169 - Score: 19 - Update Counter:  354594 - Spent Time  9004.45 - Mean Score 19.3333
+Episode:  170 - Score: 20 - Update Counter:  356370 - Spent Time  9049.83 - Mean Score 19.3333
+Episode:  171 - Score: 20 - Update Counter:  358242 - Spent Time  9097.53 - Mean Score 19.3333
+Episode:  172 - Score: 16 - Update Counter:  360082 - Spent Time  9144.28 - Mean Score 19.6667
+Episode:  173 - Score: 20 - Update Counter:  361952 - Spent Time  9191.68 - Mean Score 18.6667
+Episode:  174 - Score: 21 - Update Counter:  363739 - Spent Time  9237.17 - Mean Score 18.6667
+Episode:  175 - Score: 21 - Update Counter:  365548 - Spent Time  9283.10 - Mean Score 19.0000
+Episode:  176 - Score: 21 - Update Counter:  367349 - Spent Time  9329.28 - Mean Score 20.6667
+Episode:  177 - Score: 14 - Update Counter:  369578 - Spent Time  9386.14 - Mean Score 21.0000
+Episode:  178 - Score: 21 - Update Counter:  371387 - Spent Time  9431.85 - Mean Score 18.6667
+Episode:  179 - Score: 21 - Update Counter:  373176 - Spent Time  9477.81 - Mean Score 18.6667
+Episode:  180 - Score: 18 - Update Counter:  375265 - Spent Time  9530.95 - Mean Score 18.6667
+Episode:  181 - Score: 21 - Update Counter:  377059 - Spent Time  9576.53 - Mean Score 20.0000
+Episode:  182 - Score: 20 - Update Counter:  378925 - Spent Time  9624.18 - Mean Score 20.0000
+Episode:  183 - Score: 17 - Update Counter:  381067 - Spent Time  9678.81 - Mean Score 19.6667
+Episode:  184 - Score: 12 - Update Counter:  383919 - Spent Time  9751.39 - Mean Score 19.3333
+Episode:  185 - Score: 20 - Update Counter:  385831 - Spent Time  9800.38 - Mean Score 16.3333
+Episode:  186 - Score: 20 - Update Counter:  387780 - Spent Time  9850.16 - Mean Score 16.3333
+Episode:  187 - Score: 17 - Update Counter:  389879 - Spent Time  9903.70 - Mean Score 17.3333
+./a3c.sh: line 6:  6701 終止                  python3 -u ./main.py --train_a3c --a3c_worker_count 16 --a3c_model=./models/pong_a3c.h5 --a3c_summary=./summary/pong_a3c/summary
