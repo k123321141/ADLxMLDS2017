@@ -18,7 +18,6 @@ from environment import getPongEnv
 #hidden_state_units = 256
 hidden_state_units = 64
 graph = tf.get_default_graph()
-#opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
 np.random.seed(1337)
 tf.set_random_seed(1337)
 def discount(x, gamma):
