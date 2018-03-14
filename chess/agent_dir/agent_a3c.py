@@ -97,12 +97,12 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     loss = actor_loss + 0.5*critic_loss + 0.01 * entropy
 
     grads = tf.gradients(loss, local_net.trainable_weights)
-    #grads,_ = tf.clip_by_global_norm(grads, 40.)
+    grads,_ = tf.clip_by_global_norm(grads, 40.)
 
     #each worker has own optimizer to update global network
-    opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
-    #opt = tf.train.RMSPropOptimizer(learning_rate=1e-4)
-    #opt = tf.train.AdamOptimizer(1e-4)
+    #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
+    opt = tf.train.RMSPropOptimizer(learning_rate=1e-4 *5.)
+    #opt = tf.train.AdamOptimizer(1e-4*5.)
     #global
     global_net = global_info
     update_op = opt.apply_gradients(zip(grads, global_net.trainable_weights))
