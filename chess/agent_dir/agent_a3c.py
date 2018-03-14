@@ -101,8 +101,8 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
 
     #each worker has own optimizer to update global network
     #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
-    opt = tf.train.RMSPropOptimizer(learning_rate=1e-4 *5.)
-    #opt = tf.train.AdamOptimizer(1e-4*5.)
+    #opt = tf.train.RMSPropOptimizer(learning_rate=1e-4 *5.)
+    opt = tf.train.AdamOptimizer(1e-4*5.)
     #global
     global_net = global_info
     update_op = opt.apply_gradients(zip(grads, global_net.trainable_weights))
