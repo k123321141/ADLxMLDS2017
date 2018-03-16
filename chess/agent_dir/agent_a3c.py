@@ -87,7 +87,7 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
     action_probs, critic_value, next_hi_st = local_net([states,hi_st])
-    #action_probs = tf.clip_by_value(action_probs, 1e-20, 1.0)
+    action_probs = tf.clip_by_value(action_probs, 1e-20, 1.0)
     log_probs = K.log(action_probs)
     actor_loss = -K.sum(K.sum(log_probs * one_hot_actions, axis=-1) * advantage_fn)
     critic_loss = K.sum(K.square(target - critic_value))  
@@ -101,8 +101,8 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
 
     #each worker has own optimizer to update global network
     #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
-    opt = tf.train.RMSPropOptimizer(learning_rate=1e-4 *5.)
-    #opt = tf.train.AdamOptimizer(1e-4*5.)
+    opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    #opt = tf.train.RMSPropOptimizer(learning_rate=1e-4 *5.)
     #global
     global_net = global_info
     update_op = opt.apply_gradients(zip(grads, global_net.trainable_weights))
