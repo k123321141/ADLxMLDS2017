@@ -278,7 +278,7 @@ class Agent_AC(Agent):
         rewards = np.array(self.rewards).reshape([-1,1])
         
         state_values = self.critic_target.predict([a_states, a_hi_sts]) 
-        next_state_values = self.critic_target.predict([a_states, a_hi_sts])
+        next_state_values = self.critic_target.predict([next_states, a_hi_sts])
         next_state_values[-1,0] = 0
 
         one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
