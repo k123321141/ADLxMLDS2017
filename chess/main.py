@@ -42,7 +42,7 @@ def run(args):
         agent = Agent_PG(env, args)
         agent.train()
     if args.train_ac:
-        env_name = args.env_name or 'Pong-ramDeterministic-v4'
+        env_name = args.env_name or 'PongDeterministic-v4'
         env = Environment(env_name, args)
         from agent_dir.agent_ac import Agent_AC
         agent = Agent_AC(env, args)

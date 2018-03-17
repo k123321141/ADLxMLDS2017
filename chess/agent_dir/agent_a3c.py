@@ -21,16 +21,6 @@ graph = tf.get_default_graph()
 np.random.seed(1337)
 tf.set_random_seed(1337)
 def discount(x, gamma):
-    '''
-    buf = x.flatten().tolist()
-    assert buf[-1] != 0
-    for a in buf[:-1]:
-        if a != 0.:
-            print(buf)
-            ss = scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
-            print(ss.flatten().tolist())
-        assert a == 0.
-    '''
 
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
@@ -42,7 +32,6 @@ def build_model(action_size, state_size, scope):
         x = Reshape((80, 80, 1))(pixel_input)
         for i in range(2):
             x = Conv2D(32 * 2**i, kernel_size=(5, 5), strides=(3, 3), padding='same',
-            #x = Conv2D(32, kernel_size=(3, 3), strides=(2, 2), padding='same', \
                                     activation='relu', kernel_initializer='he_uniform', data_format = 'channels_last')(x)
         cnn_out = Reshape([1,-1])(x)
         
@@ -57,24 +46,7 @@ def build_model(action_size, state_size, scope):
         critic = Model(inputs=[pixel_input, hi_st], outputs=critic_output)
 
         #whole model
-        model = Model(inputs=[pixel_input, hi_st], outputs=[actor_output, critic_output, hi_st])
-        '''
-        x = ram_input = Input(shape=(128,))
-        hi_st = Input(shape=(hidden_state_units,))
-        #actor
-        x = Reshape([1,-1])(x)
-        x, st = GRU(hidden_state_units, activation='relu',return_state=True, kernel_initializer='glorot_normal')(x, hi_st)
-        
-        actor_output = Dense(action_size, activation='softmax', kernel_initializer='glorot_normal')(x)
-        actor = Model(inputs=[ram_input, hi_st], outputs=actor_output)
-
-        
-        #critic
-        critic_output = Dense(1, activation='linear')(x)
-        critic = Model(inputs=[ram_input, hi_st], outputs=critic_output)
-        #whole model
-        model = Model(inputs=[ram_input, hi_st], outputs=[actor_output, critic_output, hi_st])
-        '''
+        model = Model(inputs=[pixel_input, hi_st], outputs=[actor_output, critic_output, st])
     return actor, critic, model 
 
 def set_train_fn(local_info, global_info, action_size, state_size, learning_rate):
@@ -87,6 +59,7 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
     action_probs, critic_value, next_hi_st = local_net([states,hi_st])
+    #clip softmax output to avoid log(0)
     action_probs = tf.clip_by_value(action_probs, 1e-20, 1.0)
     log_probs = K.log(action_probs)
     actor_loss = -K.sum(K.sum(log_probs * one_hot_actions, axis=-1) * advantage_fn)
@@ -100,9 +73,9 @@ def set_train_fn(local_info, global_info, action_size, state_size, learning_rate
     grads,_ = tf.clip_by_global_norm(grads, 40.)
 
     #each worker has own optimizer to update global network
+    #Adam converge faster than RMSProp
     #opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
     opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    #opt = tf.train.RMSPropOptimizer(learning_rate=1e-4 *5.)
     #global
     global_net = global_info
     update_op = opt.apply_gradients(zip(grads, global_net.trainable_weights))
