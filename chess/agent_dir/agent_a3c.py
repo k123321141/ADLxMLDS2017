@@ -173,10 +173,10 @@ class Worker():
             hi_st = next_hi_st 
             state = next_state
             
-            #done = reward != 0  #someone get the point
-
-            if terminal or steps % 20 == 0:
-                loss, actor_loss, critic_loss, entropy = self.update(terminal, next_state, next_hi_st)
+            done = reward != 0  #someone get the point
+            #if done:
+            if done or steps % 20 == 0:
+                loss, actor_loss, critic_loss, entropy = self.update(done, next_state, next_hi_st)
                 self.agent.update_count += 1
                 self.states,self.actions, self.rewards, self.hi_sts = [],[],[],[],
 
@@ -224,6 +224,7 @@ class Worker():
         rewards = np.vstack(self.rewards)   #None, 1
         hi_sts = np.vstack(self.hi_sts + [next_hi_st])  #None,rnn_units
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
+        #discounted_rewards = discount(rewards, self.agent.gamma)
         
         #print(states.shape, actions.shape, rewards.shape, hi_sts.shape) 
         _, state_values, _ = self.predict_fn([states, hi_sts])
