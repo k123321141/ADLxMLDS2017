@@ -288,6 +288,7 @@ class Agent_AC(Agent):
         
         #for critic
         #state value
+        '''
         batch = random.sample(self.reply_buffer, min(len(self.rewards), len(self.reply_buffer)))
         states, next_states, rewards, actions, done, discounted_rewards, c_hi_sts = [],[],[],[],[],[],[]
         for b in batch:
@@ -306,6 +307,10 @@ class Agent_AC(Agent):
         discounted_rewards = np.vstack(discounted_rewards)
         
         target = discounted_rewards
+        '''
+        target = discount(rewards, self.gamma)
+        c_states = a_states
+        c_hi_sts = a_hi_sts
         #self.a2c_train_fn([states, one_hot_actions, discounted_rewards, advantage_fn])
         loss, actor_loss, critic_loss, entropy = self.a2c_train_fn([a_states, a_hi_sts, c_states, c_hi_sts, one_hot_actions, target, advantage_fn])
         #print('loss : %4.4f  actor_loss : %4.4f critic_loss : %4.4f entropy : %4.4f'  % (loss, actor_loss, critic_loss, entropy))
