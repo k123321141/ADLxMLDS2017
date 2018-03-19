@@ -21,8 +21,16 @@ graph = tf.get_default_graph()
 np.random.seed(1337)
 tf.set_random_seed(1337)
 def discount(x, gamma):
-
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+
+def discount_TD_error(rewards, last_next_state_values, done, gamma):
+    assert len(rewards.shape) == 2
+    state_values = np.zeors_like(rewards)
+    num = len(rewards)
+    R = 0. if done else last_next_state_values
+    for i in reversed(range(num)):
+        state_values[i, 0] = rewards[i, 0] + R * gamma
+    return state_values 
 
 def build_model(action_size, state_size, scope):
     with tf.variable_scope(scope):
@@ -219,24 +227,20 @@ class Worker():
         next_state = next_state.reshape([1,-1])
         
         
-        states = np.vstack(self.states + [next_state])  #None,80,80 or None,128
+        states = np.vstack(self.states + [next_state])  #None,6400 or None,128
         actions = np.vstack(self.actions)   #None, 1
         rewards = np.vstack(self.rewards)   #None, 1
         hi_sts = np.vstack(self.hi_sts + [next_hi_st])  #None,rnn_units
         one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
-        #discounted_rewards = discount(rewards, self.agent.gamma)
         
         #print(states.shape, actions.shape, rewards.shape, hi_sts.shape) 
         _, state_values, _ = self.predict_fn([states, hi_sts])
-        if done:
-            state_values[-1,0] = 0
-        target = np.vstack(self.rewards + [state_values[-1,0]])
-        target = discount(target, self.agent.gamma)[:-1, :]
+        last_next_state_values = state_values[-1, 0]
+        target = discount_TD_error(rewards, last_next_state_values, done, self.agent.gamma) 
         
         #adv = r + gamma*next_v - v 
         #print(rewards.shape, state_values[1:,:].shape, state_values[:-1,:].shape)
         advantage_fn = rewards + self.agent.gamma * state_values[1:,:] - state_values[:-1,:]
-        #advantage_fn = discount(advantage_fn, self.agent.gamma)
 
         loss, actor_loss, critic_loss, entropy = self.update_fn([states[:-1,:], hi_sts[:-1,:], one_hot_actions, target, advantage_fn])
         return loss, actor_loss, critic_loss, entropy 

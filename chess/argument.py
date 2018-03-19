@@ -47,7 +47,6 @@ def add_arguments(parser):
     parser.add_argument('--ac_model', default=join('.','models','pong_ac.h5'), help='path to save model for trainging')
     parser.add_argument('--ac_summary', default=join('.','summary','pong_ac'), help='path to save summary for training')
     parser.add_argument('--ac_discount_factor', type=float, default=0.9, help='discount factor')
-    parser.add_argument('--ac_baseline', type=int, default=0, help='baseline info')
     parser.add_argument('--ac_max_spisode', type=int, default=100000, help='maximum iteration')
     parser.add_argument('--ac_save_interval', type=int, default=1, help='how many episodes per saving')
     parser.add_argument('--ac_update_target_frequency', type=int, default=1, help='frequency of updating target network per episode')
@@ -77,7 +76,7 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_train_frequency', type=int, default=1, help='how many steps per update')
     parser.add_argument('--ddpg_batch_size', type=int, default=32, help='batch size per update')
 
-    parser.add_argument('--TAU', type=int, default=0.5, help='the rate of target networks updating')
+    parser.add_argument('--TAU', type=int, default=1., help='the rate of target networks updating')
     parser.add_argument('--reply_buffer', type=int, default=100000, help='memory size for reply experience')
     #bonus
     return parser
