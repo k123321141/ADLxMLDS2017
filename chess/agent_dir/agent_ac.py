@@ -16,7 +16,7 @@ def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 def discount_TD_error(rewards, last_next_state_values, done, gamma):
     assert len(rewards.shape) == 2
-    state_values = np.zeors_like(rewards)
+    state_values = np.zeros_like(rewards)
     num = len(rewards)
     R = 0. if done else last_next_state_values
     for i in reversed(range(num)):
@@ -135,7 +135,7 @@ class Agent_AC(Agent):
 
         done = False
         state = env.reset()
-        self.states, self.next_states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], [], []
+        self.states,  self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], []
         hi_st = np.zeros([1, hidden_state_units], dtype=np.float32)
         while True:
             self.global_step += 1
@@ -148,7 +148,7 @@ class Agent_AC(Agent):
             
             score += reward
             done = reward != 0  #someone get the point
-            self.remember(state, next_state, action, reward, done, hi_st)
+            self.remember(state, action, reward, done, hi_st)
             hi_st = next_hi_st
             state = next_state
             if reward == 1:
@@ -157,9 +157,8 @@ class Agent_AC(Agent):
                 lose += 1
             step += 1
             if done:
-                self.prev_x = None
-                loss, actor_loss, critic_loss, entropy = self.update_actor_critic()
-                self.states, self.next_states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], [], []
+                loss, actor_loss, critic_loss, entropy = self.update_actor_critic(done, next_state, next_hi_st)
+                self.states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], []
                 hi_st = np.zeros([1, hidden_state_units], dtype=np.float32)
                 
                 
@@ -171,7 +170,6 @@ class Agent_AC(Agent):
 
                 #for log
                 episode += 1
-                que.append(score)
                 print('Episode: %d - Score: %2.1f - Update Counter: %5d ' % (episode, score, self.update_counter ))
                 sys.stdout.flush()
                 if episode > 1 and episode % args.ac_save_interval == 0:
@@ -214,11 +212,9 @@ class Agent_AC(Agent):
         return action, hi_st 
 
     #train funcfion
-    def remember(self, state, next_state, action, reward, done, hi_st):
-        state = state.reshape([-1])
-        next_state = next_state.reshape([-1])
+    def remember(self, state, action, reward, done, hi_st):
+        state = state.reshape([1, -1])
         self.states.append(state)
-        self.next_states.append(next_state)
         self.rewards.append(reward)
         self.actions.append(action)
         self.done.append(done)
@@ -233,7 +229,8 @@ class Agent_AC(Agent):
         one_hot_actions = K.placeholder(shape=(None, self.action_size), dtype='float32')
         advantage_fn = K.placeholder(shape=(None, 1), dtype='float32')
 
-        action_probs, critic_value = self.model([states, hi_sts])
+        action_probs, critic_value, _ = self.model([states, hi_sts])
+
         action_probs = tf.clip_by_value(action_probs, 1e-20, 1.0)
 
         actor_loss = -K.sum(K.log(K.sum(action_probs * one_hot_actions, axis=-1)) * advantage_fn)
@@ -257,22 +254,21 @@ class Agent_AC(Agent):
 
     #train funcfion
     def update_actor_critic(self, done, next_state, next_hi_st):
-        next_state = next_state.reshape([1,-1])
-        
+        next_state = next_state.reshape([1, -1])
         
         states = np.vstack(self.states + [next_state])  #None,6400 or None,128
         actions = np.vstack(self.actions)   #None, 1
         rewards = np.vstack(self.rewards)   #None, 1
         hi_sts = np.vstack(self.hi_sts + [next_hi_st])  #None,rnn_units
-        one_hot_actions = keras.utils.to_categorical(actions, self.agent.action_size)
+        one_hot_actions = keras.utils.to_categorical(actions, self.action_size)
         
-        _, state_values, _ = self.predict_fn([states, hi_sts])
+        _, state_values, _ = self.model.predict([states, hi_sts])
         last_next_state_values = state_values[-1, 0]
-        target = discount_TD_error(rewards, last_next_state_values, done, self.agent.gamma) 
+        target = discount_TD_error(rewards, last_next_state_values, done, self.gamma) 
         #adv = r + gamma*next_v - v 
-        advantage_fn = rewards + self.agent.gamma * state_values[1:,:] - state_values[:-1,:]
+        advantage_fn = rewards + self.gamma * state_values[1:,:] - state_values[:-1,:]
         
-        self.a2c_train_fn([states[:-1, :], hi_sts[:-1, :], one_hot_actions, target, advantage_fn])
+        train_ret = self.a2c_train_fn([states[:-1, :], hi_sts[:-1, :], one_hot_actions, target, advantage_fn])
         #critic
         if self.update_target_counter % self.args.ac_update_target_frequency == 0:
             weights = self.model.get_weights()
@@ -283,6 +279,7 @@ class Agent_AC(Agent):
             #print('update target')
         #print('update target')
         self.update_target_counter += 1
+        return train_ret
     def load(self, name):
         self.model.load_weights(name)
         self.model_target.set_weights(self.model.get_weights())

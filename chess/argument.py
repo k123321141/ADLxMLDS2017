@@ -77,6 +77,6 @@ def add_arguments(parser):
     parser.add_argument('--ddpg_batch_size', type=int, default=32, help='batch size per update')
 
     parser.add_argument('--TAU', type=int, default=1., help='the rate of target networks updating')
-    parser.add_argument('--reply_buffer', type=int, default=100000, help='memory size for reply experience')
+    parser.add_argument('--replay_buffer', type=int, default=100000, help='memory size for reply experience')
     #bonus
     return parser

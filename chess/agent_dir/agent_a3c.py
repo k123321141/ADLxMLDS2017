@@ -25,7 +25,7 @@ def discount(x, gamma):
 
 def discount_TD_error(rewards, last_next_state_values, done, gamma):
     assert len(rewards.shape) == 2
-    state_values = np.zeors_like(rewards)
+    state_values = np.zeros_like(rewards)
     num = len(rewards)
     R = 0. if done else last_next_state_values
     for i in reversed(range(num)):
