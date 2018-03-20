@@ -156,8 +156,8 @@ class Agent_AC(Agent):
             elif reward == -1:
                 lose += 1
             step += 1
-            if done:
-            #if terminal or step % 20 ==0:
+            #if done:
+            if terminal or step % 20 ==0:
             #    done = terminal
                 loss, actor_loss, critic_loss, entropy = self.update_actor_critic(done, next_state, next_hi_st)
                 self.states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], []
