@@ -20,7 +20,8 @@ def discount_TD_error(rewards, last_next_state_values, done, gamma):
     num = len(rewards)
     R = 0. if done else last_next_state_values
     for i in reversed(range(num)):
-        state_values[i, 0] = rewards[i, 0] + R * gamma
+        R = rewards[i, 0] + R * gamma
+        state_values[i, 0] = R 
     return state_values 
 
 def build_model(action_size, state_size):
@@ -120,8 +121,7 @@ class Agent_AC(Agent):
         self.summary_writer = tf.summary.FileWriter(
             args.ac_summary  , self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-
-        self.global_step = 0
+        
         self.update_counter = 0
         self.update_target_counter = 0
         if os.path.isfile(args.ac_model) and args.keep_train: 
@@ -137,8 +137,8 @@ class Agent_AC(Agent):
         state = env.reset()
         self.states,  self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], []
         hi_st = np.zeros([1, hidden_state_units], dtype=np.float32)
+        score_que = deque([-21.,], maxlen=30)
         while True:
-            self.global_step += 1
             if args.do_render:
                 env.env.render()
             
@@ -157,10 +157,20 @@ class Agent_AC(Agent):
                 lose += 1
             step += 1
             if done:
+            #if terminal or step % 20 ==0:
+            #    done = terminal
                 loss, actor_loss, critic_loss, entropy = self.update_actor_critic(done, next_state, next_hi_st)
                 self.states, self.actions, self.rewards, self.done, self.hi_sts = [], [], [], [], []
                 hi_st = np.zeros([1, hidden_state_units], dtype=np.float32)
-                
+                #summary 
+                status = [loss, actor_loss, critic_loss, entropy, np.mean(score_que)]
+
+                for i in range(len(status)):
+                    K.get_session().run(self.update_ops[i], feed_dict={
+                        self.summary_placeholders[i]: float(status[i])
+                    })
+                summary_str = K.get_session().run(self.summary_op)
+                self.summary_writer.add_summary(summary_str, self.update_counter)
                 
                 self.update_counter += 1
             if terminal:    #game over
@@ -176,8 +186,8 @@ class Agent_AC(Agent):
                     print('save model to %s.' % args.ac_model)
                     self.save(args.ac_model)
 
-
                 
+                score_que.append(score)
                 score, win, lose, step = 0,0,0,0
 
     def make_action(self, observation, test=True):
@@ -293,19 +303,22 @@ class Agent_AC(Agent):
         p1 = tf.Variable(0.) #probs of acitons
         p2 = tf.Variable(0.) #probs of acitons
         p3 = tf.Variable(0.) #probs of acitons
-        #episode_avg_score = tf.Variable(0.)
+        episode_avg_score = tf.Variable(0.)
 
         tf.summary.scalar('Total Loss / Updates', total_loss)
         tf.summary.scalar('Actor Loss / Updates', actor_loss)
         tf.summary.scalar('Critic Loss / Updates', critic_loss)
         tf.summary.scalar('Entropy / Updates', entropy)
+        '''
         tf.summary.scalar('Action1 / Updates', p1)
         tf.summary.scalar('Action2 / Updates', p2)
         tf.summary.scalar('Action3 / Updates', p3)
-        #tf.summary.scalar('Average Score/Episode', episode_avg_score)
+        '''
+        tf.summary.scalar('Average Score/Episode', episode_avg_score)
 
         summary_vars = [total_loss, actor_loss,
-                        critic_loss, entropy,p1,p2,p3]#, episode_avg_score]
+        #                critic_loss, entropy,p1,p2,p3]#, episode_avg_score]
+                        critic_loss, entropy, episode_avg_score]#, episode_avg_score]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in
                                 range(len(summary_vars))]
         update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
