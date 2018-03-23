@@ -183,6 +183,7 @@ class Worker():
             
             done = reward != 0  #someone get the point
             #if done:
+            done = terminal
             if done or steps % 20 == 0:
                 loss, actor_loss, critic_loss, entropy = self.update(done, next_state, next_hi_st)
                 self.agent.update_count += 1
