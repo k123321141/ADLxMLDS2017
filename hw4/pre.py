@@ -33,10 +33,29 @@ def main():
     x_buf = []
     y1_buf = []
     y2_buf = []
+    text_buf = []
     for line in ls:
+        if len(line.strip()) == 0:
+            continue
         idx, line = line.split(',')
         tags = line.strip().lower()
         tags = tags.replace('eye','eyes')
+
+        #whole tag texts
+        texts = line.strip().split('\t')
+        text = set()
+        for t in texts:
+            t, _ = t.split(':')
+            t = t.strip()
+            text.add(t)
+        buf = np.zeros([1, 1], dtype=object)
+        s = ''
+        for i, t in enumerate(text):
+            s += t
+            s += ' , ' if i != len(text)-1 else ' .'
+        buf[0, 0] = s
+        text_buf.append(buf)
+
 
         #eyes
         e_m = eyes_patten.findall(tags)
@@ -59,16 +78,17 @@ def main():
             y1_buf.append(y1)
             y2_buf.append(y2)
             
-            img_path = join('./faces',idx+'.jpg')
+            img_path = join('./faces',str(idx)+'.jpg')
             x = imread(img_path)
             x = imresize(x, [64,64,3]).astype(np.uint8)
             x = x.reshape([1,64,64,3]) 
             x_buf.append(x)
-    x, y1, y2  = (np.vstack(x_buf), np.vstack(y1_buf), np.vstack(y2_buf)) 
+    x, y1, y2, text  = (np.vstack(x_buf), np.vstack(y1_buf), np.vstack(y2_buf), np.vstack(text_buf)) 
+
     
     #print tag_set, len(tag_set)
     with open('./train.npz','wb') as f:
-        np.savez(f, x=x, eyes=y1, hair=y2)
+        np.savez(f, x=x, eyes=y1, hair=y2, text=text)
     print x.shape, y1.shape, y2.shape
 def tag_in(s, tags):
     for tag in tags:

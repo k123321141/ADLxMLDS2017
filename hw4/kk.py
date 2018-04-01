@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 from collections import defaultdict
 try:
@@ -13,10 +12,12 @@ from six.moves import range
 from keras.datasets import mnist
 from keras.layers import *
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import Conv2DTranspose, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.utils.generic_utils import Progbar
+import scipy.spatial.distance as sd
+from skip_thoughts import configuration
+from skip_thoughts import encoder_manager
 import numpy as np
 
 np.random.seed(0413)
@@ -25,6 +26,7 @@ npz = np.load('./train.npz')
 
 color_classes = 12
 img_dim = 64
+
 def build_generator(latent_size):
     # we will map a pair of (z, L), where z is a latent vector and L is a
     # label drawn from P_c, to image space (..., 28, 28, 1)
@@ -168,11 +170,7 @@ def main():
     npz = np.load('./train.npz')
     
     x_train = npz['x']
-    y1 = npz['eyes']
-    y2 = npz['hair']
-    y1 = y1.reshape([-1])
-    y2 = y2.reshape([-1])
-    print(x_train.shape,y1.shape)
+    text = npz['text']
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
 
 
@@ -180,24 +178,17 @@ def main():
 
     train_history = defaultdict(list)
 
+    #skip-thoughts enncoder
+    encoder = load_skip_thoughts()
+
     for iters in range(10000000000):
         print('Iters {}'.format(iters))
 
         num_batches = 100 
         progress_bar = Progbar(target=num_batches)
 
-        # we don't want the discriminator to also maximize the classification
-        # accuracy of the auxiliary classifier on generated images, so we
-        # don't train discriminator to produce class labels for generated
-        # images (see https://openreview.net/forum?id=rJXTf9Bxg).
-        # To preserve sum of sample weights for the auxiliary classifier,
-        # we assign sample weight of 2 to the real images.
-        disc_sample_weight = [np.ones(2 * batch_size),
-                              np.concatenate((np.ones(batch_size) * 2,
-                                              np.zeros(batch_size))),
-                              np.concatenate((np.ones(batch_size) * 2,
-                                              np.zeros(batch_size))),
-                              ]
+        disc_sample_weight = [np.concatenate((np.ones(batch_size) * 2,
+                                              np.zeros(batch_size*2))),]
 
         iters_gen_loss = []
         iters_disc_loss = []
@@ -207,25 +198,16 @@ def main():
             noise = np.random.normal(0, 1, (batch_size, latent_size))
             idxs = np.random.choice(x_train.shape[0], batch_size)
             # get a batch of real images
-            '''
-            image_batch = x_train[index * batch_size:(index + 1) * batch_size]
-            eyes_batch = y1[index * batch_size:(index + 1) * batch_size]
-            hair_batch = y2[index * batch_size:(index + 1) * batch_size]
-            '''
             image_batch = x_train[idxs]
-            eyes_batch = y1[idxs]
-            hair_batch = y2[idxs]
+            text_batch = text[idxs]
 
-            # sample some labels from p_c
-            sampled_eyes = np.random.randint(0, color_classes, batch_size)
-            sampled_hair = np.random.randint(0, color_classes, batch_size)
+            # sample some wrong text from different index
+            fake_idxs = np.random.choice(x_train.shape[0], batch_size)
+            fake_text_batch = text[idxs]
 
-            # generate a batch of fake images, using the generated labels as a
-            # conditioner. We reshape the sampled labels to be
-            # (batch_size, 1) so that we can feed them into the embedding
-            # layer as a length one sequence
+            # generate a batch of fake images, with the right text.
             generated_images = generator.predict(
-                [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))], verbose=0)
+                [text_batch, noise])
 
             x = np.concatenate((image_batch, generated_images))
 
@@ -234,33 +216,35 @@ def main():
             # fake : normal distribution from 0.1 with interval 0.1, and clip by 0.1 0.3
             soft_true = np.random.normal(0.9, 0.2,[batch_size, 1])
             soft_true = np.clip(soft_true, 0.7, 1.2)
-            soft_fake = np.random.normal(0.1, 0.1,[batch_size, 1])
+            soft_fake = np.random.normal(0.1, 0.1,[batch_size*2, 1])
             soft_fake = np.clip(soft_true, 0, 0.3)
+            # true image, right text
+            # fake image, right text
+            # true image, wrong text
             y = np.concatenate([soft_true, soft_fake], axis=0)
-            aux_y1 = np.concatenate((eyes_batch, sampled_eyes), axis=0)
-            aux_y2 = np.concatenate((hair_batch, sampled_hair), axis=0)
+            text_y = np.concatenate([text_batch, text_batch, fake_text_batch], axis=0)
 
             # see if the discriminator can figure itself out...
             iters_disc_loss.append(discriminator.train_on_batch(
-                x, [y, aux_y1, aux_y2], sample_weight=disc_sample_weight))
+                x, [y, text_y], sample_weight=disc_sample_weight))
             
             # make new noise. we generate 2 * batch size here such that we have
             # the generator optimize over an identical number of images as the
             # discriminator
-            noise = np.random.normal(0, 1, (2 * batch_size, latent_size))
-            sampled_eyes = np.random.randint(0, color_classes, 2 * batch_size)
-            sampled_hair = np.random.randint(0, color_classes, 2 * batch_size)
+            noise = np.random.normal(0, 1, (4 * batch_size, latent_size))
+            fake_idxs = np.random.choice(x_train.shape[0], batch_size*4)
+            fake_text_batch = text[idxs]
 
-            # we want to train the generator to trick the discriminator
+            # we want to train the generator to trick the discriminator.
             # For the generator, we want all the {fake, not-fake} labels to say
             # not-fake
             trick = np.random.normal(0.9, 0.2,[batch_size*2, 1])
             trick = np.clip(trick, 0.7, 1.0)
             
             iters_gen_loss.append(combined.train_on_batch(
-                [noise, sampled_eyes.reshape((-1, 1)), sampled_hair.reshape((-1, 1))],
+                [noise, fake_text_batch],
 
-                [trick, sampled_eyes, sampled_hair]))
+                [trick]))
 
             progress_bar.update(index + 1)
 
@@ -274,11 +258,11 @@ def main():
         train_history['generator'].append(generator_train_loss)
         train_history['discriminator'].append(discriminator_train_loss)
 
-        print('{0:<22s} | {1:7s} | {2:15s} | {3:10s} | {4:10s}'.format(
+        print('{0:<22s} | {1:7s} | {2:15s} '.format(
             'component', *discriminator.metrics_names))
         print('-' * 100)
 
-        ROW_FMT = '{0:<22s} | {1:<7.2f} | {2:<15.2f} | {3:<10.2f} | {4:<10.2f}'
+        ROW_FMT = '{0:<22s} | {1:<7.2f} | {2:<15.2f} '
         print(ROW_FMT.format('generator (train)',
                              *train_history['generator'][-1]))
         print(ROW_FMT.format('discriminator (train)',
@@ -317,34 +301,30 @@ def main():
         merge_img = merge_img.astype(np.uint8)
         Image.fromarray(merge_img).save(
             './gen_img/plot_iters_{0:03d}_generated.png'.format(iters))
-if __name__ == '__main__':
-    main()
+
+def encode_text(encoder, text_batch):
+    data = text_batch.flatten().tolist()
+    encodings = encoder.encode(data)
+    print encodings.shape
+    
+
+def load_skip_thoughts():
+    VOCAB_FILE = "./pretrained/skip_thoughts_uni_2017_02_02/vocab.txt"
+    EMBEDDING_MATRIX_FILE = "./pretrained/skip_thoughts_uni_2017_02_02/embeddings.npy"
+    CHECKPOINT_PATH = "./pretrained/skip_thoughts_uni_2017_02_02/model.ckpt-501424"
+    # The following directory should contain files rt-polarity.neg and
+    # rt-polarity.pos.
+    MR_DATA_DIR = "/dir/containing/mr/data"
+
+    encoder = encoder_manager.EncoderManager()
+    encoder.load_model(configuration.model_config(),
+                           vocabulary_file=VOCAB_FILE,
+                              embedding_matrix_file=EMBEDDING_MATRIX_FILE,
+                             checkpoint_path=CHECKPOINT_PATH)
+    return encoder
 
 
-import numpy as np
-import os.path
-import scipy.spatial.distance as sd
-from skip_thoughts import configuration
-from skip_thoughts import encoder_manager
-
-VOCAB_FILE = "./pretrained/skip_thoughts_uni_2017_02_02/vocab.txt"
-EMBEDDING_MATRIX_FILE = "./pretrained/skip_thoughts_uni_2017_02_02/embeddings.npy"
-CHECKPOINT_PATH = "./pretrained/skip_thoughts_uni_2017_02_02/model.ckpt-501424"
-# The following directory should contain files rt-polarity.neg and
-# rt-polarity.pos.
-MR_DATA_DIR = "/dir/containing/mr/data"
-
-encoder = encoder_manager.EncoderManager()
-encoder.load_model(configuration.model_config(),
-                       vocabulary_file=VOCAB_FILE,
-                          embedding_matrix_file=EMBEDDING_MATRIX_FILE,
-                         checkpoint_path=CHECKPOINT_PATH)
-s = 'yellow eyes.'
-data = [s,'bule hair.']
-data = ['yellow eyes', 'bule eyes', 'orange eyes', 'red eyes', 'gray eyes', 'black eyes']
-encodings = encoder.encode(data)
-
-def get_nn(ind, num=2):
+def get_nn(ind, encodingsm, num=2):
     encoding = encodings[ind]
     scores = sd.cdist([encoding], encodings, "cosine")[0]
     sorted_ids = np.argsort(scores)
@@ -353,6 +333,7 @@ def get_nn(ind, num=2):
     print("\nNearest neighbors:")
     for i in range(1, num + 1):
         print(" %d. %s (%.3f)" % (i, data[sorted_ids[i]], scores[sorted_ids[i]]))
-for i,d in enumerate(data):
-    get_nn(i)
+
+if __name__ == '__main__':
+    main()
 
