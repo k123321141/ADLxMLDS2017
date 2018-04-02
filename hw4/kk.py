@@ -23,8 +23,9 @@ import numpy as np
 np.random.seed(0413)
 
 npz = np.load('./train.npz')
+colors = ['<unk>','green', 'white', 'blue', 'aqua', 'gray', 'purple', 'red', 'pink', 'yellow', 'brown', 'black']
 
-color_classes = 12
+color_classes = len(colors)#12
 img_dim = 64
 
 def build_generator(latent_size):
@@ -64,11 +65,6 @@ def build_generator(latent_size):
                             kernel_initializer='glorot_normal')(cnn)
     cnn = BatchNormalization(axis=-1)(cnn)
     cnn = Activation(LeakyReLU(0.2))(cnn)
-
-    cnn = Conv2DTranspose(64, 3, strides=1, padding='same',
-                            kernel_initializer='glorot_normal')(cnn)
-    cnn = BatchNormalization(axis=-1)(cnn)
-    cnn = Activation('relu')(cnn)
     
     # upsample to (64, 64, ...)
     cnn = Conv2DTranspose(32, 5, strides=2, padding='same',
@@ -94,37 +90,43 @@ def build_discriminator():
 
 
     image = Input(shape=(img_dim, img_dim, 3))
+    skip_thoughts_vector = Input(shape=(2400,), name='skip_thoughts_vector_input')
+    skv = Dense(100, activation='linear')(skip_thoughts_vector)
+
 
     cnn = image
     cnn = Conv2D(32, 3, padding='same', strides=2)(cnn)
     cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = Dropout(0.3)(cnn)
 
     cnn = Conv2D(64, 3, padding='same', strides=2)(cnn)
     cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = Dropout(0.3)(cnn)
 
 
     cnn = Conv2D(128, 3, padding='same', strides=2)(cnn)
     cnn = BatchNormalization(axis=-1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = Dropout(0.3)(cnn)
+    
+    cnn = Conv2D(64, 3, padding='same', strides=2)(cnn)
+    cnn = BatchNormalization(axis=-1)(cnn)
+    cnn = LeakyReLU(0.2)(cnn)
+
+    skv = RepeatVector(16)(skv)
+    skv = Reshape([4,4, -1])(skv)
+    cnn = Concatenate(axis=-1)([cnn, skv])
     
 
-    cnn = Conv2D(256, 3, padding='same', strides=1)(cnn)
+    cnn = Conv2D(100, 3, padding='same', strides=1)(cnn)
     cnn = LeakyReLU(0.2)(cnn)
-    cnn = Dropout(0.3)(cnn)
 
     cnn = Flatten()(cnn)
-    features = cnn
     # first output (name=generation) is whether or not the discriminator
     # thinks the image that is being shown is fake, and the second output
     # (name=auxiliary) is the class that the discriminator thinks the image
     # belongs to.
-    fake = Dense(1, activation='sigmoid', name='generation')(features)
-    return Model(inputs=image, outputs=fake)
+    fake = Dense(1, activation='sigmoid', name='generation')(cnn)
+    return Model(inputs=[image, skip_thoughts_vector], outputs=fake)
 
 def main():    
     # batch and latent size taken from the paper
@@ -155,7 +157,7 @@ def main():
 
     # we only want to be able to train generation for the combined model
     discriminator.trainable = False
-    fake = discriminator(fake)
+    fake = discriminator([fake, skip_thoughts_vector])
     combined = Model([skip_thoughts_vector, latent], [fake])
 
     print('Combined model:')
@@ -188,7 +190,7 @@ def main():
         progress_bar = Progbar(target=num_batches)
 
         disc_sample_weight = [np.concatenate((np.ones(batch_size) * 2,
-                                              np.zeros(batch_size*2))),]
+                                              np.ones(batch_size*2))),]
 
         iters_gen_loss = []
         iters_disc_loss = []
@@ -199,17 +201,17 @@ def main():
             idxs = np.random.choice(x_train.shape[0], batch_size)
             # get a batch of real images
             image_batch = x_train[idxs]
-            text_batch = text[idxs]
+            text_batch = encode_text(encoder, text[idxs])
 
             # sample some wrong text from different index
             fake_idxs = np.random.choice(x_train.shape[0], batch_size)
-            fake_text_batch = text[idxs]
+            fake_text_batch = encode_text(encoder, text[idxs])
 
             # generate a batch of fake images, with the right text.
             generated_images = generator.predict(
                 [text_batch, noise])
 
-            x = np.concatenate((image_batch, generated_images))
+            x = np.concatenate([image_batch, generated_images, image_batch])
 
             # use soft real/fake labels and flip noise
             # true : normal distribution from 0.9 with interval 0.2, and clip by 0.7 1.2
@@ -217,32 +219,32 @@ def main():
             soft_true = np.random.normal(0.9, 0.2,[batch_size, 1])
             soft_true = np.clip(soft_true, 0.7, 1.2)
             soft_fake = np.random.normal(0.1, 0.1,[batch_size*2, 1])
-            soft_fake = np.clip(soft_true, 0, 0.3)
+            soft_fake = np.clip(soft_fake, 0, 0.3)
             # true image, right text
             # fake image, right text
             # true image, wrong text
             y = np.concatenate([soft_true, soft_fake], axis=0)
-            text_y = np.concatenate([text_batch, text_batch, fake_text_batch], axis=0)
+            text_x = np.concatenate([text_batch, text_batch, fake_text_batch], axis=0)
 
             # see if the discriminator can figure itself out...
             iters_disc_loss.append(discriminator.train_on_batch(
-                x, [y, text_y], sample_weight=disc_sample_weight))
+                [x, text_x], y, sample_weight=disc_sample_weight))
             
             # make new noise. we generate 2 * batch size here such that we have
             # the generator optimize over an identical number of images as the
             # discriminator
             noise = np.random.normal(0, 1, (4 * batch_size, latent_size))
             fake_idxs = np.random.choice(x_train.shape[0], batch_size*4)
-            fake_text_batch = text[idxs]
+            fake_text_batch = encode_text(encoder, text[fake_idxs])
+
 
             # we want to train the generator to trick the discriminator.
             # For the generator, we want all the {fake, not-fake} labels to say
             # not-fake
-            trick = np.random.normal(0.9, 0.2,[batch_size*2, 1])
+            trick = np.random.normal(0.9, 0.2,[batch_size*4, 1])
             trick = np.clip(trick, 0.7, 1.0)
-            
             iters_gen_loss.append(combined.train_on_batch(
-                [noise, fake_text_batch],
+                [fake_text_batch, noise],
 
                 [trick]))
 
@@ -255,19 +257,19 @@ def main():
         generator_train_loss = np.mean(np.array(iters_gen_loss), axis=0)
 
         # generate an iters report on performance
+        '''
         train_history['generator'].append(generator_train_loss)
         train_history['discriminator'].append(discriminator_train_loss)
-
-        print('{0:<22s} | {1:7s} | {2:15s} '.format(
+        print('{0:<22s} | {1:7s} '.format(
             'component', *discriminator.metrics_names))
         print('-' * 100)
 
-        ROW_FMT = '{0:<22s} | {1:<7.2f} | {2:<15.2f} '
+        ROW_FMT = '{0:<22s} | {1:<7.2f} '
         print(ROW_FMT.format('generator (train)',
                              *train_history['generator'][-1]))
         print(ROW_FMT.format('discriminator (train)',
                             * train_history['discriminator'][-1]))
-
+        '''
         # save weights every iters
         if iters % 10 == 0:
             generator.save_weights(
@@ -281,17 +283,17 @@ def main():
                         (color_classes, 1))
         #generate img
         img_num = color_classes
-        sampled_eyes = np.zeros([color_classes**2, 1])
-        for i in range(color_classes):
-            sampled_eyes[i*color_classes : (i+1)*color_classes, 0] = i 
-        sampled_hair = np.zeros([color_classes**2, 1])
-        for i in range(color_classes):
-            sampled_hair[i*color_classes : (i+1)*color_classes, 0] = i 
+        sample_text = np.zeros([color_classes**2, 1], dtype=object)
+        for i in range(img_num):
+            for j in range(img_num):
+                s = '%s eyes , %s hair .' % (colors[i], colors[j])
+                sample_text[i*color_classes +j, 0] = s
 
+        sample_skip_thoughts = encode_text(encoder, sample_text)
         merge_img = np.zeros([img_dim * img_num, img_dim * img_num, 3])
         #print(noise.shape,sampled_eyes.shape,sampled_hair.shape)
         gen_img = generator.predict(
-                [noise, sampled_eyes, sampled_hair], verbose=0)
+                [sample_skip_thoughts, noise], verbose=0)
         for i in range(img_num):
             for j in range(img_num):
                 merge_img[i*img_dim: (i+1)*img_dim, j*img_dim: (j+1)*img_dim, :] = gen_img[i + img_num*j, :, :, :]
@@ -305,7 +307,7 @@ def main():
 def encode_text(encoder, text_batch):
     data = text_batch.flatten().tolist()
     encodings = encoder.encode(data)
-    print encodings.shape
+    return encodings
     
 
 def load_skip_thoughts():
